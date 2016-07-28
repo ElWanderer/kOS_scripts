@@ -1,0 +1,118 @@
+KSP 1.1.3 / kOS v1.0
+
+Grand projects:
+-----------------
+
+Satellite contact - Kerbin orbit
+ - add runmode to wait for new instructions
+ - try to fit required code into 20k
+
+Satellite contact - Other bodies
+ - develop inter-planetary transfer code
+
+Probe Lander / Science
+ - calculate how to change orbit to pass over specific geoposition
+   - phasing change implemented
+   - add a direct inclination change
+
+
+Specific script actions:
+--------------------------
+
+lib_burn
+ - add ability to use RCS for burns
+ - check ahead to see if there is another engine to activate before staging
+
+lib_warp
+ - retest
+ - how does it behave on going through altitudes where the warp speed is limited by KSP?
+ - handle KAC alarms sensibly
+
+lib_transfer
+ - test use of lib_warp
+ - add time limits to the node improvement
+   - prevent it bringing the node too close to the ship or too far into the future
+   - stop improving after a set time has elapsed
+     - I have observed a couple of cases where it seems to have gone into a loop
+     - perhaps the initial time jumps need to be larger
+ - we can't change the inclination very well unless our node is in the right plane
+   - fix by handling inclination separately?
+     - will be needed for inter-planetary transfers
+ - add ability to work out where will we re-enter and tweak this with a node
+   - not sure if this would belong in lib_reentry
+ - put node generation functions into their own libraries if the complete set ends up being rather large?
+ - clean-up node improvement
+ - clean-up body-to-moon
+ - clean-up moon-to-body
+   - calculate when the ejection angle will be correct rather than blindly iterating
+ - develop moon-to-moon/body-to-body
+   - develop support for transferring between moons of different bodies
+ - develop support for gravity assists
+ - move node improvement to new file?
+   - add ability to pass in the scoring conditions as a function delegate
+
+lib_orbit
+ - (KSP's) orbit prediction functions don't work properly on a hyperbolic trajectory when given
+   a time in the past
+   - add extra checks to set the parameter time to be TIME:SECONDS if passed in time up to 1s ago?
+   - or only worry about the calls from lib_transfer?
+
+lib_lander_descent
+ - clean-up
+ - precision landing functionality
+   - and/or avoiding slopes
+ - after landing, try to detect if slope too great and abort to lift-off?
+ - scan terrain ahead during warp to periapsis
+
+lib_lander_ascent
+ - clean-up
+ - pitch angle could be based on prograde direction if within sensible limits
+
+lib_dock
+ - add more waypoints if needed
+ - doesn't seem to like plotting a route if starting too close
+ - clean-up
+
+lib_rendezvous
+ - moon avoidance
+ - Hohmann transfers
+ - implement a better rendezvous approach
+   - if relative velocity magnitude and/or angle out of limits, plot a translation vector from
+     the current velocity to one that points at the (offset) target position
+   - avoiding swinging around too much
+   - when further apart, use orbit predictions to determine best closing velocity
+ - use station-keeping once relative velocity low
+ - support RCS for fine corrections?
+
+lib_steer
+ - can we use angularvel to determine when we are stable?
+ - two different sun-pointing functions
+   - can we work out which one to use?
+
+lib_skeep
+ - add actual station-keeping
+ - RCS support
+
+lib_reentry
+ - change deorbit burn to handle large inclinations
+ - deorbit burn is tuned for an 85km by 85km orbit
+   - extend to handle other circular orbits
+   - could divide by zero if in Keostationary orbit(!)
+
+lib_launch_common
+ - the pitch program and heading are currently fixed. This can be improved:
+   - adjust the pitch away from the program if climbing too rapidly / not quickly enough
+   - adjust the heading/node to tweak the inclination during circularisation
+     - may not be possible
+
+run-modes:
+-----------
+
+1-49     launch (including various abort stages)
+51-98    re-entry
+99       *end*
+101-149  transfer
+201-249  lander descent
+301-349  lander ascent
+401-449  rendezvous
+801-999  mission steps
