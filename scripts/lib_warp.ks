@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_warp.ks v1.0.6 20160728").
+pOut("lib_warp.ks v1.0.7 20160730").
 
 GLOBAL WARP_TIME IS TIME:SECONDS.
 GLOBAL WARP_MIN_ALT_LEX IS LEXICON(
@@ -76,7 +75,7 @@ FUNCTION doWarp
 
   setWarpTime(wt).
 
-  IF warpTime() < WARP_RAILS_BUFF[o] { RETURN FALSE. }
+  IF warpTime() < WARP_RAILS_BUFF[0] { RETURN FALSE. }
   pOut("Engaging time warp.").
 
   UNTIL stop_func() OR warpTime() <= 0 {
