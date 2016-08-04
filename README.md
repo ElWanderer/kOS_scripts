@@ -1,5 +1,5 @@
 # kOS_scripts
-kOS scripts and libraries
+Scripts and libraries for the fantastic kOS mod for the PC game Kerbal Space Program.
 
 ### Headline Items
 
