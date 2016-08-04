@@ -8,7 +8,7 @@ There are boot scripts that automate (as much as is possible) certain contract t
  - launching satellites into specific orbits of Kerbin and its moons
  - launching a rescue craft to pick-up and return Kerbals from orbit of either Kerbin or one of its moons.
    * EVAing over the Kerbal to the rescue craft still has to be done manually!
-   * a variation on this can be used to transfer to a moon and dock there
+   * a variation on this can be used to transfer to a craft in orbit of a moon and dock there
  - science harvesting (intended for probes, not Human-rated though perhaps could be considered Kerbal-rated!):
    * automated visiting of orbital waypoints to trigger science experiments
    * automated moon landing and return
