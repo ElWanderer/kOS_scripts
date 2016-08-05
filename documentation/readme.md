@@ -21,7 +21,7 @@ Currently the script files are split into three different types, though two of t
  * init scripts
  * library scripts
 
-Each boot script represents a mission, such as placing a satellite into orbit. Each one calls an init script (there are now two with a common library, but this is a very recent development) that sets up a common set of functions for loading libraries, plus some functions that are commonly-used. Boot scripts load and run libraries as needed. Many libraries are dependent on other libraries, so they call and run them in turn.
+Each boot script represents a mission or task, such as placing a satellite into orbit. Each one calls an init script (there are now two with a common library, but this is a very recent development) that sets up a common set of functions for loading libraries, plus some functions that are commonly-used. Boot scripts load and run libraries as needed. Many libraries are dependent on other libraries, so they call and run them in turn.
 
 Init scripts and libraries are meant to be generic (though more on this later) and as such should not need editing. Boot scripts on the other hand are often intended to be customised. Taking the satellite launch script as an example, there are several global variables at the top of the script that need changing to input the desired orbit parameters.
 
@@ -37,5 +37,31 @@ There is another form of interaction: kOS part tags. These are only available wi
 
 ##### Recovery
 
-An important design concept is that every ship should be able to resume what it is currently doing should the processor reboot (following a power loss, change of active vessel, crash or frantic user interaction via the terminal). This is achieved by writing out small files to the local hard drive that contain code to put the craft into the right state. In turn this means that anything that cannot easily be calculated and resumed must be written to the disk.
+An important design concept is that every ship should be able to resume what it is currently doing should the processor reboot (following a power loss, change of active vessel, crash or frantic user interaction via the terminal). This is achieved by writing out small files to the local hard drive that contain code to put the craft back into the right state on booting up. In turn this means that anything that cannot easily be calculated and resumed right away must be written to the disk.
+
+### Ship design
+
+Naturally, there are some design assumptions in the code that result from the way I build craft. There are also some restrictions to keep the code relatively simple. Some of these can be altered, but not all.
+
+##### Staging
+
+TBD
+
+##### Abort sequences
+
+TBD
+
+##### Burn length calculation
+
+The functions that calculate how long it will take to burn a manouevre node are able to take into account a single staging event mid-burn. The most likely place for this is during orbital insertion, for early-to-mid-VAB-tier spacecraft where the launcher doesn't have quite enough delta-v to reach orbit. The payload takes over to finalise the burn, while the launcher drops back into the atmosphere. This calculation code is simplified to keep it from growing too large, so there are restrictions.
+
+It tries to find a single liquid-fuel engine that has a decoupler attached that will get rid of the current stage. This works for typical stock KSP rockets (as long as you don't have radial engines) but may not be appropriate for more unusual designs or multiple engines e.g if using something like Space-Y or RO/RSS. If an engine can't be found, a guess is made that the next (full) stage will take 2-3 times longer than the old (almost-empty) stage to provide the required delta-v.
+
+Secondly, though the burn time may be calculated accurately, no attempt is currently made to account for wildly-different thrust levels. If a burn is expected to start off with a Swivel and end with an Ant, you may find that although the burn lasts the predicted length and provides the right amount of delta-v, most of that delta-v will have been produced early on in the burn. This can do things such as pushing out the apoapsis too high then failing to bring the periapsis up high enough.
+
+##### TBD
+
+TBD
+
+
 
