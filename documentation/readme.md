@@ -48,13 +48,21 @@ Rebooting can be very useful e.g. if a transient orbital prediction miscalculati
 
 \* - This can happen if parts of the calculation get smeared over multiple physics ticks. There is one case where the script will spot that it's about to try to do something impossible (get the inverse COS of a number whose magnitude is greater than 1) and will reboot itself instead, but there may be other cases that aren't caught yet. I've found that some of the underlying KSP predictions seem to have changed behaviour since the upgrade to v1.1.
 
+##### Script editing
+
+Though the code can be rewritten as needed, the ideal is that customisations should be limited to the boot scripts (to tailor them to specific missions and/or craft) - this means that library scripts should be written with as few assumptions as possible. Anything that could vary should either be passed in as a function parameter from the boot script, or exist as a global variable that can be changed by the boot script. For clarity I prefer it if changes to global variables are done through set-up functions rather than altering the variables directly.
+
 ### Ship design
 
-Naturally, there are some design assumptions in the code that result from the way I build craft. There are also some restrictions to keep the code relatively simple. Some of these can be altered, but not all.
+Naturally, there are some design assumptions in the code that result from the way I build craft. There are also some restrictions to keep the code relatively simple. Some adaptations are possible.
+
+##### Engine starting / throttling
+
+The scripts assume that all liquid fuel engines can be throttled, can always be restarted and throttle up to maximum thrust immediately. As such, the launch and lander scripts are very much intended for stock KSP and would need a rewrite to handle RO/RSS limitations such as engines that can only fire once and throttles that have limits.
 
 ##### Staging
 
-Staging during launch is automatic: every time the thrust drops, a new stage is triggered until the thrust is non-zero. This will stage once to detach SRBs (thrust drops, but not to zero) or twice (or more) if needed to decouple the stage then fire a new set of engines (thrust drops to zero, stays at zero when the decoupler fires). This hasn't been optimised for RO/RSS, but may be in future to handle more complicated staging sequences.
+Staging during launch is automatic: every time the thrust drops, a new stage is triggered until the thrust is non-zero. This will stage once to detach SRBs (thrust drops, but not to zero) or twice (or more) if needed to decouple the stage then fire a new set of engines (thrust drops to zero, stays at zero when the decoupler fires). This hasn't been optimised for RO/RSS requirements, but may be in future to handle more complicated staging sequences.
 
 Staging on achieving orbit: TBD.
 
@@ -80,9 +88,7 @@ It tries to find a single liquid-fuel engine that has a decoupler attached that 
 
 Secondly, though the burn time may be calculated accurately, no attempt is currently made to account for wildly-different thrust levels. If a burn is expected to start off with a Swivel and end with an Ant, you may find that although the burn lasts the predicted length and provides the right amount of delta-v, most of that delta-v will have been produced early on in the burn. This can have undesired results such as pushing out the apoapsis too high then failing to bring the periapsis up out of the atmosphere.
 
-##### TBD
 
-TBD
 
 
 
