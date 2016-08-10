@@ -64,13 +64,13 @@ The scripts assume that all liquid fuel engines can be throttled, can always be 
 
 Staging during launch is automatic: every time the thrust drops, a new stage is triggered until the thrust is non-zero. This will stage once to detach SRBs (thrust drops, but not to zero) or twice (or more) if needed to decouple the stage then fire a new set of engines (thrust drops to zero, stays at zero when the decoupler fires). This hasn't been optimised for RO/RSS requirements, but may be in future to handle more complicated staging sequences.
 
-Staging on achieving orbit: TBD.
+Staging on achieving orbit: I like to keep low orbit free of spent stages. Before action groups are available, this is achieved by building craft where the launcher alone isn't quite powerful enough to put the payload into orbit; the payload completes the circularisation burn while the spent launcher is detached to fall back into the atmosphere. With action groups available, the launcher can put itself and the payload into orbit, then stage to detach itself and fire sepratrons that will put it back onto a sub-orbital trajectory. To this end, once in orbit, the launch script will stage (and continue to stage) as long as any parts tagged "LAUNCHER" are still on the craft. The staging should be set-up so that the launcher is detached, any de-orbit SRBs are triggered and the payload's engines are activated in one go. The latter is required if the payload is intended to do any manouevring - without a working engine the node burning library tends to complain as by default it's not allowed to stage (see Staging during a burn below).
 
-Staging during a burn (see the section on burn length calculation below) is supported but optional. In general, it is enabled for launch circularisation but disabled at other times. Enabling staging for some other situations is possible by editing the boot script.
+Staging during a burn is supported but optional. In general, it is enabled for launch circularisation but disabled at other times. Enabling staging for some other situations is possible by editing the boot script. Note - it's worth reading the section on burn length calculation below.
 
-Staging during (or more accurately prior to) re-entry is another item that has a default value, but can be overridden by changing the boot script. The default behaviour is to stage once: TBD
+Staging during (or more accurately prior to) re-entry is another item that has a default value, but can be overridden by changing the boot script. The default behaviour is to stage once: the assumption being that you have a command module and service module that need separating. To perform the separation without adjusting the current orbit too much, the ship will orient to face normal before staging. If you have more or fewer stages to trigger, this can be changed by modifying the boot script. If action groups are available, the script will continue to stage after the set number of staging events if there are any parts tagged "FINAL" on the craft. Note: should any parachutes accidentally be primed during this process, they will be disarmed if possible.
 
-Other situations: TBD
+Other situations: The probe moon lander script and lander ascent libraries are unusual in that they have been written to trigger a stage a few seconds after lifting off. This is very specific to my ship design (and so needs improving) - the staging event is to jettison some landing legs, with the delay existing to try to prevent the legs landing softly enough to leave debris.
 
 ##### Abort sequences
 
@@ -88,7 +88,99 @@ It tries to find a single liquid-fuel engine that has a decoupler attached that 
 
 Secondly, though the burn time may be calculated accurately, no attempt is currently made to account for wildly-different thrust levels. If a burn is expected to start off with a Swivel and end with an Ant, you may find that although the burn lasts the predicted length and provides the right amount of delta-v, most of that delta-v will have been produced early on in the burn. This can have undesired results such as pushing out the apoapsis too high then failing to bring the periapsis up out of the atmosphere.
 
+## Scipts
 
+### Boot scripts
 
+TBD
 
+### Init scripts/libraries
+
+There are currently two initialisation scripts with a shared library. Previously, all this code was in a single library, but I felt it was worth separating out the (chunky) code I added for coping with multiple disk volumes to keep the file size down for the simpler version that only uses the local volume.
+
+All the boot scripts start out by copying over and running either init.ks (local volume) or init\_multi.ks (multiple volumes):
+
+    @LAZYGLOBAL OFF.
+    
+    COPYPATH("0:/init.ks","1:/init.ks").
+    RUNONCEPATH("1:/init.ks").
+This enforces a copy, so the current init will be replaced every single boot. It would be possible to wrap the copy within a check to see if the file already exists on the local volume:
+
+    IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
+That may be a preferable addition for anyone using RemoteTech.
+
+In turn, both of the init scripts include the common library:
+
+    @LAZYGLOBAL OFF.
+    
+    COPYPATH("0:/init\_common.ks","1:/init\_common.ks").
+    RUNONCEPATH("1:/init\_common.ks").
+
+#### Global variable reference
+
+##### RESUME_FN
+
+The filename of the main resume file. The default filename is resume.ks.
+
+This is used to store commands to be run to recover a previous state following a reboot. The reason for doing this is to store a function call and all its parameters, so that we can resume (fairly) seamlessly during complicated functions such as doLaunch(), doReentry() etc.
+
+#### Function reference
+
+##### loadScript(script_name)
+
+This tries to copy script_name from the archive to one of the disk volumes on the ship. If the file already exists, it does not re-copy the file.
+
+Will crash kOS if the file needs to be copied over but there is not enough space to store the file (currently it is assumed that we want to stop and debug - if we are missing a library then chances are we will crash shortly anyway).
+
+Returns the full file path for where the script is on a local volume. This is meant to be plugged into RUNPATH e.g.
+
+    RUNONCEPATH(loadScript(script_name)).
+
+##### delScript(script_name)
+
+This tries to delete script_name from the local disk volume(s). 
+
+It will only delete one copy - it is assumed that anything being deleted will have been added via the loadScript() function, which avoids duplicate copies. Similarly, it won't go hunting in sub-directories, as loadScript() does not create those.
+
+If the file does not exist, nothing happens.
+
+##### delResume(file\_name)
+
+Tries to delete file\_name from the local volume(s).
+
+The default file\_name is RESUME_FN.
+
+If the file does not exist, nothing happens.
+
+##### store(text, file\_name, file\_size\_required)
+
+This logs text to file\_name on the local volume. The default file\_name is RESUME_FN.
+
+There is a difference in behaviour between init.ks and init\_multi.ks. init.ks simply uses the local volume, but init\_multi.ks will try to find a volume with enough free space: there must be file\_size\_required bytes available. The default file\_size\_required is 150 bytes.
+
+Will crash kOS if it tries to write out too large a file to fit on the local volume.
+
+##### append(text, file\_name)
+
+Tries to append text to file\_name.
+
+The default file\_name is RESUME_FN.
+
+Will crash kOS if file\_name does not exist anywhere on the local volume.
+
+##### resume(file\_name)
+
+Tries to run file\_name.
+
+The default file\_name is RESUME_FN.
+
+If file\_name does not exist, nothing happens.
+
+##### TBD - add in the extra commands unique to init\_multi.ks.
+
+##### TBD - add in the commands in init_common.ks.
+
+### Libraries
+
+TBD
 
