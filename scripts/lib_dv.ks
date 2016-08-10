@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_dv.ks v1.0.2 20160728").
+pOut("lib_dv.ks v1.0.3 20160802").
 
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
@@ -29,6 +29,20 @@ FUNCTION partMass
   RETURN m.
 }
 
+FUNCTION engCanFire
+{
+  PARAMETER e.
+  RETURN NOT e:IGNITION AND e:ALLOWRESTART AND e:ALLOWSHUTDOWN.
+}
+
+FUNCTION moreEngines
+{
+  LOCAL all_e IS LIST().
+  LIST ENGINES IN all_e.
+  FOR e IN all_e { IF engCanFire(e) { RETURN TRUE. } }
+  RETURN FALSE.
+}
+
 FUNCTION nextStageBT
 {
   PARAMETER dv.
@@ -42,7 +56,7 @@ FUNCTION nextStageBT
 
   LOCAL ne IS all_e[0].
   LOCAL ok IS FALSE.
-  FOR e IN all_e { IF NOT e:IGNITION AND e:ALLOWRESTART AND e:ALLOWSHUTDOWN {
+  FOR e IN all_e { IF engCanFire(e) {
     LOCAL child_mass IS partMass(e) - e:MASS.
     IF child_mass < min_mass AND child_mass > 0 {
       SET min_mass TO child_mass.
@@ -96,15 +110,14 @@ FUNCTION pDV
 
 FUNCTION burnTime
 {
-  PARAMETER dv, limiter IS 1.
+  PARAMETER dv, sdv IS stageDV(), limiter IS 1.
   setIspFuelRate(limiter).
   LOCAL bt IS btCalc(dv,MASS,DV_ISP,DV_FR).
-  LOCAL sdv IS stageDV().
   IF dv > sdv {
     LOCAL bt1 IS btCalc(sdv,MASS,DV_ISP,DV_FR).
     LOCAL bt2 IS nextStageBT(dv - sdv).
     IF bt2 = 0 { SET bt2 TO (bt - bt1) * 2.5. }
-    SET bt TO bt1 + bt2 + 0.5.
+    RETURN bt1 + bt2 + 0.5.
   }
   RETURN bt.
 }

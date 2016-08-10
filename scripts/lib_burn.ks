@@ -1,7 +1,7 @@
 @LAZYGLOBAL OFF.
 
 
-pOut("lib_burn.ks v1.1.0 20160725").
+pOut("lib_burn.ks v1.1.1 20160802").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -42,8 +42,8 @@ FUNCTION pointNode
 
 FUNCTION checkNodeSize
 {
-  PARAMETER n_bt, n_dv.
-  SET BURN_NODE_IS_SMALL TO (n_bt < BURN_SMALL_SECS OR n_dv < BURN_SMALL_DV).
+  PARAMETER n_bt, n_dv, s_dv.
+  SET BURN_NODE_IS_SMALL TO (s_dv > n_dv AND (n_bt < BURN_SMALL_SECS OR n_dv < BURN_SMALL_DV)).
 }
 
 FUNCTION burnThrottle
@@ -60,9 +60,6 @@ FUNCTION burnSmallNode
   SET BURN_THROTTLE TO BURN_SMALL_THROT.
   WAIT UNTIL TIME:SECONDS - u_time >= bt OR SHIP:AVAILABLETHRUST = 0.
   SET BURN_THROTTLE TO 0.
-
-  IF n:DELTAV:MAG >= 1 { RETURN FALSE. }
-  ELSE { RETURN TRUE. }
 }
 
 FUNCTION burnNode
@@ -71,8 +68,6 @@ FUNCTION burnNode
 
   LOCAL ok IS TRUE.
   LOCAL o_dv IS n:DELTAV.
-  LOCAL sc IS 0.
-  LOCAL done IS FALSE.
 
   LOCK THROTTLE TO BURN_THROTTLE.
   IF ADDONS:KAC:AVAILABLE AND (bt / 2) < 300 {
@@ -83,33 +78,29 @@ FUNCTION burnNode
   }
 
   WAIT UNTIL n:ETA <= (bt / 2).
-  IF BURN_NODE_IS_SMALL { SET done TO burnSmallNode(n, bt). }
+
+  LOCAL done IS BURN_NODE_IS_SMALL.
+  IF done { burnSmallNode(n, bt). }
 
   UNTIL done OR NOT ok {
     LOCAL acc IS SHIP:AVAILABLETHRUST / MASS.
+    LOCAL follow_node IS TRUE.
     IF acc > 0 {
-      IF sc > 0 { SET sc TO 0. }
       SET bt TO n:DELTAV:MAG / acc.
       SET BURN_THROTTLE TO burnThrottle(bt).
 
       IF VDOT(o_dv, n:DELTAV) < 0 {
         SET BURN_THROTTLE TO 0.
         SET done TO TRUE.
-      } ELSE IF n:DELTAV:MAG < 1 {
-        steerTo(n:DELTAV, FACING:TOPVECTOR).
+      } ELSE IF follow_node AND n:DELTAV:MAG < BURN_SMALL_DV {
         SET o_dv TO n:DELTAV.
-        WAIT UNTIL VDOT(o_dv, n:DELTAV) < 0 OR SHIP:AVAILABLETHRUST = 0.
-        SET BURN_THROTTLE to 0.
-        SET done TO TRUE.
+        steerTo(o_dv, FACING:TOPVECTOR).
+        SET follow_node TO FALSE.
       }
     } ELSE {
       SET BURN_THROTTLE TO 0.
-      IF can_stage AND sc < 2 {
-        IF STAGE:READY AND stageTime() > 0.5 {
-          SET sc TO sc + 1.
-          doStage().
-        }
-      } ELSE {
+      IF can_stage AND moreEngines() { IF STAGE:READY AND stageTime() > 0.5 { doStage(). } }
+      ELSE {
         pOut("No thrust available for burn.").
         SET ok TO FALSE.
       }
@@ -120,7 +111,7 @@ FUNCTION burnNode
   dampSteering().
   UNLOCK THROTTLE.
 
-  printOrbit(SHIP:OBT).
+  pOrbit(SHIP:OBT).
 
   IF n:DELTAV:MAG >= 1 { SET ok TO FALSE. }
   IF ok { pOut("Node complete."). }
@@ -166,13 +157,12 @@ FUNCTION execNode
   pOut("Delta-v required: " + ROUND(n_dv,1) + "m/s.").
   pDV().
 
-  IF can_stage OR s_dv >= n_dv {
-    LOCAL bt IS burnTime(n_dv).
-    checkNodeSize(bt, n_dv).
+  IF (can_stage AND moreEngines()) OR s_dv >= n_dv {
+    LOCAL bt IS burnTime(n_dv, s_dv).
+    checkNodeSize(bt, n_dv, s_dv).
     IF BURN_NODE_IS_SMALL {
       SET BURN_SMALL_THROT TO burnThrottle(bt).
-      SET bt TO burnTime(n_dv,BURN_SMALL_THROT).
-      pOut("Throttle: " + (BURN_SMALL_THROT*100) +"%.").
+      SET bt TO burnTime(n_dv, s_dv, BURN_SMALL_THROT).
     }
     pOut("Burn time: " + ROUND(bt,1) + "s.").
     warpCloseToNode(n,bt).

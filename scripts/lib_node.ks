@@ -1,7 +1,7 @@
 @LAZYGLOBAL OFF.
 
 
-pOut("lib_node.ks v1.0 20160714").
+pOut("lib_node.ks v1.0.1 20160802").
 
 GLOBAL NODE_BUFF IS 60.
 
@@ -29,17 +29,17 @@ FUNCTION nodeDV
   RETURN SQRT(n:RADIALOUT^2 + n:NORMAL^2 + n:PROGRADE^2).
 }
 
-FUNCTION printOrbit
+FUNCTION pOrbit
 {
   PARAMETER o.
-  pOut("Orbit details:").
-  pOut("  Body:   " + o:BODY:NAME+".").
-  pOut("  Ap:     " + ROUND(o:APOAPSIS) + "m.").
-  pOut("  Pe:     " + ROUND(o:PERIAPSIS) + "m.").
-  pOut("  Period: " + ROUND(o:PERIOD) + "s.").
-  pOut("  Inc:    " + ROUND(o:INCLINATION,1) + " deg.").
-  pOut("  LAN:    " + ROUND(o:LAN,1) + " deg.").
-  IF o:HASNEXTPATCH { printOrbit(o:NEXTPATCH). }
+  pOut("Orbit:").
+  pOut(" Bdy: " + o:BODY:NAME).
+  pOut(" Ap:  " + ROUND(o:APOAPSIS) + "m").
+  pOut(" Pe:  " + ROUND(o:PERIAPSIS) + "m").
+  pOut(" Prd: " + ROUND(o:PERIOD) + "s").
+  pOut(" Inc: " + ROUND(o:INCLINATION,1) + " deg").
+  pOut(" LAN: " + ROUND(o:LAN,1) + " deg").
+  IF o:HASNEXTPATCH { pOrbit(o:NEXTPATCH). }
 }
 
 FUNCTION addNode
@@ -47,10 +47,10 @@ FUNCTION addNode
   PARAMETER n.
   ADD n.
   WAIT 0.
-  pOut("Node added. Details:").
-  pOut("  Delta-v:  " + ROUND(nodeDV(n),1) + "m/s.").
-  pOut("  Radial:   " + ROUND(n:RADIALOUT,2) + "m/s.").
-  pOut("  Normal:   " + ROUND(n:NORMAL,2) + "m/s.").
-  pOut("  Prograde: " + ROUND(n:PROGRADE,2) + "m/s.").
-  printOrbit(n:ORBIT).
+  pOut("Node:").
+  pOut(" DV:  " + ROUND(nodeDV(n),2) + "m/s").
+  pOut(" Rad: " + ROUND(n:RADIALOUT,2) + "m/s").
+  pOut(" Nrm: " + ROUND(n:NORMAL,2) + "m/s").
+  pOut(" Pro: " + ROUND(n:PROGRADE,2) + "m/s").
+  pOrbit(n:ORBIT).
 }
