@@ -1,10 +1,8 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_steer.ks v1.0 20160714").
+pOut("lib_steer.ks v1.1.1 20160803").
 
 GLOBAL STEER_TIME IS TIME:SECONDS.
-GLOBAL STEER_OK_TIME IS TIME:SECONDS.
 GLOBAL STEER_ON IS FALSE.
 
 FUNCTION isSteerOn
@@ -14,22 +12,21 @@ FUNCTION isSteerOn
 
 FUNCTION steerOn
 {
+  IF NOT STEER_ON { pOut("Steering engaged."). }
   resetSteerTime().
-  resetSteerOkTime().
   SET STEER_ON TO TRUE.
-  pOut("Steering engaged.").
 }
 
 FUNCTION steerOff
 {
+  IF STEER_ON { pOut("Steering disengaged."). }
   SET STEER_ON TO FALSE.
-  pOut("Steering disengaged.").
   UNLOCK STEERING.
 }
 
 FUNCTION steerTo
 {
-  PARAMETER fore, top IS FACING:TOPVECTOR.
+  PARAMETER fore IS FACING:FOREVECTOR, top IS FACING:TOPVECTOR.
   steerOn().
   LOCK STEERING TO LOOKDIRUP(fore,top).
 }
@@ -37,8 +34,8 @@ FUNCTION steerTo
 FUNCTION steerSurf
 {
   PARAMETER pro IS TRUE.
-  LOCAL mult IS 1.
-  IF NOT pro { SET mult TO -1. }
+  LOCAL mult IS -1.
+  IF pro { SET mult TO 1. }
   steerOn().
   LOCK STEERING TO LOOKDIRUP(mult * SRFPROGRADE:VECTOR, FACING:TOPVECTOR).
 }
@@ -46,8 +43,8 @@ FUNCTION steerSurf
 FUNCTION steerOrbit
 {
   PARAMETER pro IS TRUE.
-  LOCAL mult IS 1.
-  IF NOT pro { SET mult TO -1. }
+  LOCAL mult IS -1.
+  IF pro { SET mult TO 1. }
   steerOn().
   LOCK STEERING TO LOOKDIRUP(mult * PROGRADE:VECTOR, FACING:TOPVECTOR).
 }
@@ -62,16 +59,6 @@ FUNCTION steerSun
   steerTo(SUN:POSITION).
 }
 
-FUNCTION resetSteerOkTime
-{
-  SET STEER_OK_TIME TO TIME:SECONDS.
-}
-
-FUNCTION steerOkTime
-{
-  RETURN TIME:SECONDS - STEER_OK_TIME.
-}
-
 FUNCTION resetSteerTime
 {
   SET STEER_TIME TO TIME:SECONDS.
@@ -84,15 +71,15 @@ FUNCTION steerTime
 
 FUNCTION steerOk
 {
-  PARAMETER aoa IS 1, secs IS 4, timeout_secs IS 60.
+  PARAMETER aoa IS 1, precision IS 4, timeout_secs IS 60.
   IF steerTime() <= 0.1 { RETURN FALSE. }
-  IF NOT STEERINGMANAGER:ENABLED { pOut("CRASH: Steering Manager not enabled when expected to be."). }
-  IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa {
-    IF steerOkTime() > secs {
-      pOut("Steering aligned.").
-      RETURN TRUE.
-    }
-  } ELSE { resetSteerOkTime(). }
+  IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
+
+  IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND 
+     SHIP:ANGULARVEL:MAG < ((10 / precision) * 2 * CONSTANT:PI / SHIP:ORBIT:PERIOD) {
+    pOut("Steering aligned.").
+    RETURN TRUE.
+  }
   IF steerTime() > timeout_secs {
     pOut("Steering alignment timed out.").
     RETURN TRUE.
@@ -103,10 +90,7 @@ FUNCTION steerOk
 FUNCTION dampSteering
 {
   pOut("Damping steering.").
-  steerTo(FACING:FOREVECTOR,FACING:TOPVECTOR).
-  WAIT UNTIL steerOk(1,2).
+  steerTo().
+  WAIT UNTIL steerOk().
   steerOff().
-  SAS ON.
-  WAIT 3.
-  SAS OFF.
 }
