@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_transfer.ks v1.2.1 20160804").
+pOut("lib_transfer.ks v1.2.2 20160810").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -194,15 +194,15 @@ FUNCTION nodeMoonToBody
   PARAMETER moon.
   PARAMETER dest_pe.
 
-  LOCAL planet IS moon:OBT:BODY.
+  LOCAL dest IS moon:OBT:BODY.
 
   LOCAL mu IS moon:MU.
-  LOCAL hoh_mu IS planet:MU.
+  LOCAL hoh_mu IS dest:MU.
   LOCAL r_soi IS moon:SOIRADIUS.
   LOCAL r_pe IS ORBITAT(SHIP,u_time):SEMIMAJORAXIS.
 
   LOCAL r1 IS ORBITAT(moon,u_time):SEMIMAJORAXIS.
-  LOCAL r2 IS dest_pe + planet:RADIUS.
+  LOCAL r2 IS dest_pe + dest:RADIUS.
   LOCAL v_soi IS SQRT(hoh_mu/r1) * (SQRT((2*r2)/(r1+r2)) -1).
   LOCAL v_pe IS SQRT(v_soi^2 + (2 * mu/r_pe) - (2 * mu/r_soi)).
   LOCAL v_orbit IS SQRT(mu/r_pe).
