@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_burn.ks v1.1.1 20160802").
+pOut("lib_burn.ks v1.1.2 20160811").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -81,10 +80,10 @@ FUNCTION burnNode
 
   LOCAL done IS BURN_NODE_IS_SMALL.
   IF done { burnSmallNode(n, bt). }
+  LOCAL follow_node IS TRUE.
 
   UNTIL done OR NOT ok {
     LOCAL acc IS SHIP:AVAILABLETHRUST / MASS.
-    LOCAL follow_node IS TRUE.
     IF acc > 0 {
       SET bt TO n:DELTAV:MAG / acc.
       SET BURN_THROTTLE TO burnThrottle(bt).
