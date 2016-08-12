@@ -3,7 +3,7 @@
 COPYPATH("0:/init_multi.ks","1:/init_multi.ks").
 RUNONCEPATH("1:/init_multi.ks").
 
-pOut("KSatM.ks v1.0.0 20160726").
+pOut("KSatM.ks v1.0.1 20160812").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -45,7 +45,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL MOD(rm,10) <> 9.
+  WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   delResume().
@@ -60,7 +60,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Mission complete. Hit abort to switch back to mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL rm <> 803.
+  WAIT UNTIL runMode() <> 803.
 }
 
 }
