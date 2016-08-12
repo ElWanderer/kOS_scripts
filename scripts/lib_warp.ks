@@ -1,8 +1,7 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_warp.ks v1.0.7 20160730").
+pOut("lib_warp.ks v1.0.9 20160812").
 
-GLOBAL WARP_TIME IS TIME:SECONDS.
 GLOBAL WARP_MIN_ALT_LEX IS LEXICON(
   "Moho",   10000,
   "Eve",    MAX(90000,EVE:ATM:HEIGHT),
@@ -25,21 +24,16 @@ GLOBAL WARP_MAX_PHYSICS IS 3.
 GLOBAL WARP_MAX_RAILS IS 7.
 GLOBAL WARP_RAILS_BUFF IS LIST(3, 15, 30, 225, 675, 10000, 150000).
 
-FUNCTION setMaxPhysicsWarp
-{
-  PARAMETER m.
-  SET WARP_MAX_PHYSICS TO m.
-}
-
-FUNCTION setWarpTime
-{
-  PARAMETER wt.
-  SET WARP_TIME TO wt.
-}
-
 FUNCTION warpTime
 {
-  RETURN WARP_TIME - TIME:SECONDS.
+  RETURN -diffTime("WARP").
+}
+
+FUNCTION setMaxWarp
+{
+  PARAMETER mp IS 3, mr IS 7.
+  SET WARP_MAX_PHYSICS TO mp.
+  SET WARP_MAX_RAILS TO mr.
 }
 
 FUNCTION pickWarpMode
@@ -52,9 +46,7 @@ FUNCTION pickWarpMode
 
 FUNCTION pickWarp
 {
-  PARAMETER wm.
-
-  IF wm = "PHYSICS" { RETURN WARP_MAX_PHYSICS. }
+  IF WARPMODE = "PHYSICS" { RETURN WARP_MAX_PHYSICS. }
 
   LOCAL wt IS warpTime().
   FROM { LOCAL i IS WARP_MAX_RAILS. } UNTIL i < 1 STEP { SET i TO i - 1. } DO {
@@ -64,16 +56,11 @@ FUNCTION pickWarp
   RETURN 0.
 }
 
-FUNCTION noStop
-{
-  RETURN FALSE.
-}
-
 FUNCTION doWarp
 {
-  PARAMETER wt, stop_func IS noStop@.
+  PARAMETER wt, stop_func IS { RETURN FALSE. }.
 
-  setWarpTime(wt).
+  setTime("WARP",wt).
 
   IF warpTime() < WARP_RAILS_BUFF[0] { RETURN FALSE. }
   pOut("Engaging time warp.").
@@ -85,7 +72,7 @@ FUNCTION doWarp
       SET WARPMODE TO want_mode.
       SET WARP TO 1.
     } ELSE {
-      LOCAL want_warp IS pickWarp(WARPMODE).
+      LOCAL want_warp IS pickWarp().
       IF WARP <> want_warp { SET WARP TO want_warp. }
     }
     WAIT 0.
