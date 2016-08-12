@@ -53,7 +53,7 @@ FUNCTION steerSun
 FUNCTION steerOk
 {
   PARAMETER aoa IS 1, precision IS 4, timeout_secs IS 60.
-  IF diffTime("STEER") { RETURN FALSE. }
+  IF diffTime("STEER") <= 0.1 { RETURN FALSE. }
   IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
 
   IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND 
