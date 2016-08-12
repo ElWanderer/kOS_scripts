@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMShuttle.ks v1.0.2 20160714").
+pOut("KMShuttle.ks v1.0.3 20160812").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -72,7 +72,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL MOD(rm,10) <> 9.
+  WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   delResume().
