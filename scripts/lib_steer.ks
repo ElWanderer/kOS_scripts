@@ -1,8 +1,8 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_steer.ks v1.1.1 20160803").
+pOut("lib_steer.ks v1.1.2 20160812").
 
-GLOBAL STEER_TIME IS TIME:SECONDS.
+setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
 
 FUNCTION isSteerOn
@@ -13,7 +13,7 @@ FUNCTION isSteerOn
 FUNCTION steerOn
 {
   IF NOT STEER_ON { pOut("Steering engaged."). }
-  resetSteerTime().
+  setTime("STEER").
   SET STEER_ON TO TRUE.
 }
 
@@ -59,20 +59,10 @@ FUNCTION steerSun
   steerTo(SUN:POSITION).
 }
 
-FUNCTION resetSteerTime
-{
-  SET STEER_TIME TO TIME:SECONDS.
-}
-
-FUNCTION steerTime
-{
-  RETURN TIME:SECONDS - STEER_TIME.
-}
-
 FUNCTION steerOk
 {
   PARAMETER aoa IS 1, precision IS 4, timeout_secs IS 60.
-  IF steerTime() <= 0.1 { RETURN FALSE. }
+  IF diffTime("STEER") <= 0.1 { RETURN FALSE. }
   IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
 
   IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND 
@@ -80,7 +70,7 @@ FUNCTION steerOk
     pOut("Steering aligned.").
     RETURN TRUE.
   }
-  IF steerTime() > timeout_secs {
+  IF diffTime("STEER") > timeout_secs {
     pOut("Steering alignment timed out.").
     RETURN TRUE.
   }
