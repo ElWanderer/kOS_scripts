@@ -370,9 +370,7 @@ FUNCTION recalcCA
   PARAMETER t.
   LOCAL ca_details IS findTargetCA(t,TIMES[RDZ_CA]).
   setTime(RDZ_CA,ca_details[1]).
-  pOut("Closest approach: " + ROUND(ca_details[0]) + "m in " + ROUND(ca_details[1]-TIME:SECONDS) + 
-
-"s.").
+  pOut("Closest approach: " + ROUND(ca_details[0]) + "m in " + ROUND(ca_details[1]-TIME:SECONDS) + "s.").
   storeRdzDetails().
 }
 
