@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderCrew.ks v1.0.0 20160714").
+pOut("KMLanderCrew.ks v1.0.1 20160812").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -43,7 +43,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL MOD(rm,10) <> 9.
+  WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   hudMsg("Hit abort to initiate landing sequence.").
