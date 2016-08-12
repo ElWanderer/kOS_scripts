@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.1.1 20160812").
+pOut("lib_rendezvous.ks v1.1.2 20160812").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -374,20 +374,24 @@ FUNCTION recalcCA
   storeRdzDetails().
 }
 
+FUNCTION passingCA
+{
+  PARAMETER t, min_dist IS 5000.
+  LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
+  RETURN t:POSITION:MAG < min_dist AND VDOT(t:POSITION,v_diff) < 0.2.
+}
+
 FUNCTION warpToCA
 {
   PARAMETER t.
-  IF rdzETA() > 300 {
+  IF rdzETA() > 99 {
     steerSun().
     WAIT UNTIL steerOk().
     steerOff().
 
-    LOCAL time_to_warp IS rdzETA() - 300.
-    LOCAL warp_time IS TIME:SECONDS + time_to_warp.
-    pOut("Warping to intercept (" + ROUND(time_to_warp) + "s).").
-    WARPTO(warp_time).
-    WAIT UNTIL TIME:SECONDS > warp_time OR t:POSITION:MAG < 2000.
-    UNTIL WARP = 0 { SET WARP TO 0. WAIT 0. }
+    LOCAL warp_time IS TIMES[RDZ_CA] - 90.
+    pOut("Warping to closest approach.").
+    doWarp(warp_time, passingCA@:BIND(t)).
   }
 }
 
