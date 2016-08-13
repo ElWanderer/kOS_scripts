@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.1.2 20160812").
+pOut("lib_rendezvous.ks v1.1.3 20160813").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -8,7 +8,8 @@ FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
   "lib_orbit_phase.ks",
-  "lib_hoh.ks"
+  "lib_hoh.ks",
+  "lib_warp.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL RDZ_FN IS "rdz.ks".
