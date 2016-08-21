@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_steer.ks v1.2.0 20160812").
+
+pOut("lib_steer.ks v1.2.1 20160821").
 
 setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
@@ -58,9 +59,8 @@ FUNCTION steerOk
 
   IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND 
      SHIP:ANGULARVEL:MAG < ((10 / precision) * 2 * CONSTANT:PI / SHIP:ORBIT:PERIOD) {
-      pOut("Steering aligned.").
-      RETURN TRUE.
-    }
+    pOut("Steering aligned.").
+    RETURN TRUE.
   }
   IF diffTime("STEER") > timeout_secs {
     pOut("Steering alignment timed out.").
