@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.0.5 20160728").
+pOut("lib_launch_common.ks v1.1.0 20160812").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -152,6 +152,5 @@ FUNCTION launchPitch
 
 FUNCTION steerLaunch
 {
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(HEADING(LCH_HEADING,LCH_PITCH):VECTOR,FACING:TOPVECTOR).
+  steerTo({ RETURN HEADING(LCH_HEADING,LCH_PITCH):VECTOR. }).
 }

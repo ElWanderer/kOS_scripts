@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_dock.ks v1.0 20160714").
+pOut("lib_dock.ks v1.1.0 20160812").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -42,12 +41,6 @@ FUNCTION clearPorts
   UNLOCK S_NODE.
   UNLOCK T_FACE.
   UNLOCK T_NODE.
-}
-
-FUNCTION steerToPort
-{
-  LOCK STEERING TO LOOKDIRUP(-T_FACE,FACING:TOPVECTOR).
-  steerOn().
 }
 
 FUNCTION readyPorts
@@ -246,7 +239,7 @@ FUNCTION doDocking
   IF ok { SET ok TO plotDockingRoute(s_port,t_port). }
 
   IF ok {
-    steerToPort().
+    steerTo({ RETURN -T_FACE. }).
     WAIT UNTIL steerOk().
     enableRCS().
     SET ok TO followDockingRoute(s_port,t_port).
