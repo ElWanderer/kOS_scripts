@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_lander_ascent.ks v1.0.1 20160714").
+pOut("lib_lander_ascent.ks v1.1.0 20160812").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -27,8 +26,7 @@ FUNCTION stopAscentValues
 
 FUNCTION steerAscent
 {
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(HEADING(LND_LAZ,landerPitch()):VECTOR,FACING:TOPVECTOR).
+  steerTo({ RETURN HEADING(LND_LAZ,landerPitch()):VECTOR. }).
 }
 
 FUNCTION ascentCirc
@@ -68,7 +66,7 @@ UNTIL rm = exit_mode
 {
   IF rm = 301 {
     SET WARP TO 0.
-    steerTo(UP:VECTOR,FACING:TOPVECTOR).
+    steerTo({ RETURN UP:VECTOR. }).
     hudMsg("Prepare for launch...").
     runMode(304,302).
   } ELSE IF rm = 302 {

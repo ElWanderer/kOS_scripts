@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_steer.ks v1.1.2 20160812").
+
+pOut("lib_steer.ks v1.2.1 20160821").
 
 setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
@@ -8,13 +9,6 @@ GLOBAL STEER_ON IS FALSE.
 FUNCTION isSteerOn
 {
   RETURN STEER_ON.
-}
-
-FUNCTION steerOn
-{
-  IF NOT STEER_ON { pOut("Steering engaged."). }
-  setTime("STEER").
-  SET STEER_ON TO TRUE.
 }
 
 FUNCTION steerOff
@@ -26,37 +20,35 @@ FUNCTION steerOff
 
 FUNCTION steerTo
 {
-  PARAMETER fore IS FACING:FOREVECTOR, top IS FACING:TOPVECTOR.
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(fore,top).
+  PARAMETER fore IS { RETURN FACING:FOREVECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
+  IF NOT STEER_ON { pOut("Steering engaged."). }
+  SET STEER_ON TO TRUE.
+  LOCK STEERING TO LOOKDIRUP(fore(),top()).
+  setTime("STEER").
 }
 
 FUNCTION steerSurf
 {
   PARAMETER pro IS TRUE.
-  LOCAL mult IS -1.
-  IF pro { SET mult TO 1. }
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(mult * SRFPROGRADE:VECTOR, FACING:TOPVECTOR).
+  IF pro { steerTo({ RETURN SRFPROGRADE:VECTOR. }). }
+  ELSE { steerTo({ RETURN SRFRETROGRADE:VECTOR. }). }
 }
 
 FUNCTION steerOrbit
 {
   PARAMETER pro IS TRUE.
-  LOCAL mult IS -1.
-  IF pro { SET mult TO 1. }
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(mult * PROGRADE:VECTOR, FACING:TOPVECTOR).
+  IF pro { steerTo({ RETURN PROGRADE:VECTOR. }). }
+  ELSE { steerTo({ RETURN RETROGRADE:VECTOR. }). }
 }
 
 FUNCTION steerNormal
 {
-  steerTo(VCRS(VELOCITY:ORBIT,-BODY:POSITION), SUN:POSITION).
+  steerTo({ RETURN VCRS(VELOCITY:ORBIT,-BODY:POSITION). }, { RETURN SUN:POSITION. }).
 }
 
 FUNCTION steerSun
 {
-  steerTo(SUN:POSITION).
+  steerTo({ RETURN SUN:POSITION. }).
 }
 
 FUNCTION steerOk

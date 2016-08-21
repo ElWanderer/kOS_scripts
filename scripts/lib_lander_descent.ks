@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_lander_descent.ks v1.0.2 20160728").
+pOut("lib_lander_descent.ks v1.1.0 20160812").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -128,11 +127,10 @@ FUNCTION warpToPeriapsis
   }
 }
 
-FUNCTION steerConstantAltitude
+FUNCTION constantAltitudeVec
 {
-  steerOn().
-  LOCK STEERING TO LOOKDIRUP(ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION))
-                 * VXCL(UP:VECTOR,-VELOCITY:SURFACE),FACING:TOPVECTOR).
+  RETURN ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION)) 
+         * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
 }
 
 FUNCTION doConstantAltitudeBurn
@@ -256,7 +254,7 @@ FUNCTION doSetDown
   UNTIL adjustedAltitude() < 1 {
     IF adjustedAltitude() < 12 AND aim_speed > 2 {
       SET aim_speed TO 2.
-      steerTo(UP:VECTOR,FACING:TOPVECTOR).
+      steerTo({ RETURN UP:VECTOR. }).
     }
 
     LOCAL des_acc IS -SHIP:VERTICALSPEED - aim_speed.
@@ -328,7 +326,7 @@ UNTIL rm = exit_mode
     warpToPeriapsis(pe_safety_factor).
     runMode(232).
   } ELSE IF rm = 232 {
-    steerConstantAltitude().
+    steerTo(constantAltitudeVec@).
     doConstantAltitudeBurn(pe_safety_factor).
     runMode(233).
   } ELSE IF rm = 233 {

@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.1.2 20160811").
+pOut("lib_burn.ks v1.2.0 20160812").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -23,18 +23,11 @@ FUNCTION changeBURN_WARP_BUFF
   IF wb > 0 { SET BURN_WARP_BUFF TO wb. }
 }
 
-FUNCTION steerNode
-{
-  PARAMETER n.
-  LOCK STEERING TO LOOKDIRUP(n:DELTAV, FACING:TOPVECTOR).
-  steerOn().
-}
-
 FUNCTION pointNode
 {
   PARAMETER n.
-  IF BURN_NODE_IS_SMALL { steerTo(n:DELTAV, FACING:TOPVECTOR). }
-  ELSE { steerNode(n). }
+  IF BURN_NODE_IS_SMALL { LOCAL n_v IS n:DELTAV. steerTo({ RETURN n_v. }). }
+  ELSE { steerTo({ RETURN n:DELTAV. }). }
   pOut("Aligning with node.").
   WAIT UNTIL steerOk(0.4).
 }
@@ -93,7 +86,7 @@ FUNCTION burnNode
         SET done TO TRUE.
       } ELSE IF follow_node AND n:DELTAV:MAG < BURN_SMALL_DV {
         SET o_dv TO n:DELTAV.
-        steerTo(o_dv, FACING:TOPVECTOR).
+        steerTo({ RETURN o_dv. }).
         SET follow_node TO FALSE.
       }
     } ELSE {
