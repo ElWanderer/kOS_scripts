@@ -1,11 +1,14 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_runmode.ks v1.1.0 20160725").
+pOut("lib_runmode.ks v1.1.1 20160812").
 
-GLOBAL RM_TIME IS TIME:SECONDS.
 GLOBAL RM_FN IS "rm.ks".
 GLOBAL RM_MODE IS -1.
 GLOBAL RM_ABORT IS -1.
+
+setTime("RM").
+GLOBAL modeTime IS diffTime@:BIND("RM").
+resume(RM_FN).
 
 ON ABORT {
   PRINT "ABORT TRIGGER.".
@@ -34,7 +37,7 @@ FUNCTION runMode
   IF rm >= 0 {
     IF am >= 0 { SET RM_ABORT TO am. }
     SET RM_MODE TO rm.
-    updateModeTime().
+    setTime("RM").
     IF verbose {
       logModes().
       pMode().
@@ -52,15 +55,3 @@ FUNCTION abortMode
   }
   RETURN RM_ABORT.
 }
-
-FUNCTION modeTime
-{
-  RETURN TIME:SECONDS - RM_TIME.
-}
-
-FUNCTION updateModeTime
-{
-  SET RM_TIME TO TIME:SECONDS.
-}
-
-resume(RM_FN).

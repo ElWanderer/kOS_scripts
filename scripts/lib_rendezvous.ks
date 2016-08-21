@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_rendezvous.ks v1.1.0 20160725").
+pOut("lib_rendezvous.ks v1.1.1 20160812").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -19,19 +18,20 @@ GLOBAL RDZ_DIST IS 75.
 GLOBAL RDZ_MAX_ORBITS IS 5.
 
 GLOBAL RDZ_PHASE_PERIOD IS 0.
-GLOBAL RDZ_CA_TIME IS 0.
+GLOBAL RDZ_CA IS "RDZ_CA".
+setTime(RDZ_CA).
 
 GLOBAL RDZ_THROTTLE IS 0.
 
 FUNCTION storeRdzDetails
 {
   store("SET RDZ_PHASE_PERIOD TO " + RDZ_PHASE_PERIOD + ".", RDZ_FN).
-  append("SET RDZ_CA_TIME TO " + RDZ_CA_TIME + ".", RDZ_FN).
+  append("setTime(RDZ_CA," + TIMES[RDZ_CA] + ").", RDZ_FN).
 }
 
 FUNCTION rdzETA
 {
-  RETURN RDZ_CA_TIME - TIME:SECONDS.
+  RETURN -diffTime(RDZ_CA).
 }
 
 FUNCTION changeRDZ_DIST
@@ -296,7 +296,7 @@ FUNCTION nodePhasingOrbit
 
   IF eta_diff < 10 {
     SET RDZ_PHASE_PERIOD TO s_p.
-    SET RDZ_CA_TIME TO u_time + s_int_eta.
+    setTime(RDZ_CA,u_time + s_int_eta).
     storeRdzDetails().
     RETURN FALSE.
   }
@@ -353,7 +353,7 @@ FUNCTION nodePhasingOrbit
   pOut("Selected phase period: " + ROUND(phase_p,1) + "s. Orbits: " + orbit_num).
 
   SET RDZ_PHASE_PERIOD TO phase_p.
-  SET RDZ_CA_TIME TO u_time + s_int_eta + (orbit_num * phase_p).
+  setTime(RDZ_CA,u_time + s_int_eta + (orbit_num * phase_p)).
   storeRdzDetails().
 
   pOut("Calculating node to set orbit period to " + ROUND(RDZ_PHASE_PERIOD,1) + "s.").
@@ -368,8 +368,8 @@ FUNCTION nodePhasingOrbit
 FUNCTION recalcCA
 {
   PARAMETER t.
-  LOCAL ca_details IS findTargetCA(t,RDZ_CA_TIME).
-  SET RDZ_CA_TIME TO ca_details[1].
+  LOCAL ca_details IS findTargetCA(t,TIMES[RDZ_CA]).
+  setTime(RDZ_CA,ca_details[1]).
   pOut("Closest approach: " + ROUND(ca_details[0]) + "m in " + ROUND(ca_details[1]-TIME:SECONDS) + "s.").
   storeRdzDetails().
 }

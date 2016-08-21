@@ -1,22 +1,10 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_skeep.ks v1.0.1 20160728").
+pOut("lib_skeep.ks v1.0.2 20160812").
 
 RUNONCEPATH(loadScript("lib_burn.ks")).
 
-GLOBAL SKEEP_TIME IS TIME:SECONDS.
 GLOBAL SKEEP_VESSELS IS LIST().
-
-FUNCTION updateSkeepTime
-{
-  SET SKEEP_TIME TO TIME:SECONDS.
-}
-
-FUNCTION skeepTime
-{
-  RETURN TIME:SECONDS - SKEEP_TIME.
-}
 
 FUNCTION listNearbyVessels
 {

@@ -1,12 +1,14 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.0 20160714").
+pOut("lib_lander_common.ks v1.0.1 20160812").
 
 GLOBAL LND_THROTTLE IS 0.
-GLOBAL LND_TIME IS 0.
-
 GLOBAL LND_G_ACC IS 0.
 GLOBAL LND_MIN_VS IS 0.
+
+setTime("LND").
+GLOBAL landerHeartBeat IS diffTime@:BIND("LND").
+GLOBAL landerResetTimer IS setTime@:BIND("LND").
 
 FUNCTION landerSetMinVSpeed
 {
@@ -25,16 +27,6 @@ FUNCTION landerMinVSpeed
 FUNCTION gravAcc
 {
   RETURN LND_G_ACC.
-}
-
-FUNCTION landerHeartbeat
-{
-  RETURN TIME:SECONDS - LND_TIME.
-}
-
-FUNCTION landerResetTimer
-{
-  SET LND_TIME TO TIME:SECONDS.
 }
 
 FUNCTION landerPitch
