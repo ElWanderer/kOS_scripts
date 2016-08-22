@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.1.3 20160813").
+pOut("lib_rendezvous.ks v1.1.4 20160822").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -470,7 +470,7 @@ UNTIL rm = exit_mode
   } ELSE IF MOD(rm,10) = 9 AND rm > 400 AND rm < 450 {
     hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
     steerSun().
-    WAIT UNTIL MOD(rm,10) <> 9.
+    WAIT UNTIL MOD(runMode(),10) <> 9.
   } ELSE {
     pOut("Rendezvous - unexpected run mode: " + rm).
     runMode(449,401).
