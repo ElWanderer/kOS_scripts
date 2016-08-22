@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_transfer.ks v1.2.2 20160810").
+pOut("lib_transfer.ks v1.2.3 20160822").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -396,7 +396,7 @@ UNTIL rm = exit_mode
   } ELSE IF MOD(rm,10) = 9 AND rm > 100 AND rm < 150 {
     hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
     steerSun().
-    WAIT UNTIL MOD(rm,10) <> 9.
+    WAIT UNTIL MOD(runMode(),10) <> 9.
   } ELSE {
     pOut("Transfer - unexpected run mode: " + rm).
     runMode(149,101).
