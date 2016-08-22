@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_dock.ks v1.1.0 20160812").
+pOut("lib_dock.ks v1.1.1 20160822").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -189,27 +189,26 @@ FUNCTION followDockingRoute
 
   UNTIL s_port:STATE <> "Ready" {
     LOCAL pos IS T_NODE.
-    LOCAL pts IS DOCK_POINTS:LENGTH.
     LOCAL count IS 1.
     FOR p IN DOCK_POINTS {
-      VECDRAW(pos + p,-p,RGB(0,0,0.8),"Docking Waypoint " +  count,1,TRUE).
+      VECDRAW(pos + p,-p,RGB(0,0,1),"Waypoint " +  count,1,TRUE).
       SET pos TO pos + p.
       SET count TO count + 1.
     }
-    VECDRAW(S_NODE,pos,RGB(0.2,0,1),"Docking Waypoint " + count,1,TRUE).
 
     LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
     LOCAL pos_diff IS pos - S_NODE.
+    VECDRAW(S_NODE,pos_diff,RGB(0,1,1),"Waypoint " + count + " (ACTIVE)",1,TRUE).
 
     LOCAL rcs_vec IS (dockingVelForDist(pos_diff:MAG) * pos_diff:NORMALIZED) - v_diff.
 
-    VECDRAW(S_NODE,5 * v_diff,RGB(1,0,0),"Velocity difference",1,TRUE).
+    VECDRAW(S_NODE,5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
     VECDRAW(S_NODE,5 * rcs_vec,RGB(0,1,0),"Translate",1,TRUE).
 
-    IF v_diff:MAG < 0.1 AND pos_diff:MAG < 0.1 AND pts > 0 {
+    IF v_diff:MAG < 0.1 AND pos_diff:MAG < 0.1 AND DOCK_POINTS:LENGTH > 0 {
       stopTranslation().
-      pOut("Docking waypoint " + (pts + 1) + " reached.").
-      DOCK_POINTS:REMOVE(pts - 1).
+      pOut("Waypoint " + count + " reached.").
+      DOCK_POINTS:REMOVE(DOCK_POINTS:LENGTH-1).
     } ELSE {
       doTranslation(rcs_vec, 2*rcs_vec:MAG).
     }
@@ -217,7 +216,7 @@ FUNCTION followDockingRoute
     WAIT 0.
     CLEARVECDRAWS().
   }
-  pOut("Docking port has changed state - ending docking sequence.").
+  pOut("Docking port state change. Ending docking sequence.").
   stopTranslation().
   RETURN TRUE.
 }
