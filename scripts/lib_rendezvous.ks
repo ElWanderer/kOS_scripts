@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.2.0 20160822").
+pOut("lib_rendezvous.ks v1.2.0 20160823").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -151,7 +151,7 @@ FUNCTION findTargetCA
 FUNCTION rdzBestSpeed
 {
   PARAMETER d, cv.
-  LOCAL best_v IS cv.
+  LOCAL best_v IS cv * 1.1.
   IF d <= RDZ_DIST { SET best_v tO 0. }
   ELSE IF d < 2500 { SET best_v TO MAX(SQRT(d)/5,MIN(cv,d/40)). }
   RETURN best_v.
@@ -180,7 +180,7 @@ FUNCTION rdzApproach
        AND VDOT(FACING:FOREVECTOR,rdz_vector:NORMALIZED) >= 0.995 { SET throt_on TO TRUE. }
     ELSE IF throt_on AND VDOT(FACING:FOREVECTOR,rdz_vector:NORMALIZED) < 0.5 { SET throt_on TO FALSE. }
 
-    IF throt_on { SET RDZ_THROTTLE TO burnThrottle(burnTime(rdz_vector)). }
+    IF throt_on { SET RDZ_THROTTLE TO burnThrottle(burnTime(rdz_vector:MAG)). }
     ELSE { SET RDZ_THROTTLE TO 0. }
 
     VECDRAW(V(0,0,0),p_offset,RGB(0,0,1),"To target (offset)",1,TRUE).
@@ -198,7 +198,7 @@ FUNCTION rdzApproach
 
   SET RDZ_THROTTLE TO 0.
   dampSteering().
-  RETURN done.
+  RETURN TRUE.
 }
 
 FUNCTION nodeRdzInclination
@@ -365,7 +365,7 @@ FUNCTION recalcCA
 
 FUNCTION passingCA
 {
-  PARAMETER t, min_dist IS 5000.
+  PARAMETER t, min_dist IS 2500.
   LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
   RETURN t:POSITION:MAG < min_dist AND VDOT(t:POSITION,v_diff) < 0.2.
 }
