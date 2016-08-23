@@ -1,17 +1,14 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_nocrew.ks v1.0.1 20160714").
+pOut("lib_launch_nocrew.ks v1.1.0 20160823").
 
 RUNONCEPATH(loadScript("lib_launch_common.ks")).
 
-FUNCTION doLaunchNoCrew
+FUNCTION doLaunch
 {
-  PARAMETER exit_mode.
-  PARAMETER launch_ap IS BODY:ATM:HEIGHT + 15000.
-  PARAMETER launch_az IS 90.
-  PARAMETER pitch_alt IS 800.
+  PARAMETER exit_mode, ap, az IS 90, i IS SHIP:LATITUDE, pitch_alt IS 250.
 
-  launchInit(exit_mode,launch_ap,launch_az,pitch_alt).
+  launchInit(exit_mode,ap,az,i,is_AN,pitch_alt).
 
   LOCAL LOCK rm TO runMode().
 
@@ -21,7 +18,7 @@ UNTIL rm = exit_mode
     killThrot().
     LOCK THROTTLE TO 1.
     steerLaunch().
-    runMode(2,18).
+    runMode(2).
   } ELSE IF rm = 2 {
     IF modeTime() > 3 {
       doStage().
@@ -29,9 +26,9 @@ UNTIL rm = exit_mode
       runMode(11).
     }
   } ELSE IF rm = 11 {
-    launchPitch().
+    launchSteerUpdate().
     launchStaging().
-    IF APOAPSIS > launch_ap {
+    IF APOAPSIS > ap {
       LOCK THROTTLE TO 0.
       pDV().
       steerSurf().
@@ -42,21 +39,13 @@ UNTIL rm = exit_mode
       steerOff().
       PANELS ON.
       launchCirc().
-      IF PERIAPSIS > BODY:ATM:HEIGHT {
-        sepLauncher().
-        pDV().
-      }
-      runMode(exit_mode,0).
+      sepLauncher().
+      pDV().
+      runMode(exit_mode).
     }
-  } ELSE IF rm = 18 {
-    pOut("Abort mode: " + rm).
-    LOCK THROTTLE TO 0.
-    WAIT 0.
-    steerOff().
-    runMode(exit_mode).
   } ELSE {
     pOut("Unexpected run mode: " + rm).
-    runMode(exit_mode).
+    BREAK.
   }
 
   IF hasFairing() { launchFairing(). }
