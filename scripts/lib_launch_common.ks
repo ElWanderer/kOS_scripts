@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.1.0 20160812").
+pOut("lib_launch_common.ks v1.2.0 20160823").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -8,9 +8,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL LCH_MAX_THRUST IS 0.
-GLOBAL LCH_PITCH IS 90.
-GLOBAL LCH_HEADING IS 90.
-GLOBAL LCH_PITCH_ALT IS 800.
+GLOBAL LCH_VEC IS UP:VECTOR.
+GLOBAL LCH_I IS 0.
+GLOBAL LCH_AN IS TRUE.
+GLOBAL LCH_PITCH_ALT IS 250.
 GLOBAL LCH_CURVE_ALT IS BODY:ATM:HEIGHT.
 GLOBAL LCH_FAIRING_ALT IS BODY:ATM:HEIGHT * 0.6.
 GLOBAL LCH_HAS_LES IS FALSE.
@@ -60,27 +61,21 @@ FUNCTION checkLES
 
 FUNCTION launchInit
 {
-  PARAMETER exit_mode,launch_ap,launch_az,pitch_alt.
+  PARAMETER exit_mode,ap,az,i,pitch_alt.
 
-  pOut("Launch to apoasis: " + launch_ap).
-  pOut("Launch heading: " + ROUND(launch_az,2)).
+  SET LCH_ORBIT_VEL TO SQRT(BODY:MU/(BODY:RADIUS + ap)).
+  SET LCH_I TO i.
+  SET LCH_AN TO (az <= 90 OR az >= 270).
+  SET LCH_PITCH_ALT TO pitch_alt.
 
   checkFairing().
   checkLES().
   mThrust(0).
 
-  SET LCH_HEADING TO launch_az.
-  IF pitch_alt > 0 { SET LCH_PITCH_ALT TO pitch_alt. }
-
   IF runMode() < 0 {
-    IF LIST("LANDED","PRELAUNCH"):CONTAINS(STATUS) {
-      runMode(1).
-      abortMode(exit_mode).
-      hudMsg("Prepare for launch...").
-    } ELSE {
-      pOut("Unexpected ship status: " + STATUS + ".").
-      runMode(exit_mode).
-    }
+    hudMsg("Prepare for launch...").
+    pOut("Launch to apoasis: " + ap).
+    runMode(1).
   }
 }
 
@@ -96,8 +91,7 @@ FUNCTION launchStaging
   } ELSE IF prev_mt = 0 AND mt > 0 AND stageTime() > 0.1 {
     LOCAL at IS SHIP:AVAILABLETHRUST.
     LOCAL twr IS at / (g0 * SHIP:MASS).
-    pOut("Max thrust: " + mt + "kN. Current thrust: " + ROUND(at,2) + "kN.").
-    pOut("Craft mass: " + ROUND(SHIP:MASS,1)+ "t. Current TWR: " + ROUND(twr,2)+ ".").
+    pOut("Current TWR: " + ROUND(twr,2)).
     mThrust(mt).
     IF hasFairing() { checkFairing(). }
     IF hasLES() { checkLES(). }
@@ -107,7 +101,6 @@ FUNCTION launchStaging
 FUNCTION launchFairing
 {
   IF ALTITUDE > LCH_FAIRING_ALT {
-    pOut("Deploying fairing.").
     FOR f IN SHIP:MODULESNAMED("ModuleProceduralFairing") {
       IF f:HASEVENT("deploy") { f:DOEVENT("deploy"). }
     }
@@ -118,7 +111,6 @@ FUNCTION launchFairing
 FUNCTION sepLauncher
 {
   IF SHIP:PARTSTAGGED("LAUNCHER"):LENGTH > 0 {
-    pOut("Staging until payload separated from launcher.").
     steerOrbit().
     WAIT UNTIL steerOk().
     UNTIL SHIP:PARTSTAGGED("LAUNCHER"):LENGTH = 0 {
@@ -143,14 +135,46 @@ FUNCTION launchCirc
   execNode(TRUE).
 }
 
+FUNCTION launchBearing
+{
+  LOCAL lat IS SHIP:LATITUDE.
+  LOCAL vo IS SHIP:VELOCITY:ORBIT.
+  IF (LCH_I > 0 AND ABS(lat) < 90 AND MIN(LCH_I,180 - LCH_I) >= ABS(lat)) {
+    LOCAL az IS ARCSIN( COS(LCH_I) / COS(lat) ).
+    IF NOT LCH_AN { SET az TO mAngle(180 - az). }
+    LOCAL x IS (LCH_ORBIT_VEL * SIN(az)) - VDOT(vo,HEADING(90,0):VECTOR).
+    LOCAL y IS (LCH_ORBIT_VEL * COS(az)) - VDOT(vo,HEADING(0,0):VECTOR).
+    RETURN mAngle(90 - ARCTAN2(y, x)).
+  } ELSE {
+    IF LCH_I < 90 { RETURN 90. }
+    ELSE { RETURN 270. }
+  }
+}
+
 FUNCTION launchPitch
 {
-  IF ALT:RADAR < LCH_PITCH_ALT { SET LCH_PITCH TO 90. }
-  ELSE IF ALTITUDE < LCH_CURVE_ALT { SET LCH_PITCH TO 90 * (1 - SQRT(ALTITUDE/LCH_CURVE_ALT)). }
-  ELSE { SET LCH_PITCH TO 0. }
+  IF ALT:RADAR < LCH_PITCH_ALT { RETURN 90. }
+  IF ALTITUDE < LCH_CURVE_ALT { RETURN 90 * (1 - SQRT(ALTITUDE/LCH_CURVE_ALT)). }
+  RETURN 0.
+}
+
+FUNCTION launchMaxSteer
+{
+  IF ALTITUDE > LCH_FAIRING_ALT { RETURN 30. }
+  IF ALTITUDE > LCH_FAIRING_ALT / 2 OR SHIP:VELOCITY:SURFACE:MAG < 75 { RETURN 5. }
+  RETURN 2.
+}
+
+FUNCTION launchSteerUpdate
+{
+  LOCAL cur_v IS SHIP:VELOCITY:SURFACE.
+  LOCAL new_v IS HEADING(launchBearing(),launchPitch()):VECTOR.
+  LOCAL max_ang IS launchMaxSteer().
+  IF VANG(cur_v,new_v) > max_ang { SET new_v TO ANGLEAXIS(max_ang,VCRS(new_v,cur_v)) * cur_v. }
+  SET LCH_VEC TO new_v.
 }
 
 FUNCTION steerLaunch
 {
-  steerTo({ RETURN HEADING(LCH_HEADING,LCH_PITCH):VECTOR. }).
+  steerTo({ RETURN LCH_VEC. }).
 }
