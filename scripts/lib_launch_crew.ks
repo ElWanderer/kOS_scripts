@@ -42,7 +42,7 @@ FUNCTION doLaunch
 {
   PARAMETER exit_mode, ap, az IS 90, i IS SHIP:LATITUDE, pitch_alt IS 250.
 
-  launchInit(exit_mode,ap,az,i,is_AN,pitch_alt).
+  launchInit(exit_mode,ap,az,i,pitch_alt).
 
   LOCAL LOCK rm TO runMode().
 
