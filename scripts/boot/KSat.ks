@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.0.2 20160812").
+pOut("KSat.ks v1.1.0 20160823").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -34,8 +34,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).
 
-  store("doLaunchNoCrew(801," + ap + "," + az + ").").
-  doLaunchNoCrew(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + SAT_I + ").").
+  doLaunch(801,ap,az,SAT_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).
@@ -43,7 +43,7 @@ IF rm < 0 {
 
 } ELSE IF MOD(rm,10) = 9 AND rm > 800 AND rm < 999 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
-  hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
+  hudMsg("Error state. Hit abort to recover (mode " + abortMode() + ").").
   steerSun().
   WAIT UNTIL MOD(runMode(),10) <> 9.
 
@@ -58,7 +58,7 @@ IF rm < 0 {
   ELSE { runMode(809,802). }
 } ELSE IF rm = 803 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
-  hudMsg("Mission complete. Hit abort to switch back to mode: " + abortMode() + ".").
+  hudMsg("Mission complete. Hit abort to retry (mode " + abortMode() + ").").
   steerSun().
   WAIT UNTIL runMode() <> 803.
 }
