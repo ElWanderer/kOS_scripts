@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_crew.ks v1.1.0 20160823").
+pOut("lib_launch_crew.ks v1.1.1 20160824").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -60,7 +60,7 @@ UNTIL rm = exit_mode
       runMode(11).
     }
   } ELSE IF rm = 11 {
-    launchPitch().
+    launchSteerUpdate().
     launchStaging().
     IF APOAPSIS > ap {
       LOCK THROTTLE TO 0.
