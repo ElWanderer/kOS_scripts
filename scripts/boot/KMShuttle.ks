@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMShuttle.ks v1.0.3 20160812").
+pOut("KMShuttle.ks v1.1.0 20160824").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -11,7 +11,7 @@ FOR f IN LIST(
   "lib_burn.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL NEW_NAME IS "Mun Lander 2".
+GLOBAL NEW_NAME IS "Rendezvous Test Docker".
 
 FUNCTION validMoonTarget {
   RETURN HASTARGET AND TARGET:OBT:BODY:OBT:BODY = BODY.
@@ -49,8 +49,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).
 
-  store("doLaunch(801," + ap + "," + az + ").").
-  doLaunch(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + b_I + ").").
+  doLaunch(801,ap,az,b_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).

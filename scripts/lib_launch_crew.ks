@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_crew.ks v1.0.3 20160728").
+pOut("lib_launch_crew.ks v1.1.1 20160824").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -40,12 +40,9 @@ FUNCTION launchLES
 
 FUNCTION doLaunch
 {
-  PARAMETER exit_mode.
-  PARAMETER launch_ap IS BODY:ATM:HEIGHT + 15000.
-  PARAMETER launch_az IS 90.
-  PARAMETER pitch_alt IS 800.
+  PARAMETER exit_mode, ap, az IS 90, i IS SHIP:LATITUDE, pitch_alt IS 250.
 
-  launchInit(exit_mode,launch_ap,launch_az,pitch_alt).
+  launchInit(exit_mode,ap,az,i,pitch_alt).
 
   LOCAL LOCK rm TO runMode().
 
@@ -63,9 +60,9 @@ UNTIL rm = exit_mode
       runMode(11).
     }
   } ELSE IF rm = 11 {
-    launchPitch().
+    launchSteerUpdate().
     launchStaging().
-    IF APOAPSIS > launch_ap {
+    IF APOAPSIS > ap {
       LOCK THROTTLE TO 0.
       pDV().
       steerSurf().
@@ -118,7 +115,7 @@ UNTIL rm = exit_mode
     }
   } ELSE {
     pOut("Unexpected run mode: " + rm).
-    runMode(exit_mode).
+    BREAK.
   }
 
   IF hasLES() AND rm < 18 { launchLES(). }

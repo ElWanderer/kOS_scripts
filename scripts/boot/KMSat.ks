@@ -3,13 +3,13 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMSat.ks v1.0.1 20160812").
+pOut("KMSat.ks v1.1.0 20160824").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
 // set these values ahead of launch
 GLOBAL SAT_BODY IS MUN.
-GLOBAL SAT_NAME IS "Mun Station Alpha".
+GLOBAL SAT_NAME IS "Rendezvous Test Target".
 GLOBAL SAT_AP IS 75000.
 GLOBAL SAT_PE IS 75000.
 GLOBAL SAT_I IS 0.
@@ -38,8 +38,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).
 
-  store("doLaunchNoCrew(801," + ap + "," + az + ").").
-  doLaunchNoCrew(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + SAT_BODY_I + ").").
+  doLaunch(801,ap,az,SAT_BODY_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).
