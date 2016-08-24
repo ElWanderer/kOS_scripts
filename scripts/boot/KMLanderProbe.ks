@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderProbe.ks v1.0.1 20160812").
+pOut("KMLanderProbe.ks v1.1.0 20160824").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -49,8 +49,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).
 
-  store("doLaunchNoCrew(801," + ap + "," + az + ").").
-  doLaunchNoCrew(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + LAND_BODY_I + ").").
+  doLaunch(801,ap,az,LAND_BODY_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_nocrew.ks")).

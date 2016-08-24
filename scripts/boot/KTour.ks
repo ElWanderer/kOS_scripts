@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KTour.ks v1.0.3 20160812").
+pOut("KTour.ks v1.1.0 20160824").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -11,8 +11,8 @@ UNTIL runMode() = 99 {
 LOCAL rm IS runMode().
 IF rm < 0 {
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).
-  store("doLaunch(801,85000,90).").
-  doLaunch(801,85000,90).
+  store("doLaunch(801,85000,90,0).").
+  doLaunch(801,85000,90,0).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).

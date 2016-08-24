@@ -3,7 +3,7 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMScience.ks v1.0.0 20160714").
+pOut("KMScience.ks v1.1.0 20160824").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -43,8 +43,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).
 
-  store("doLaunch(801," + ap + "," + az + ").").
-  doLaunch(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + SAT_BODY_I + ").").
+  doLaunch(801,ap,az,SAT_BODY_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).

@@ -3,15 +3,15 @@
 COPYPATH("0:/init.ks","1:/init.ks").
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMTour.ks v1.0.3 20160812").
+pOut("KMTour.ks v1.1.0 20160824").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
 // set these values ahead of launch
-GLOBAL SAT_BODY IS MUN.
-GLOBAL SAT_NAME IS "Mun Tour Test 1".
-GLOBAL SAT_AP IS 100000.
-GLOBAL SAT_PE IS 100000.
+GLOBAL SAT_BODY IS MINMUS.
+GLOBAL SAT_NAME IS "Minmus Tour Test 6".
+GLOBAL SAT_AP IS 60000.
+GLOBAL SAT_PE IS 60000.
 GLOBAL SAT_I IS 0.
 GLOBAL SAT_LAN IS 0.
 GLOBAL SAT_W IS 0.
@@ -38,8 +38,8 @@ IF rm < 0 {
   delScript("lib_launch_geo.ks").
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).
 
-  store("doLaunch(801," + ap + "," + az + ").").
-  doLaunch(801,ap,az).
+  store("doLaunch(801," + ap + "," + az + "," + SAT_BODY_I + ").").
+  doLaunch(801,ap,az,SAT_BODY_I).
 
 } ELSE IF rm < 50 {
   RUNONCEPATH(loadScript("lib_launch_crew.ks")).
