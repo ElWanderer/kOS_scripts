@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_steer.ks v1.2.1 20160821").
+pOut("lib_steer.ks v1.2.2 20160828").
 
 setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
@@ -58,7 +57,7 @@ FUNCTION steerOk
   IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
 
   IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND 
-     SHIP:ANGULARVEL:MAG < ((10 / precision) * 2 * CONSTANT:PI / SHIP:ORBIT:PERIOD) {
+     SHIP:ANGULARVEL:MAG < (10 / precision) * MAX(2 * CONSTANT:PI / SHIP:ORBIT:PERIOD, 0.0002) {
     pOut("Steering aligned.").
     RETURN TRUE.
   }
