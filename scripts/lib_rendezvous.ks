@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.2.2 20160828").
+pOut("lib_rendezvous.ks v1.2.3 20160828").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -153,8 +153,8 @@ FUNCTION findTargetCA
 FUNCTION rdzBestSpeed
 {
   PARAMETER d, cv, sdv IS stageDV().
-  IF d < 1 { RETURN 0. }
-  IF d < (cv * burnTime(cv, sdv)) { RETURN 1. }
+  IF d < 2 { RETURN 0. }
+  IF d < MAX(25,(cv * burnTime(cv, sdv))) { RETURN 0.1. }
   RETURN MAX(cv, 5).
 }
 
@@ -183,7 +183,7 @@ FUNCTION rdzApproach
     LOCAL p_offset IS t:POSITION + rdzOffsetVector(t).
     LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
 
-    IF p_offset:MAG < 5 AND v_diff:MAG < 0.05 { SET RDZ_THROTTLE TO 0. BREAK. }
+    IF p_offset:MAG < 25 AND v_diff:MAG < 0.15 { SET RDZ_THROTTLE TO 0. BREAK. }
 
     LOCAL sdv IS stageDV().
     LOCAL ideal_v_diff IS rdzBestSpeed(p_offset:MAG,v_diff:MAG,sdv) * p_offset:NORMALIZED.
@@ -193,7 +193,7 @@ FUNCTION rdzApproach
 
     LOCAL rdz_dot IS VDOT(FACING:FOREVECTOR,RDZ_VEC:NORMALIZED).
     IF NOT throt_on AND RDZ_VEC:MAG > ideal_v_diff:MAG / 3 AND rdz_dot >= 0.995 { SET throt_on TO TRUE. }
-    ELSE IF throt_on AND rdz_dot < 0.8 { SET throt_on TO FALSE. }
+    ELSE IF throt_on AND rdz_dot < 0.95 { SET throt_on TO FALSE. }
 
     VECDRAW(V(0,0,0),p_offset,RGB(0,0,1),"To target (offset)",1,TRUE).
     VECDRAW(V(0,0,0),5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
