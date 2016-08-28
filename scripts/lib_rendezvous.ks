@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.2.1 20160825").
+pOut("lib_rendezvous.ks v1.2.2 20160828").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -152,7 +152,7 @@ FUNCTION findTargetCA
 
 FUNCTION rdzBestSpeed
 {
-  PARAMETER d, cv.
+  PARAMETER d, cv, sdv IS stageDV().
   IF d < 1 { RETURN 0. }
   IF d < (cv * burnTime(cv, sdv)) { RETURN 1. }
   RETURN MAX(cv, 5).
