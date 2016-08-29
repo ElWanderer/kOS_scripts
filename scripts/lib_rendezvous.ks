@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.2.3 20160828").
+pOut("lib_rendezvous.ks v1.2.4 20160829").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -153,9 +153,13 @@ FUNCTION findTargetCA
 FUNCTION rdzBestSpeed
 {
   PARAMETER d, cv, sdv IS stageDV().
-  IF d < 2 { RETURN 0. }
-  IF d < MAX(25,(cv * burnTime(cv, sdv))) { RETURN 0.1. }
-  RETURN MAX(cv, 5).
+  IF d < 2.5 { RETURN 0. }
+  LOCAL bd IS cv * burnTime(cv, sdv).
+  IF d < MAX(25, bd) { RETURN 0.5. }
+  IF d < MAX(50, 2 * bd) { RETURN 1. }
+  IF d < MAX(100, 3 * bd) { RETURN 3. }
+  IF d < MAX(250, 4 * bd) { RETURN 5. }
+  RETURN MAX(cv, 9).
 }
 
 FUNCTION rdzOffsetVector
@@ -178,9 +182,11 @@ FUNCTION rdzApproach
 
   pOut("Beginning rendezvous approach.").
   pDV().
+  LOCAL offset_vec IS rdzOffsetVector(t).
 
   UNTIL NOT ok {
-    LOCAL p_offset IS t:POSITION + rdzOffsetVector(t).
+    IF t:POSITION:MAG > MAX(500,RDZ_DIST * 5) { SET offset_vec TO rdzOffsetVector(t). }
+    LOCAL p_offset IS t:POSITION + offset_vec.
     LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
 
     IF p_offset:MAG < 25 AND v_diff:MAG < 0.15 { SET RDZ_THROTTLE TO 0. BREAK. }
