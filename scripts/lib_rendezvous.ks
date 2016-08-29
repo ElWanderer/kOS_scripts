@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rendezvous.ks v1.1.4 20160822").
+pOut("lib_rendezvous.ks v1.2.4 20160829").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,11 +14,12 @@ FOR f IN LIST(
 
 GLOBAL RDZ_FN IS "rdz.ks".
 
-GLOBAL rdz_vector IS SHIP:VELOCITY:ORBIT.
+GLOBAL RDZ_VEC IS SHIP:VELOCITY:ORBIT.
 GLOBAL RDZ_DIST IS 75.
 GLOBAL RDZ_MAX_ORBITS IS 5.
 
 GLOBAL RDZ_PHASE_PERIOD IS 0.
+GLOBAL RDZ_CA_DIST IS 5000.
 GLOBAL RDZ_CA IS "RDZ_CA".
 setTime(RDZ_CA).
 
@@ -28,6 +29,7 @@ FUNCTION storeRdzDetails
 {
   store("SET RDZ_PHASE_PERIOD TO " + RDZ_PHASE_PERIOD + ".", RDZ_FN).
   append("setTime(RDZ_CA," + TIMES[RDZ_CA] + ").", RDZ_FN).
+  append("SET RDZ_CA_DIST TO " + RDZ_CA_DIST + ".", RDZ_FN).
 }
 
 FUNCTION rdzETA
@@ -148,69 +150,84 @@ FUNCTION findTargetCA
   RETURN ca_details.
 }
 
-FUNCTION maxSpeed
+FUNCTION rdzBestSpeed
 {
-  PARAMETER d.
-  LOCAL max_v IS 500.
-  IF d <= RDZ_DIST { SET max_v tO 0. }
-  ELSE IF d < 125 { SET max_v TO 3. }
-  ELSE IF d < 250 { SET max_v TO 6. }
-  ELSE IF d < 500 { SET max_v TO 12. }
-  ELSE IF d < 1000 { SET max_v TO 25. }
-  ELSE IF d < 2250 { SET max_v TO 75. }
-  RETURN max_v.
+  PARAMETER d, cv, sdv IS stageDV().
+  IF d < 2.5 { RETURN 0. }
+  LOCAL bd IS cv * burnTime(cv, sdv).
+  IF d < MAX(25, bd) { RETURN 0.5. }
+  IF d < MAX(50, 2 * bd) { RETURN 1. }
+  IF d < MAX(100, 3 * bd) { RETURN 3. }
+  IF d < MAX(250, 4 * bd) { RETURN 5. }
+  RETURN MAX(cv, 9).
 }
 
-FUNCTION minSpeed
+FUNCTION rdzOffsetVector
 {
-  PARAMETER d.
-  LOCAL min_v IS 20.
-  IF d <= RDZ_DIST { SET min_v tO 0. }
-  ELSE IF d <= 100 { SET min_v TO 1. }
-  ELSE IF d < 2000 { SET min_v TO d/100. }
-  RETURN min_v.
-}
-
-FUNCTION rdzThrust
-{
-  PARAMETER v_vector, p_vector.
-  LOCAL t IS 0.
-  LOCAL v_diff IS v_vector:MAG.
-  IF v_diff = 0 { RETURN 0. }
-  LOCAL d IS p_vector:MAG.
-  LOCAL bt IS burnTime(v_diff).
-  IF VDOT(v_vector:NORMALIZED,p_vector:NORMALIZED) < -0.5 {
-    IF (d / v_diff) < bt { SET t TO 1. } // emergency brake
-    ELSE IF v_diff > maxSpeed(d) { SET t TO MAX(0.1,MIN(1,bt)). } // slow down
-  } ELSE { SET t TO MAX(0.1,MIN(1,bt)). } // too slow or passing closest approach
-  RETURN t.
+  PARAMETER t.
+  LOCAL t_norm IS craftNormal(t,TIME:SECONDS):NORMALIZED.
+  LOCAL t_off IS ((8 * t_norm) + VCRS(t:POSITION,t_norm):NORMALIZED):NORMALIZED * RDZ_DIST.
+  IF (t:POSITION + t_off):MAG < (t:POSITION - t_off):MAG { RETURN t_off. }
+  ELSE { RETURN -t_off. }
 }
 
 FUNCTION rdzApproach
 {
   PARAMETER t.
-  LOCAL done IS FALSE.
+  LOCAL ok IS TRUE.
   SET RDZ_THROTTLE TO 0.
   LOCK THROTTLE TO RDZ_THROTTLE.
-  SET rdz_vector TO SHIP:VELOCITY:ORBIT.
-  LOCK STEERING TO LOOKDIRUP(rdz_vector, FACING:TOPVECTOR).
-  UNTIL done {
-    LOCAL v_vector IS t:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-    LOCAL p_offset IS t:POSITION + (VCRS(-t:POSITION,t:VELOCITY:ORBIT):NORMALIZED * (RDZ_DIST/10)).
-    LOCAL d IS p_offset:MAG.
-    LOCAL v IS v_vector:MAG.
-    IF d <= RDZ_DIST AND v <= 0.02 { SET done TO TRUE. }
+  SET RDZ_VEC TO FACING:FOREVECTOR.
+  steerTo({RETURN RDZ_VEC.}).
 
-    SET rdz_vector TO v_vector+(p_offset:NORMALIZED * minSpeed(d)).
-    IF done { SET RDZ_THROTTLE TO 0. }
-    ELSE IF v < minSpeed(d) { SET RDZ_THROTTLE TO rdzThrust(rdz_vector,p_offset). }
-    ELSE { SET RDZ_THROTTLE TO rdzThrust(v_vector,p_offset). }
-    IF VDOT(FACING:FOREVECTOR,rdz_vector:NORMALIZED) < 0.995 { SET RDZ_THROTTLE TO 0. }
+  pOut("Beginning rendezvous approach.").
+  pDV().
+  LOCAL offset_vec IS rdzOffsetVector(t).
+
+  UNTIL NOT ok {
+    IF t:POSITION:MAG > MAX(500,RDZ_DIST * 5) { SET offset_vec TO rdzOffsetVector(t). }
+    LOCAL p_offset IS t:POSITION + offset_vec.
+    LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
+
+    IF p_offset:MAG < 25 AND v_diff:MAG < 0.15 { SET RDZ_THROTTLE TO 0. BREAK. }
+
+    LOCAL sdv IS stageDV().
+    LOCAL ideal_v_diff IS rdzBestSpeed(p_offset:MAG,v_diff:MAG,sdv) * p_offset:NORMALIZED.
+    SET RDZ_VEC TO ideal_v_diff - v_diff.
+
+    LOCAL throt_on IS (RDZ_THROTTLE > 0).
+
+    LOCAL rdz_dot IS VDOT(FACING:FOREVECTOR,RDZ_VEC:NORMALIZED).
+    IF NOT throt_on AND RDZ_VEC:MAG > ideal_v_diff:MAG / 3 AND rdz_dot >= 0.995 { SET throt_on TO TRUE. }
+    ELSE IF throt_on AND rdz_dot < 0.95 { SET throt_on TO FALSE. }
+
+    VECDRAW(V(0,0,0),p_offset,RGB(0,0,1),"To target (offset)",1,TRUE).
+    VECDRAW(V(0,0,0),5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
+    VECDRAW(V(0,0,0),5 * ideal_v_diff,RGB(1,0,1),"Ideal relative velocity",1,TRUE).
+
+    IF throt_on {
+      IF sdv < RDZ_VEC:MAG {
+        pOut("Not enough delta-v remaining for rendezvous.").
+        SET ok TO FALSE.
+        SET RDZ_THROTTLE TO 0.
+      } ELSE {
+        SET RDZ_THROTTLE TO burnThrottle(burnTime(RDZ_VEC:MAG, sdv)).
+      }
+      VECDRAW(V(0,0,0),5 * RDZ_VEC,RGB(0,1,0),"Thrust vector",1,TRUE).
+    } ELSE {
+      SET RDZ_THROTTLE TO 0.
+      VECDRAW(V(0,0,0),5 * RDZ_VEC,RGB(0.5,0.5,0.5),"Steer vector",1,TRUE).
+    }
+
     WAIT 0.
+    CLEARVECDRAWS().
   }
-  SET RDZ_THROTTLE TO 0.
+
+  LOCK THROTTLE TO 0. WAIT 0.
+  pDV().
+  pOut("Ending rendezvous approach.").
   dampSteering().
-  RETURN done.
+  RETURN ok.
 }
 
 FUNCTION nodeRdzInclination
@@ -371,15 +388,17 @@ FUNCTION recalcCA
   PARAMETER t.
   LOCAL ca_details IS findTargetCA(t,TIMES[RDZ_CA]).
   setTime(RDZ_CA,ca_details[1]).
-  pOut("Closest approach: " + ROUND(ca_details[0]) + "m in " + ROUND(ca_details[1]-TIME:SECONDS) + "s.").
+  SET RDZ_CA_DIST TO ROUND(ca_details[0]).
+  pOut("Closest approach: " + RDZ_CA_DIST + "m in " + ROUND(TIMES[RDZ_CA]-TIME:SECONDS) + "s.").
   storeRdzDetails().
 }
 
 FUNCTION passingCA
 {
-  PARAMETER t, min_dist IS 5000.
-  LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
-  RETURN t:POSITION:MAG < min_dist AND VDOT(t:POSITION,v_diff) < 0.2.
+  PARAMETER t, min_dist IS RDZ_CA_DIST * 2.
+  LOCAL ts IS TIME:SECONDS.
+  LOCAL p_diff IS POSITIONAT(t,ts) - POSITIONAT(SHIP,ts).
+  RETURN p_diff:MAG < min_dist AND VDOT(p_diff,VELOCITYAT(SHIP,ts):ORBIT - VELOCITYAT(t,ts):ORBIT) < 0.2.
 }
 
 FUNCTION warpToCA
