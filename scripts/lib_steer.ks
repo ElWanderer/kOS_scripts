@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_steer.ks v1.2.2 20160828").
+pOut("lib_steer.ks v1.2.3 20160829").
 
 setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
@@ -71,7 +71,8 @@ FUNCTION steerOk
 FUNCTION dampSteering
 {
   pOut("Damping steering.").
-  steerTo().
+  LOCAL cur_f IS FACING:FOREVECTOR.
+  steerTo({ RETURN cur_f. }).
   WAIT UNTIL steerOk().
   steerOff().
 }
