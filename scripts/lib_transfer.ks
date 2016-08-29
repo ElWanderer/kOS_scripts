@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_transfer.ks v1.2.3 20160822").
+pOut("lib_transfer.ks v1.2.4 20160828").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -60,7 +60,7 @@ FUNCTION scoreNodeDestOrbit
   PARAMETER n.
   LOCAL score IS 0.
 
-  ADD n.
+  ADD n. WAIT 0.
   LOCAL orb IS n:ORBIT.
   LOCAL orb_count IS orbitReachesBody(orb,dest).
   IF orb_count >= 0 {

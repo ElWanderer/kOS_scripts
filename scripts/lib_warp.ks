@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_warp.ks v1.0.9 20160812").
+pOut("lib_warp.ks v1.0.10 20160826").
 
 GLOBAL WARP_MIN_ALT_LEX IS LEXICON(
   "Moho",   10000,
@@ -69,8 +69,8 @@ FUNCTION doWarp
     LOCAL want_mode IS pickWarpMode().
     IF WARPMODE <> want_mode {
       pOut("Switching warp mode to: " + want_mode).
+      SET WARP TO 0.
       SET WARPMODE TO want_mode.
-      SET WARP TO 1.
     } ELSE {
       LOCAL want_warp IS pickWarp().
       IF WARP <> want_warp { SET WARP TO want_warp. }
@@ -79,6 +79,7 @@ FUNCTION doWarp
   }
   IF WARP <> 0 { SET WARP TO 0. }
   IF warpTime() > 0 { pOut("Ending time warp early."). }
-  ELSE { pOut("Ending time warp."). }
+  WAIT UNTIL SHIP:UNPACKED.
+  pOut("Time warp over.").
   RETURN TRUE.
 }
