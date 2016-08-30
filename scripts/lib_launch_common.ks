@@ -1,10 +1,9 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.3.0#1 20160830").
+pOut("lib_launch_common.ks v1.3.0#2 20160830").
 
-// can get rid of lib_burn if we remove launchCirc()
 FOR f IN LIST(
-  "lib_burn.ks",
+  "lib_steer.ks",
   "lib_runmode.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
@@ -81,7 +80,7 @@ FUNCTION launchInit
 
   IF runMode() < 0 {
     hudMsg("Prepare for launch...").
-    pOut("Launch to apoasis: " + ap).
+    pOut("Launch to apoapsis: " + ap).
     runMode(1).
   }
 }
@@ -130,20 +129,6 @@ FUNCTION sepLauncher
   }
 }
 
-// can deprecate this if we can sort out the calcPitch() function
-// to make it to orbit with a constant burn
-FUNCTION launchCirc
-{
-  IF NOT HASNODE {
-    LOCAL m_time IS TIME:SECONDS + ETA:APOAPSIS.
-    LOCAL v0 IS VELOCITYAT(SHIP,m_time):ORBIT:MAG.
-    LOCAL v1 IS SQRT(BODY:MU/(BODY:RADIUS + APOAPSIS)).
-    LOCAL n IS NODE(m_time, 0, 0, v1 - v0).
-    addNode(n).
-  }
-  execNode(TRUE).
-}
-
 FUNCTION launchBearing
 {
   LOCAL lat IS SHIP:LATITUDE.
@@ -166,7 +151,7 @@ FUNCTION launchCalcMinVS
   IF ETA:APOAPSIS < ETA:PERIAPSIS {
     IF ABS(ALTITUDE - LCH_AP) > 1000 {
       // try to keep ETA to apoapsis around the 40s mark
-      RETURN VERTICALSPEED + (10 * SHIP:ORBIT:ECCENTRICITY^2 * (40 - ETA:APOASIS)).
+      RETURN VERTICALSPEED + (10 * SHIP:ORBIT:ECCENTRICITY^2 * (40 - ETA:APOAPSIS)).
     }
   } ELSE {
     // past apoapsis
@@ -179,11 +164,12 @@ FUNCTION launchCalcMinVS
 FUNCTION launchCalcPitch
 {
   IF SHIP:AVAILABLETHRUST > 0 {
+    LOCAL cur_acc IS SHIP:AVAILABLETHRUST / MASS.
     LOCAL r IS BODY:RADIUS + ALTITUDE.
     LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
     // desired vertical acceleration = gravity acc - centripetal acc + target vs - current vs
     LOCAL ship_acc IS (BODY:MU / r^2) - (v_x2 / r) + (launchCalcMinVS() - VERTICALSPEED).
-    LOCAL acc_ratio IS ship_acc * MASS / SHIP:AVAILABLETHRUST.
+    LOCAL acc_ratio IS ship_acc / cur_acc.
     IF acc_ratio < 0 {
       IF acc_ratio > -1 { RETURN -ARCSIN(acc_ratio). }
       RETURN -90.
@@ -205,8 +191,10 @@ FUNCTION launchPitch
 FUNCTION launchMaxSteer
 {
   IF ALTITUDE > LCH_FAIRING_ALT { RETURN 45. }
-  IF (ALTITUDE > LCH_FAIRING_ALT / 2 AND maxQTime() > 30) OR
-     VELOCITY:SURFACE:MAG < 99 { RETURN 15. }
+  IF (ALTITUDE > LCH_FAIRING_ALT * 0.75 AND maxQTime() > 90) OR
+     VELOCITY:SURFACE:MAG < 55 { RETURN 20. }
+  IF (ALTITUDE > LCH_FAIRING_ALT * 0.5 AND maxQTime() > 45) OR
+     VELOCITY:SURFACE:MAG < 99 { RETURN 10. }
   RETURN 5.
 }
 
@@ -215,13 +203,11 @@ FUNCTION launchQUpdate
   IF SHIP:Q > LCH_MAX_Q {
     SET LCH_MAX_Q TO SHIP:Q.
     setTime("MAXQ").
-  } ELSE  IF maxQTime() < 0.05 { pOut("MAX Q: " + ROUND(LCH_MAX_Q,5) + " atmospheres."). } }
+  } ELSE IF maxQTime() < 0.05 { pOut("MAX Q: " + ROUND(LCH_MAX_Q,5) + " atmospheres."). }
 }
 
 FUNCTION launchSteerUpdate
 {
-  launchQUpdate().
-
   LOCAL cur_v IS VELOCITY:SURFACE.
   LOCAL new_v IS HEADING(launchBearing(),launchPitch()):VECTOR.
   LOCAL max_ang IS launchMaxSteer().
