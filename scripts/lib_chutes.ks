@@ -1,43 +1,19 @@
 @LAZYGLOBAL OFF.
+pOut("lib_chutes.ks v1.2.3 20160831").
 
-
-pOut("lib_chutes.ks v1.2.2 20160728").
+RUNONCEPATH(loadScript("lib_parts.ks")).
 
 GLOBAL CHUTE_LIST IS LIST().
-GLOBAL CHUTE_ACT IS TRUE.
 
-FUNCTION doDeploy
-{
-  PARAMETER m.
-  pOut("Deploying: " + m:PART:TITLE).
-  m:DOEVENT("Deploy Chute").
-  SET CHUTE_ACT TO TRUE.
-}
-
-FUNCTION canDeploy
-{
-  PARAMETER m.
-  RETURN m:HASEVENT("Deploy Chute").
-}
+GLOBAL canDeploy IS canEvent@:BIND("Deploy Chute").
+GLOBAL doDeploy IS modEvent@:BIND("Deploy Chute").
+GLOBAL canDisarm IS canEvent@:BIND("Disarm").
+GLOBAL doDisarm IS modEvent@:BIND("Disarm").
 
 FUNCTION safeToDeploy
 {
   PARAMETER m.
   RETURN m:GETFIELD("Safe To Deploy?")="Safe".
-}
-
-FUNCTION doDisarm
-{
-  PARAMETER m.
-  pOut("Disarming: " + m:PART:TITLE).
-  m:DOEVENT("Disarm").
-  SET CHUTE_ACT TO TRUE.
-}
-
-FUNCTION canDisarm
-{
-  PARAMETER m.
-  RETURN m:HASEVENT("Disarm").
 }
 
 FUNCTION hasChutes
@@ -46,32 +22,32 @@ FUNCTION hasChutes
 }
 
 FUNCTION listChutes
-
 {
   PARAMETER all IS FALSE.
   WAIT 0.
   CHUTE_LIST:CLEAR.
   pOut("Counting parachutes.").
   FOR m IN SHIP:MODULESNAMED("ModuleParachute") {
-    pOut(" " + m:PART:TITLE + ". Deployable: " + canDeploy(m)).
+    pOut(" " + m:PART:TITLE + ". Deployable: " + canDeploy(m),FALSE).
     IF all OR canDeploy(m) { CHUTE_LIST:ADD(m). }
   }
-  SET CHUTE_ACT TO FALSE.
 }
 
 FUNCTION deployChutes
 {
-  IF ALTITUDE < BODY:ATM:HEIGHT AND VERTICALSPEED < 0 {
-    FOR m IN CHUTE_LIST { IF canDeploy(m) AND safeToDeploy(m) { doDeploy(m). } }
-    IF CHUTE_ACT { listChutes(). }
-  }
+  LOCAL act IS FALSE.
+  IF ALTITUDE < BODY:ATM:HEIGHT AND VERTICALSPEED < 0 { FOR m IN CHUTE_LIST {
+    IF canDeploy(m) AND safeToDeploy(m) { doDeploy(m). SET act TO TRUE. }
+  } }
+  IF act { listChutes(). }
 }
 
 FUNCTION disarmChutes
 {
   listChutes(TRUE).
-  FOR m IN CHUTE_LIST { IF canDisarm(m) { doDisarm(m). } }
-  IF CHUTE_ACT { listChutes(). }
+  LOCAL act IS FALSE.
+  FOR m IN CHUTE_LIST { IF canDisarm(m) { doDisarm(m). SET act TO TRUE. } }
+  IF act { listChutes(). }
 }
 
 listChutes(TRUE).
