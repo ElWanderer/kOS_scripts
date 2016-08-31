@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_launch_crew.ks v1.1.1 20160824").
+pOut("lib_launch_crew.ks v1.1.2 20160831").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -13,18 +12,15 @@ GLOBAL LCH_CHUTE_ALT IS BODY:ATM:HEIGHT * 0.3.
 
 FUNCTION fireLES
 {
-  FOR les IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
-    pOut("Firing Launch Escape System").
-    les:GETMODULE("ModuleEnginesFX"):DOACTION("activate engine",TRUE).
+  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
+    p:GETMODULE("ModuleEnginesFX"):DOACTION("activate engine",TRUE).
   }
 }
 
 FUNCTION jettisonLES
 {
-  // LES parent must be decoupler/docking port
-  FOR les IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
-    LOCAL p IS les:PARENT.
-    pOut("Jettisoning Launch Escape System").
+  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
+    pOut("Jettisoning LES").
     decouplePart(p).
   }
   disableLES().
@@ -50,20 +46,23 @@ UNTIL rm = exit_mode
 {
   IF rm = 1 {
     killThrot().
+    WAIT 0.
     LOCK THROTTLE TO 1.
     steerLaunch().
-    runMode(2,18).
+    runMode(2,21).
   } ELSE IF rm = 2 {
+    IF NOT isSteerOn() { steerLaunch(). }
     IF modeTime() > 3 {
       doStage().
       hudMsg("Liftoff!").
       runMode(11).
     }
   } ELSE IF rm = 11 {
+    IF NOT isSteerOn() { steerLaunch(). }
     launchSteerUpdate().
     launchStaging().
     IF APOAPSIS > ap {
-      LOCK THROTTLE TO 0.
+      killThrot().
       pDV().
       steerSurf().
       runMode(12).
@@ -77,10 +76,9 @@ UNTIL rm = exit_mode
         sepLauncher().
         pDV().
         runMode(exit_mode,0).
-      } ELSE { runMode(31,0). }
+      } ELSE { runMode(21,0). }
     }
-  } ELSE IF rm = 18 {
-    pOut("Abort mode: " + rm).
+  } ELSE IF rm = 21 {
     killThrot().
     WAIT 0.
     steerOff().
@@ -89,14 +87,14 @@ UNTIL rm = exit_mode
       fireLES().
       decoupleByTag("FINAL").
     } ELSE { hudMsg("MANUAL STAGING REQUIRED!", RED, 50). }
-    runMode(19).
-  } ELSE IF rm = 19 {
-    IF modeTime() > 6 { 
+    runMode(22).
+  } ELSE IF rm = 22 {
+    IF modeTime() > 6 {
       steerSurf(FALSE).
       IF hasLES() { JettisonLES(). }
-      runMode(20).
+      runMode(23).
     }
-  } ELSE IF rm = 20 {
+  } ELSE IF rm = 23 {
     IF modeTime() > 6 { runMode(31). }
   } ELSE IF rm = 31 {
     IF ALTITUDE > LCH_CHUTE_ALT { steerSurf(FALSE). }
@@ -104,21 +102,22 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 32 {
     IF ALTITUDE < LCH_CHUTE_ALT {
       steerOff().
-      pOut("Arming parachutes.").
+      IF hasChutes() { hudMsg("Will deploy parachutes once safe."). }
       runMode(33).
     }
   } ELSE IF rm = 33 {
-    deployChutes().
+    IF hasChutes() { deployChutes(). }
     IF LIST("LANDED","SPLASHED"):CONTAINS(STATUS) {
       hudMsg("Touchdown.").
-      runMode(exit_mode).
+      WAIT 0.
+      CORE:DOEVENT("Toggle Power").
     }
   } ELSE {
     pOut("Unexpected run mode: " + rm).
     BREAK.
   }
 
-  IF hasLES() AND rm < 18 { launchLES(). }
+  IF hasLES() AND rm < 20 { launchLES(). }
   IF hasFairing() { launchFairing(). }
   WAIT 0.
 }
