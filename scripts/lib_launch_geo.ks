@@ -1,7 +1,5 @@
 @LAZYGLOBAL OFF.
-
-
-pOut("lib_launch_geo.ks v1.0 20160714").
+pOut("lib_launch_geo.ks v1.0.1 20160831").
 
 GLOBAL HALF_LAUNCH IS 145.
 
@@ -15,7 +13,7 @@ FUNCTION changeHALF_LAUNCH
 FUNCTION latIncOk
 {
   PARAMETER lat,i.
-  RETURN (i > 0 AND ABS(lat) < 90 AND i >= ABS(lat) AND (180 - i) >= ABS(lat)).
+  RETURN (i > 0 AND ABS(lat) < 90 AND MIN(i,180-i) >= ABS(lat)).
 }
 
 FUNCTION etaToOrbitPlane
@@ -64,7 +62,7 @@ FUNCTION launchAzimuth
   PARAMETER ap. // metres
 
   LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
-  LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,SHIP:LATITUDE).
+  LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
   LOCAL v_orbit_x IS v_orbit * SIN(az).
   LOCAL v_orbit_y IS v_orbit * COS(az).
   LOCAL raz IS mAngle(90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
@@ -75,21 +73,30 @@ FUNCTION launchAzimuth
 
 FUNCTION noPassLaunchDetails
 {
-  PARAMETER i.
-  IF i < 90 { RETURN LIST(90,0). }
-  ELSE { RETURN LIST(270,0). }
+  PARAMETER ap,i,lan.
+
+  LOCAL az IS 90.
+  IF i > 90 { SET az TO 270. }
+
+  IF i = 0 OR i = 180 { RETURN LIST(az,0). }
+
+  LOCAL eta IS 0.
+  IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,i,LONGITUDE). }
+  ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-i,LONGITUDE). }
+  LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
+  RETURN LIST(az,launch_time).
 }
 
 FUNCTION launchDetails
 {
-  PARAMETER ap,az,i,lan.
+  PARAMETER ap,i,lan,az.
 
   LOCAL eta IS 0.
   SET az TO launchAzimuth(BODY,az,ap).
   LOCAL eta_to_AN IS etaToOrbitPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
   LOCAL eta_to_DN IS etaToOrbitPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
-  IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(i). }
+  IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
   ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < HALF_LAUNCH) AND eta_to_DN >= HALF_LAUNCH {
     SET eta TO eta_to_DN.
     SET az TO mAngle(180 - az).
@@ -104,8 +111,8 @@ FUNCTION calcLaunchDetails
   PARAMETER ap,i,lan.
 
   LOCAL az IS azimuth(i).
-  IF az < 0 { RETURN noPassLaunchDetails(i). }
-  ELSE { RETURN launchDetails(ap,az,i,lan). }
+  IF az < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
+  ELSE { RETURN launchDetails(ap,i,lan,az). }
 }
 
 FUNCTION warpToLaunch
