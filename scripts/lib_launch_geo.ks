@@ -1,5 +1,4 @@
 @LAZYGLOBAL OFF.
-
 pOut("lib_launch_geo.ks v1.0.1 20160831").
 
 GLOBAL HALF_LAUNCH IS 145.
@@ -121,6 +120,7 @@ FUNCTION warpToLaunch
   PARAMETER launch_time.
   IF launch_time - TIME:SECONDS > 5 {
     pOut("Waiting for orbit plane to pass overhead.").
+    WAIT 5.
     WARPTO(launch_time).
     WAIT UNTIL launch_time - TIME:SECONDS < 0.
   }
