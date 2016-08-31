@@ -1,21 +1,41 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.0 20160714").
+pOut("lib_parts.ks v1.0.1 20160831").
+
+FUNCTION canEvent
+{
+  PARAMETER e, m.
+  RETURN m:HASEVENT(e).
+}
+
+FUNCTION modEvent
+{
+  PARAMETER e, m.
+  m:DOEVENT(e).
+  pOut(m:PART:TITLE + ": " + e).
+}
+
+FUNCTION partEvent
+{
+  PARAMETER e, mn, p.
+  IF p:MODULES:CONTAINS(mn) {
+    LOCAL m IS p:GETMODULE(mn).
+    IF canEvent(e,m) { modEvent(e,m). RETURN TRUE. }
+  }
+  RETURN FALSE.
+}
 
 FUNCTION decouplePart
-
 {
-  PARAMETER d.
-  IF d:MODULES:CONTAINS("ModuleDockingNode") {
-    d:GETMODULE("ModuleDockingNode"):DOEVENT("decouple node").
-  } ELSE IF d:MODULES:CONTAINS("ModuleAnchoredDecoupler") {
-    d:GETMODULE("ModuleAnchoredDecoupler"):DOEVENT("decouple").
-  } ELSE IF d:MODULES:CONTAINS("ModuleDecouple") {
-    d:GETMODULE("ModuleDecouple"):DOEVENT("decouple").
-  }
+  PARAMETER p.
+
+  IF NOT (partEvent("decouple node","ModuleDockingNode",p)
+  OR partEvent("decouple","ModuleDecouple",p)
+  OR partEvent("decouple","ModuleAnchoredDecoupler",p))
+  AND p:HASPARENT { decouplePart(p:PARENT). }
 }
 
 FUNCTION decoupleByTag
 {
-  PARAMETER p_tag.
-  FOR dp IN SHIP:PARTSTAGGED(p_tag) { decouplePart(dp). }
+  PARAMETER t.
+  FOR p IN SHIP:PARTSTAGGED(t) { decouplePart(p). }
 }
