@@ -5,62 +5,69 @@ WAIT UNTIL SHIP:UNPACKED.
 GLOBAL TIMES IS LEXICON().
 GLOBAL LOG_FILE IS "".
 GLOBAL g0 IS 9.80665.
-
+GLOBAL INIT_MET_TS IS -1.
+GLOBAL INIT_MET IS "".
 setTime("STAGE").
 GLOBAL stageTime IS diffTime@:BIND("STAGE").
 
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.0.1 20160812").
+pOut("init_common.ks v1.1.0 20160901").
 
-FUNCTION padZ
+FUNCTION padRep
 {
-  PARAMETER t, l IS 2.
-  RETURN (""+t):PADLEFT(l):REPLACE(" ","0").
+  PARAMETER l, s, t.
+  RETURN (""+t):PADLEFT(l):REPLACE(" ",s).
+}
+
+GLOBAL pad2Z IS padRep@:BIND(2,"0").
+GLOBAL pad3Z IS padRep@:BIND(3,"0").
+
+FUNCTION formatTS
+{
+  PARAMETER u_time1, u_time2.
+  LOCAL ts IS (TIME - TIME:SECONDS) + ABS(u_time1 - u_time2).
+  RETURN "[T+" + pad2Z(ts:YEAR - 1) + " " + pad3Z(ts:DAY - 1) + " "
+    + pad2Z(ts:HOUR) + ":" + pad2Z(ts:MINUTE) + ":" + pad2Z(ROUND(ts:SECOND)) + "]".
 }
 
 FUNCTION formatMET
 {
-  LOCAL ts IS TIME + MISSIONTIME - TIME:SECONDS.
-  RETURN "[T+" + padZ(ts:YEAR - 1) + "-" + padZ(ts:DAY - 1,3) + " "
-   + padZ(ts:HOUR) + ":" + padZ(ts:MINUTE) + ":" + padZ(ROUND(ts:SECOND)) + "] ".
+  LOCAL m IS ROUND(MISSIONTIME).
+  IF m > INIT_MET_TS {
+    SET INIT_MET_TS TO m.
+    SET INIT_MET TO formatTS(TIME:SECONDS - m, TIME:SECONDS).
+  }
+  RETURN INIT_MET.
 }
 
 FUNCTION logOn
 {
-  PARAMETER lf IS "0:/log/" + SHIP:NAME:REPLACE(" ","_") + ".txt".
-  IF lf <> "" {
-    SET LOG_FILE TO lf.
-    doLog(SHIP:NAME).
-    pOut("Log enabled: " + LOG_FILE).
-  }
-}
-
-FUNCTION logOff
-{
-  pOut("Log disabled.").
-  SET LOG_FILE TO "".
+  PARAMETER lf IS "0:/log/" + padRep(0,"_",SHIP:NAME) + ".txt".
+  SET LOG_FILE TO lf.
+  doLog(SHIP:NAME).
+  IF lf <> "" { pOut("Log file: " + LOG_FILE). }
 }
 
 FUNCTION doLog
 {
   PARAMETER t.
-  LOG t TO LOG_FILE.
+  IF LOG_FILE <> "" { LOG t TO LOG_FILE. }
 }
 
 FUNCTION pOut
 {
   PARAMETER t, wt IS TRUE.
-  IF wt { SET t TO formatMET() + t. }
+  IF wt { SET t TO formatMET() + " " + t. }
   PRINT t.
-  IF LOG_FILE <> "" { doLog(t). }
+  doLog(t).
 }
 
 FUNCTION hudMsg
 {
   PARAMETER t, c IS YELLOW, s IS 40.
   HUDTEXT(t, 3, 2, s, c, FALSE).
-  pOut(t).
+  pOut("HUD: " + t).
 }
 
 FUNCTION setTime
