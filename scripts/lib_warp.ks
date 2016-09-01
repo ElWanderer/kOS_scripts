@@ -1,28 +1,37 @@
 @LAZYGLOBAL OFF.
+pOut("lib_warp.ks v1.1.0 20160901").
 
-pOut("lib_warp.ks v1.0.10 20160826").
-
-GLOBAL WARP_MIN_ALT_LEX IS LEXICON(
+GLOBAL WARP_MIN_ALTS IS LEXICON(
   "Moho",   10000,
-  "Eve",    MAX(90000,EVE:ATM:HEIGHT),
+  "Eve",    90000,
   "Gilly",  8000,
-  "Kerbin", MAX(70000,KERBIN:ATM:HEIGHT),
+  "Kerbin", 70000,
   "Mun",    5000,
   "Minmus", 3000,
-  "Duna",   MAX(50000,DUNA:ATM:HEIGHT),
+  "Duna",   50000,
   "Ike",    5000,
   "Dres",   10000,
-  "Jool",   MAX(200000,JOOL:ATM:HEIGHT),
-  "Laythe", MAX(50000,LAYTHE:ATM:HEIGHT),
+  "Jool",   200000,
+  "Laythe", 50000,
   "Vall",   24500,
   "Tylo",   30000,
   "Bop",    24500,
   "Pol",    5000,
-  "Eeloo",  4000
-).
+  "Eeloo",  4000).
 GLOBAL WARP_MAX_PHYSICS IS 3.
 GLOBAL WARP_MAX_RAILS IS 7.
 GLOBAL WARP_RAILS_BUFF IS LIST(3, 15, 30, 225, 675, 10000, 150000).
+
+initWarpLex().
+
+FUNCTION initWarpLex
+{
+  LOCAL bl IS LIST().
+  LIST BODIES IN bl.
+  FOR b IN bl { IF WARP_MIN_ALTS:HASKEY(b:NAME) AND b:ATM:EXISTS {
+    SET WARP_MIN_ALTS[b:NAME] TO MAX(WARP_MIN_ALTS[b:NAME],b:ATM:HEIGHT).
+  } }
+}
 
 FUNCTION warpTime
 {
@@ -38,9 +47,8 @@ FUNCTION setMaxWarp
 
 FUNCTION pickWarpMode
 {
-  IF WARP_MIN_ALT_LEX:HASKEY(BODY:NAME) AND
-     ALTITUDE <= WARP_MIN_ALT_LEX[BODY:NAME] AND
-     NOT (LIST("LANDED","SPLASHED","PRELAUNCH"):CONTAINS(STATUS)) { RETURN "PHYSICS". }
+  IF WARP_MIN_ALTS:HASKEY(BODY:NAME) AND ALTITUDE <= WARP_MIN_ALTS[BODY:NAME] AND
+     NOT LIST("LANDED","SPLASHED","PRELAUNCH"):CONTAINS(STATUS) { RETURN "PHYSICS". }
   RETURN "RAILS".
 }
 
@@ -63,7 +71,7 @@ FUNCTION doWarp
   setTime("WARP",wt).
 
   IF warpTime() < WARP_RAILS_BUFF[0] { RETURN FALSE. }
-  pOut("Engaging time warp.").
+  pOut("Engaging time warp to " + formatTS(TIME:SECONDS - MISSIONTIME,wt)).
 
   UNTIL stop_func() OR warpTime() <= 0 {
     LOCAL want_mode IS pickWarpMode().
