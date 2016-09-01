@@ -2,6 +2,9 @@
 IF WARP <> 0 { SET WARP TO 0. }
 WAIT UNTIL SHIP:UNPACKED.
 
+GLOBAL pad2Z IS padRep@:BIND(2,"0").
+GLOBAL pad3Z IS padRep@:BIND(3,"0").
+
 GLOBAL TIMES IS LEXICON().
 GLOBAL LOG_FILE IS "".
 GLOBAL g0 IS 9.80665.
@@ -19,9 +22,6 @@ FUNCTION padRep
   PARAMETER l, s, t.
   RETURN (""+t):PADLEFT(l):REPLACE(" ",s).
 }
-
-GLOBAL pad2Z IS padRep@:BIND(2,"0").
-GLOBAL pad3Z IS padRep@:BIND(3,"0").
 
 FUNCTION formatTS
 {
