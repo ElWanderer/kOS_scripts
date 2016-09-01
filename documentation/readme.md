@@ -90,6 +90,8 @@ Secondly, though the burn time may be calculated accurately, no attempt is curre
 
 ## Scipts
 
+TBD - should these be moved to a separate set of readme files, one per script file?
+
 ### Boot scripts
 
 TBD
@@ -113,8 +115,8 @@ In turn, both of the init scripts include the common library:
 
     @LAZYGLOBAL OFF.
     
-    COPYPATH("0:/init\_common.ks","1:/init\_common.ks").
-    RUNONCEPATH("1:/init\_common.ks").
+    COPYPATH("0:/init_common.ks","1:/init_common.ks").
+    RUNONCEPATH("1:/init_common.ks").
 
 #### Global variable reference
 
