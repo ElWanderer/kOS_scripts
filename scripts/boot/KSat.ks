@@ -1,9 +1,9 @@
 @LAZYGLOBAL OFF.
 
-COPYPATH("0:/init.ks","1:/init.ks").
+IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.1.0 20160823").
+pOut("KSat.ks v1.1.1 20160902").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
