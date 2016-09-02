@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
+IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
 pOut("KTour.ks v1.1.1 20160902").
