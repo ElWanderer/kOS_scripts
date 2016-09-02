@@ -1,9 +1,9 @@
 @LAZYGLOBAL OFF.
 
-COPYPATH("0:/init.ks","1:/init.ks").
+IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KRescue.ks v1.1.0 20160824").
+pOut("KRescue.ks v1.2.0 20160902").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -22,8 +22,8 @@ IF rm < 0 {
     hudMsg("No space on board for rescued crew!", RED).
     runMode(99).
   } ELSE {
-    updateLastCrewCount().
-    printCrew().
+    storeLastCrewCount().
+    pCrew().
   }
 
   RUNONCEPATH(loadScript("lib_launch_geo.ks")).
@@ -97,8 +97,8 @@ IF rm < 0 {
 } ELSE IF rm = 822 {
   IF crewCount() > lastCrewCount() {
     hudMsg("Welcome aboard.").
-    updateLastCrewCount().
-    printCrew().
+    storeLastCrewCount().
+    pCrew().
     runMode(823).
   }
 } ELSE IF rm = 823 {
