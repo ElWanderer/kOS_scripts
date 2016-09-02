@@ -1,9 +1,9 @@
 @LAZYGLOBAL OFF.
 
-COPYPATH("0:/init.ks","1:/init.ks").
+IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMShuttle.ks v1.1.0 20160824").
+pOut("KMShuttle.ks v1.2.0 20160902").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -28,7 +28,7 @@ LOCAL rm IS runMode().
 IF rm < 0 {
   SET SHIP:NAME TO NEW_NAME.
   logOn().
-  printCrew().
+  pCrew().
 
   RUNONCEPATH(loadScript("lib_launch_geo.ks")).
 
