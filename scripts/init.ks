@@ -1,20 +1,17 @@
 @LAZYGLOBAL OFF.
-
-COPYPATH("0:/init_common.ks","1:/init_common.ks").
-RUNONCEPATH("1:/init_common.ks").
+RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
 GLOBAL RESUME_FN IS "resume.ks".
-pOut("init.ks v1.2.1 20160726").
+pOut("init.ks v1.2.2 20160902").
 
 FUNCTION loadScript
 {
-  PARAMETER fn.
+  PARAMETER fn, loud IS TRUE.
   LOCAL lfp IS "1:/" + fn.
   IF EXISTS(lfp) { RETURN lfp. }
 
   LOCAL afp IS "0:/" + fn.
-  LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
-  pOut("Copying " + afp + " (" + afs + ") to " + lfp).
+  IF loud { pOut("Copying: " + afp). }
   COPYPATH(afp,lfp).
   RETURN lfp.
 }
