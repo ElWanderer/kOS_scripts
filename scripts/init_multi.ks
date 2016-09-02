@@ -1,12 +1,12 @@
 @LAZYGLOBAL OFF.
 
-RUNONCEPATH(loadScript("init_common.ks",FALSE)).
-
 GLOBAL RESUME_FN IS "resume.ks".
 GLOBAL VOLUME_NAMES IS LIST().
+listVolumes().
+RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
 pOut("init_multi.ks v1.1.1 20160902").
-listVolumes().
+pVolumes().
 
 FUNCTION setVolumeList
 {
@@ -34,7 +34,6 @@ FUNCTION listVolumes
       VOLUME_NAMES:ADD(vn).
     }
   }
-  pVolumes().
 }
 
 FUNCTION pVolumes
