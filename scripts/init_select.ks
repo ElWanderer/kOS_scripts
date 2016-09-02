@@ -3,7 +3,6 @@
 // this lives on the archive, run it once on start-up to copy
 // either "0:/init.ks" or "0/init_multi.ks" to "1:/init.ks"
 
-PRINT "Initialising.".
 copyOverInit().
 
 FUNCTION copyOverInit
@@ -12,16 +11,16 @@ FUNCTION copyOverInit
   LOCAL pl IS LIST().
   LIST PROCESSORS IN pl.
   FOR p IN pl {
-    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND p:VOLUME:NAME <> CORE:CURRENTVOLUME:NAME {
+    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" {
       SET disk_count TO disk_count + 1.
     }
   }
 
   IF disk_count > 1 {
-    PRINT "Copying 0:/init_multi.ks".
+    HUDTEXT("Copying 0:/init_multi.ks.", 3, 2, 40, YELLOW, FALSE).
     COPYPATH("0:/init_multi.ks","1:/init.ks").
   } ELSE {
-    PRINT "Copying 0:/init.ks".
+    HUDTEXT("Copying 0:/init.ks.", 3, 2, 40, YELLOW, FALSE).
     COPYPATH("0:/init.ks","1:/init.ks").
   }
 }
