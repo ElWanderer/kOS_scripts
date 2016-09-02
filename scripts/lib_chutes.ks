@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_chutes.ks v1.2.3 20160831").
+pOut("lib_chutes.ks v1.2.4 20160902").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -26,9 +26,9 @@ FUNCTION listChutes
   PARAMETER all IS FALSE.
   WAIT 0.
   CHUTE_LIST:CLEAR.
-  pOut("Counting parachutes.").
+  pOut("Counting parachutes:").
   FOR m IN SHIP:MODULESNAMED("ModuleParachute") {
-    pOut(" " + m:PART:TITLE + ". Deployable: " + canDeploy(m),FALSE).
+    pOut(m:PART:TITLE + ". Deployable: " + canDeploy(m),FALSE).
     IF all OR canDeploy(m) { CHUTE_LIST:ADD(m). }
   }
 }
