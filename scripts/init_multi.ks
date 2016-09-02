@@ -25,11 +25,10 @@ FUNCTION listVolumes
   LOCAL pl IS LIST().
   LIST PROCESSORS IN pl.
   FOR p IN pl {
-    LOCAL vn IS p:VOLUME:NAME.
+    LOCAL LOCK vn TO p:VOLUME:NAME.
     IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND vn <> cvn {
       IF vn = "" {
         SET p:VOLUME:NAME TO ("Disk" + disk_num).
-        SET vn TO p:VOLUME:NAME.
         SET disk_num TO disk_num + 1.
       }
       VOLUME_NAMES:ADD(vn).
