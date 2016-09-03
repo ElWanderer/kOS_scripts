@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderProbe.ks v1.2.0 20160902").
+pOut("KMLanderProbe.ks v1.2.1 20160903").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
