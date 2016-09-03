@@ -103,9 +103,8 @@ IF rm < 0 {
   ELSE { runMode(819,813). }
 
 } ELSE IF rm = 821 {
-  RUNONCEPATH(loadScript("lib_node.ks")).
-  RUNONCEPATH(loadScript("lib_steer.ks")).
-  IF stageDV() > dvForBody(LAND_BODY) {
+  RUNONCEPATH(loadScript("lib_burn.ks")).
+    IF stageDV() > dvForBody(LAND_BODY) {
     runMode(831).
   } ELSE {
     steerOrbit().
@@ -116,7 +115,7 @@ IF rm < 0 {
   IF NOT isSteerOn() { runMode(821). }
   IF steerOk() { runMode(823). }
 } ELSE IF rm = 823 {
-  RUNONCEPATH(loadScript("lib_node.ks")).
+  RUNONCEPATH(loadScript("lib_burn.ks")).
   IF stageDV() > dvForBody(LAND_BODY) { runMode(831). }
   ELSE IF STAGE:READY { doStage(). }
 
