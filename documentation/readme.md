@@ -98,25 +98,21 @@ TBD
 
 ### Init scripts/libraries
 
-There are currently two initialisation scripts with a shared library. Previously, all this code was in a single library, but I felt it was worth separating out the (chunky) code I added for coping with multiple disk volumes to keep the file size down for the simpler version that only uses the local volume.
+There are currently two initialisation scripts with a shared library and a selector file. Previously, all this code was in a single library, but I felt it was worth separating out the (chunky) code I added for coping with multiple disk volumes to keep the file size down for the simpler version that only uses the local volume.
 
-All the boot scripts start out by copying over and running either init.ks (local volume) or init\_multi.ks (multiple volumes):
+All the boot scripts start out the first time by running the selector script from the archive. This copies over either "0:/init.ks" (single volume) or "0:/init\_multi.ks" (multiple volumes) to "1:/init.ks". The current method of selection is fairly simple: we loop through all the processors on the craft and count how many there are that
+ * are powered up and
+ * do not have a boot file set
+This means that if you have two kOS CPUs set to run different boot scripts, neither will try to overwrite each other's disks, they will both use the single volume version of init. There would be competition if you had a third, non-booting volume, though: both active CPUs would load the multiple volume version and try to use the third disk as well as their own.
+
+Finally, each boot script then runs "1:/init.ks". So on each subsequent boot after the first, it will go straight to running whatever init script it has locally.
 
     @LAZYGLOBAL OFF.
-    
-    COPYPATH("0:/init.ks","1:/init.ks").
+
+    IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
     RUNONCEPATH("1:/init.ks").
-This enforces a copy, so the current init will be replaced every single boot. It would be possible to wrap the copy within a check to see if the file already exists on the local volume:
 
-    IF NOT EXISTS("1:/init.ks") { COPYPATH("0:/init.ks","1:/init.ks"). }
-That may be a preferable addition for anyone using RemoteTech.
-
-In turn, both of the init scripts include the common library:
-
-    @LAZYGLOBAL OFF.
-    
-    COPYPATH("0:/init_common.ks","1:/init_common.ks").
-    RUNONCEPATH("1:/init_common.ks").
+In turn, both of the init scripts will load and run the common library. There is a potential circular dependency here. loadScript() is a function in the init.ks/init\_multi.ks file, but it in turn calls pOut(), a printing function in the init\_common.ks library. We can't use pOut() until we've actually run the common library. To solve this we make use of an extra parameter in the loadScript() function, loud_mode. By passing in false, we disable the usual printing and logging that the loadScript() function does. Not all printing is disabled: if there were an error, this is still printed. That happens on the grounds that we were going to crash anyway, if we couldn't load a file (e.g. due to lack of space).
 
 #### Global variable reference
 
@@ -128,7 +124,7 @@ This is used to store commands to be run to recover a previous state following a
 
 #### Function reference
 
-##### loadScript(script_name)
+##### loadScript(script\_name, loud\_mode)
 
 This tries to copy script_name from the archive to one of the disk volumes on the ship. If the file already exists, it does not re-copy the file.
 
@@ -137,6 +133,8 @@ Will crash kOS if the file needs to be copied over but there is not enough space
 Returns the full file path for where the script is on a local volume. This is meant to be plugged into RUNPATH e.g.
 
     RUNONCEPATH(loadScript(script_name)).
+
+Loud mode defaults to true, that is it will print out what it is doing. Passing in loud_mode as false will prevent it from printing.
 
 ##### delScript(script_name)
 
