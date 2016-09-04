@@ -88,15 +88,13 @@ It tries to find a single liquid-fuel engine that has a decoupler attached that 
 
 Secondly, though the burn time may be calculated accurately, no attempt is currently made to account for wildly-different thrust levels. If a burn is expected to start off with a Swivel and end with an Ant, you may find that although the burn lasts the predicted length and provides the right amount of delta-v, most of that delta-v will have been produced early on in the burn. This can have undesired results such as pushing out the apoapsis too high then failing to bring the periapsis up out of the atmosphere.
 
-## Scipts
+## Boot scripts
 
 TBD - should these be moved to a separate set of readme files, one per script file?
 
-### Boot scripts
+## Init scripts/libraries
 
-TBD
-
-### Init scripts/libraries
+TBD - should these be moved to a separate set of readme files, one per script file?
 
 There are currently two initialisation scripts with a shared library and a selector file. Previously, all this code was in a single library, but I felt it was worth separating out the (chunky) code I added for coping with multiple disk volumes to keep the file size down for the simpler version that only uses the local volume.
 
@@ -115,25 +113,25 @@ Finally, each boot script then runs "1:/init.ks". So on each subsequent boot aft
 
 In turn, both of the init scripts will load and run the common library. There is a potential circular dependency here. loadScript() is a function in the init.ks/init\_multi.ks file, but it in turn calls pOut(), a printing function in the init\_common.ks library. We can't use pOut() until we've actually run the common library. To solve this we make use of an extra parameter in the loadScript() function, loud_mode. By passing in false, we disable the usual printing and logging that the loadScript() function does. Not all printing is disabled: if there were an error, this is still printed. That happens on the grounds that we were going to crash anyway, if we couldn't load a file (e.g. due to lack of space).
 
-#### Global variable reference
+### Global variable reference
 
-##### RESUME\_FN
+#### RESUME\_FN
 
 The filename of the main resume file. The default filename is resume.ks.
 
 This is used to store commands to be run to recover a previous state following a reboot. The reason for doing this is to store a function call and all its parameters, so that we can resume (fairly) seamlessly during complicated functions such as doLaunch(), doReentry() etc.
 
-##### VOLUME\_NAMES (init\_multi.ks only)
+#### VOLUME\_NAMES (init\_multi.ks only)
 
 A list of available volume names. By default this is an empty list, though this is quickly populated by running listVolumes(). Practically, the real default value is a list containing the local volume, which gets renamed "Disk0".
 
 This is used to store the names of all the disks we think we have access to. Various init\_multi.ks functions rely on being able to loop through this list.
 
-##### TBD - add in the globals in init_common.ks.
+#### TBD - add in the globals in init_common.ks.
 
-#### Function reference
+### Function reference
 
-##### loadScript(script\_name, loud\_mode)
+#### loadScript(script\_name, loud\_mode)
 
 This tries to copy script\_name from the archive to one of the disk volumes on the ship. init.ks uses the processor's local volume ("1:/"), but init\_multi.ks will loop through the available volumes (starting with "1:/") until it finds one that has enough space to store the script being copied. If the file already exists, it does not re-copy the file.
 
@@ -145,7 +143,7 @@ Returns the full file path for where the script is on a local volume. This is me
 
 Loud mode defaults to true, that is it will print out what it is doing. Passing in loud_mode as false will prevent it from printing.
 
-##### delScript(script\_name)
+#### delScript(script\_name)
 
 This tries to delete script_name from the local disk volume(s). 
 
@@ -153,7 +151,7 @@ It will only delete one copy - it is assumed that anything being deleted will ha
 
 If the file does not exist, nothing happens.
 
-##### delResume(file\_name)
+#### delResume(file\_name)
 
 Tries to delete file\_name from the local volume(s).
 
@@ -161,7 +159,7 @@ The default file\_name is RESUME_FN.
 
 If the file does not exist, nothing happens.
 
-##### store(text, file\_name, file\_size\_required)
+#### store(text, file\_name, file\_size\_required)
 
 This logs text to file\_name on the local volume. The default file\_name is RESUME_FN.
 
@@ -169,7 +167,7 @@ There is a difference in behaviour between init.ks and init\_multi.ks. init.ks s
 
 Will crash kOS if it tries to write out too large a file to fit on the local volume.
 
-##### append(text, file\_name)
+#### append(text, file\_name)
 
 Tries to append text to file\_name.
 
@@ -177,7 +175,7 @@ The default file\_name is RESUME_FN.
 
 Will crash kOS if file\_name does not exist anywhere on the local volume.
 
-##### resume(file\_name)
+#### resume(file\_name)
 
 Tries to run file\_name.
 
@@ -185,13 +183,13 @@ The default file\_name is RESUME_FN.
 
 If file\_name does not exist, nothing happens.
 
-##### setVolumeList(list\_of\_volume\_names) (init\_multi.ks only)
+#### setVolumeList(list\_of\_volume\_names) (init\_multi.ks only)
 
 Overwrites the VOLUME\_NAMES global list with the passed-in list, then calls pVolume() to dump out the list of volumes.
 
 This is intended for boot scripts/craft-specific scripts to set-up a specific list of volumes for a processor to use, rather than relying on the search done on initialisation, for cases where that search fails to pick up some drives, or finds too many.
 
-##### listVolumes() (init\_multi.ks only)
+#### listVolumes() (init\_multi.ks only)
 
 This function is run once on start-up. It will populate VOLUME\_NAMES with a list of available volumes.
 
@@ -206,11 +204,11 @@ These checks are designed to prevent the current volume from being added twice a
 
 Before being added to the list, each volume is renamed if it doesn't already have a name. Names are generated numerically: "Disk1", "Disk2" etc.
 
-##### pVolumes() (init\_multi.ks only)
+#### pVolumes() (init\_multi.ks only)
 
 Prints out all the volumes that have been named in VOLUME\_NAMES, including how much free space each one has.
 
-##### findPath(file\_name) (init\_multi.ks only)
+#### findPath(file\_name) (init\_multi.ks only)
 
 Loops through the volumes names in VOLUME\_NAMES, looking to see if file\_name exists on the root directory of that volume.
 
@@ -218,15 +216,15 @@ Returns the filepath if it can find the file, "" otherwise.
 
 Note that currently this does not search sub-directories within volumes.
 
-##### findSpace(file\_name, minimum\_free\_space) (init\_multi.ks only)
+#### findSpace(file\_name, minimum\_free\_space) (init\_multi.ks only)
 
 Loops through the volumes names in VOLUME\_NAMES, looking to see if that volume has more bytes of free space available than the parameter minimum\_free\_space.
 
 Returns the full filepath (including file\_name) if it can find a volume with enough space. Otherwise it'll print out an error, call pVolumes() so you can see what space is avaible and return "".
 
-##### TBD - add in the commands in init_common.ks.
+#### TBD - add in the commands in init_common.ks.
 
-### Libraries
+## Libraries
 
-TBD
+TBD - should these be moved to a separate set of readme files, one per script file?
 
