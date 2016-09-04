@@ -103,6 +103,7 @@ There are currently two initialisation scripts with a shared library and a selec
 All the boot scripts start out the first time by running the selector script from the archive. This copies over either "0:/init.ks" (single volume) or "0:/init\_multi.ks" (multiple volumes) to "1:/init.ks". The current method of selection is fairly simple: we loop through all the processors on the craft and count how many there are that
  * are powered up and
  * do not have a boot file set
+
 This means that if you have two kOS CPUs set to run different boot scripts, neither will try to overwrite each other's disks, they will both use the single volume version of init. There would be competition if you had a third, non-booting volume, though: both active CPUs would load the multiple volume version and try to use the third disk as well as their own.
 
 Finally, each boot script then runs "1:/init.ks". So on each subsequent boot after the first, it will go straight to running whatever init script it has locally.
@@ -116,19 +117,27 @@ In turn, both of the init scripts will load and run the common library. There is
 
 #### Global variable reference
 
-##### RESUME_FN
+##### RESUME\_FN
 
 The filename of the main resume file. The default filename is resume.ks.
 
 This is used to store commands to be run to recover a previous state following a reboot. The reason for doing this is to store a function call and all its parameters, so that we can resume (fairly) seamlessly during complicated functions such as doLaunch(), doReentry() etc.
 
+##### VOLUME\_NAMES (init\_multi.ks only)
+
+A list of available volume names. By default this is an empty list, though this is quickly populated by running listVolumes(). Practically, the real default value is a list containing the local volume, which gets renamed "Disk0".
+
+This is used to store the names of all the disks we think we have access to. Various init\_multi.ks functions rely on being able to loop through this list.
+
+##### TBD - add in the globals in init_common.ks.
+
 #### Function reference
 
 ##### loadScript(script\_name, loud\_mode)
 
-This tries to copy script_name from the archive to one of the disk volumes on the ship. If the file already exists, it does not re-copy the file.
+This tries to copy script\_name from the archive to one of the disk volumes on the ship. init.ks uses the processor's local volume ("1:/"), but init\_multi.ks will loop through the available volumes (starting with "1:/") until it finds one that has enough space to store the script being copied. If the file already exists, it does not re-copy the file.
 
-Will crash kOS if the file needs to be copied over but there is not enough space to store the file (currently it is assumed that we want to stop and debug - if we are missing a library then chances are we will crash shortly anyway).
+This will crash kOS if the file needs to be copied over but there is not enough space to store the file (currently it is assumed that we want to stop and debug - if we are missing a library then chances are we will crash shortly anyway).
 
 Returns the full file path for where the script is on a local volume. This is meant to be plugged into RUNPATH e.g.
 
@@ -136,7 +145,7 @@ Returns the full file path for where the script is on a local volume. This is me
 
 Loud mode defaults to true, that is it will print out what it is doing. Passing in loud_mode as false will prevent it from printing.
 
-##### delScript(script_name)
+##### delScript(script\_name)
 
 This tries to delete script_name from the local disk volume(s). 
 
@@ -176,7 +185,44 @@ The default file\_name is RESUME_FN.
 
 If file\_name does not exist, nothing happens.
 
-##### TBD - add in the extra commands unique to init\_multi.ks.
+##### setVolumeList(list\_of\_volume\_names) (init\_multi.ks only)
+
+Overwrites the VOLUME\_NAMES global list with the passed-in list, then calls pVolume() to dump out the list of volumes.
+
+This is intended for boot scripts/craft-specific scripts to set-up a specific list of volumes for a processor to use, rather than relying on the search done on initialisation, for cases where that search fails to pick up some drives, or finds too many.
+
+##### listVolumes() (init\_multi.ks only)
+
+This function is run once on start-up. It will populate VOLUME\_NAMES with a list of available volumes.
+
+The function will start by renaming the local volume "Disk0" if it doesn't already have a name, then set VOLUME\_NAMES to a list containing just the name of this local volume. As far as I can tell, volumes typically start off with no name at all.
+
+Next, it loops through all the processors on the vessel, checking their volumes to see if they should be added to the list. Volumes are added if they:
+ * are powered up and
+ * do not have a boot file set
+ * do not have a volume name that equals that of the local volume
+
+These checks are designed to prevent the current volume from being added twice and from including any volumes that are in use by another processor. If you have a vessel with two CPUs it may be because you intend to divide it into two at some point, so giving each one a boot file prevents once CPU from trying to use the other's disk.
+
+Before being added to the list, each volume is renamed if it doesn't already have a name. Names are generated numerically: "Disk1", "Disk2" etc.
+
+##### pVolumes() (init\_multi.ks only)
+
+Prints out all the volumes that have been named in VOLUME\_NAMES, including how much free space each one has.
+
+##### findPath(file\_name) (init\_multi.ks only)
+
+Loops through the volumes names in VOLUME\_NAMES, looking to see if file\_name exists on the root directory of that volume.
+
+Returns the filepath if it can find the file, "" otherwise.
+
+Note that currently this does not search sub-directories within volumes.
+
+##### findSpace(file\_name, minimum\_free\_space) (init\_multi.ks only)
+
+Loops through the volumes names in VOLUME\_NAMES, looking to see if that volume has more bytes of free space available than the parameter minimum\_free\_space.
+
+Returns the full filepath (including file\_name) if it can find a volume with enough space. Otherwise it'll print out an error, call pVolumes() so you can see what space is avaible and return "".
 
 ##### TBD - add in the commands in init_common.ks.
 
