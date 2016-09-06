@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.2.0 20160812").
+pOut("lib_burn.ks v1.2.1 20160906").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -64,9 +64,7 @@ FUNCTION burnNode
   LOCK THROTTLE TO BURN_THROTTLE.
   IF ADDONS:KAC:AVAILABLE AND (bt / 2) < 300 {
     WAIT UNTIL n:ETA < 300.
-    LOCAL al IS LIST().
-    SET al TO LISTALARMS("All").
-    FOR a IN al { IF a:REMAINING < 300 { DELETEALARM(a:ID). } }
+    FOR a IN LISTALARMS("All") { IF a:REMAINING < 300 { DELETEALARM(a:ID). } }
   }
 
   WAIT UNTIL n:ETA <= (bt / 2).
