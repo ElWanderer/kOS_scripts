@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_geo.ks v1.0.1 20160831").
+pOut("lib_launch_geo.ks v1.0.2 20160906").
 
 GLOBAL HALF_LAUNCH IS 145.
 
@@ -37,10 +37,8 @@ FUNCTION etaToOrbitPlane
 FUNCTION azimuth
 {
   PARAMETER i.
-  LOCAL az IS -1.
-  LOCAL lat IS SHIP:LATITUDE.
-  IF latIncOk(lat,i) { SET az TO ARCSIN( COS(i) / COS(lat) ). }
-  RETURN az.
+  IF latIncOk(LATITUDE,i) { RETURN mAngle(ARCSIN(COS(i) / COS(LATITUDE))). }
+  RETURN -1.
 }
 
 FUNCTION planetSurfaceSpeedAtLat
@@ -76,13 +74,14 @@ FUNCTION noPassLaunchDetails
   PARAMETER ap,i,lan.
 
   LOCAL az IS 90.
+  LOCAL lat IS MIN(i, 180-i).
   IF i > 90 { SET az TO 270. }
 
   IF i = 0 OR i = 180 { RETURN LIST(az,0). }
 
   LOCAL eta IS 0.
-  IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,i,LONGITUDE). }
-  ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-i,LONGITUDE). }
+  IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
+  ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
   LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
   RETURN LIST(az,launch_time).
 }
