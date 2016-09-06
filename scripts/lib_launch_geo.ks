@@ -74,13 +74,14 @@ FUNCTION noPassLaunchDetails
   PARAMETER ap,i,lan.
 
   LOCAL az IS 90.
+  LOCAL lat IS MIN(i, 180-i).
   IF i > 90 { SET az TO 270. }
 
   IF i = 0 OR i = 180 { RETURN LIST(az,0). }
 
   LOCAL eta IS 0.
-  IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,i,LONGITUDE). }
-  ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-i,LONGITUDE). }
+  IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
+  ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
   LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
   RETURN LIST(az,launch_time).
 }
