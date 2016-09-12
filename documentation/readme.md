@@ -124,10 +124,12 @@ We initialise the staging timer with the current time. This is often used for ch
 
 We have the capability of running a ship-specific script. This uses the ship's name to determine which file to try loading, but note that it searches the craft sub-directory of /Ships/scripts. If this exists, it is copied to "1:/craft.ks" and run. On a subsequent boot, we check first to see if we already have a craft-specific file and if so go straight to running it:
 
-    GLOBAL CRAFT_AFP IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
-    GLOBAL CRAFT_LFP IS "1:/craft.ks".
-    IF NOT EXISTS (CRAFT_LFP) AND EXISTS (CRAFT_AFP) { COPYPATH(CRAFT_AFP,CRAFT_LFP). }
-    IF EXISTS(CRAFT_LFP) { RUNONCEPATH(CRAFT_LFP). }
+    GLOBAL CRAFT_FILE IS "1:/craft.ks".
+    IF NOT EXISTS (CRAFT_FILE) {
+      LOCAL afp IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
+      IF EXISTS (afp) { COPYPATH(afp,CRAFT_FILE). }
+    }
+    IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 
 Then we open a terminal and clear its screen ready for output:
 
@@ -179,8 +181,6 @@ INIT\_MET stores the last, calculated, pretty-formatted Mission Elapsed Time.
 
 The pretty-formatted Mission Elapsed Time need not be recalculated until the next second has passed, which helps if trying to print out a lot of messages in quick succession.
 
-It has struck me that there may be a better way of handling this, that makes use of the TIMES lexicon.
-
 #### stageTime()
 
 A function delegate. This returns the time elapsed since the "STAGE" time was updated, which should either be the time since boot or the time since the last staging event.
@@ -188,6 +188,10 @@ A function delegate. This returns the time elapsed since the "STAGE" time was up
 #### CRAFT\_SPECIFIC
 
 This is a lexicon. The idea is that craft-specific files can insert values (and even functions) into here for use elsewhere. Currently nothing has actually been implemented. There are some suggested uses in issue #55.
+
+#### CRAFT\_FILE
+
+The path of the locally-stored craft-specific file, if one exists.
 
 ### Function reference
 
