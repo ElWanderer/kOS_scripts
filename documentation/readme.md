@@ -113,6 +113,33 @@ Finally, each boot script then runs "1:/init.ks". So on each subsequent boot aft
 
 In turn, both of the init scripts will load and run the common library. There is a potential circular dependency here. loadScript() is a function in the init.ks/init\_multi.ks file, but it in turn calls pOut(), a printing function in the init\_common.ks library. We can't use pOut() until we've actually run the common library. To solve this we make use of an extra parameter in the loadScript() function, loud_mode. By passing in false, we disable the usual printing and logging that the loadScript() function does. Not all printing is disabled: if there were an error, this is still printed. That happens on the grounds that we were going to crash anyway, if we couldn't load a file (e.g. due to lack of space).
 
+The init\_common.ks library triggers quite a few pieces of code as well as adding a suite of library functions. If timewarp was active when we booted up (which can happen if we run out of electrical power during time warp), this is disabled. We also wait for the ship to be unpacked:
+
+    IF WARP <> 0 { SET WARP TO 0. }
+    WAIT UNTIL SHIP:UNPACKED.
+
+We initialise the staging timer with the current time. This is often used for checks such as "has it been more than x seconds since we last staged" to guide whether it's okay to stage again and for certain actions e.g. we want to wait for about 5 seconds after triggering the launch escape system, then jettison it.
+
+    setTime("STAGE").
+
+We have the capability of running a ship-specific script. This uses the ship's name to determine which file to try loading, but note that it searches the craft sub-directory of /Ships/scripts. If this exists, it is copied to "1:/craft.ks" and run. On a subsequent boot, we check first to see if we already have a craft-specific file and if so go straight to running it:
+
+    GLOBAL CRAFT_AFP IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
+    GLOBAL CRAFT_LFP IS "1:/craft.ks".
+    IF NOT EXISTS (CRAFT_LFP) AND EXISTS (CRAFT_AFP) { COPYPATH(CRAFT_AFP,CRAFT_LFP). }
+    IF EXISTS(CRAFT_LFP) { RUNONCEPATH(CRAFT_LFP). }
+
+Then we open a terminal and clear its screen ready for output:
+
+    CORE:DOEVENT("Open Terminal").
+    CLEARSCREEN.
+
+Lastly, we print out the filename and version. This is useful for checking what versions of files are actually running:
+
+    pOut("init_common.ks v1.2.0 20160902").
+
+Each init script, boot script and library file has a similar print statement.
+
 ### Global variable reference
 
 #### RESUME\_FN
