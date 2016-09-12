@@ -1,5 +1,9 @@
 @LAZYGLOBAL OFF.
-pOut("lib_warp.ks v1.1.0 20160901").
+pOut("lib_warp.ks v1.1.1 20160912").
+
+setTime("MST").
+IF MISSIONTIME > 0 { setTime("MST",TIME:SECONDS - MISSIONTIME). }
+ELSE { WHEN MISSIONTIME > 0 THEN { setTime("MST",TIME:SECONDS - MISSIONTIME). } }
 
 GLOBAL WARP_MIN_ALTS IS LEXICON(
   "Moho",   10000,
@@ -71,7 +75,7 @@ FUNCTION doWarp
   setTime("WARP",wt).
 
   IF warpTime() < WARP_RAILS_BUFF[0] { RETURN FALSE. }
-  pOut("Engaging time warp to " + formatTS(TIME:SECONDS - MISSIONTIME,wt)).
+  pOut("Engaging time warp to " + formatTS(wt,TIMES["MST"])).
 
   UNTIL stop_func() OR warpTime() <= 0 {
     LOCAL want_mode IS pickWarpMode().
