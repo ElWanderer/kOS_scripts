@@ -154,7 +154,40 @@ A list of available volume names. By default this is an empty list, though this 
 
 This is used to store the names of all the disks we think we have access to. Various init\_multi.ks functions rely on being able to loop through this list.
 
-#### TBD - add in the globals in init_common.ks.
+#### pad2Z() and pad3Z()
+
+Function delegates. These will turn the input value into a string, pad the left-hand side with spaces until the length is 2 or 3 characters then replace all spaces with zeroes. Used as part of the function that generates a pretty Mission Elapsed Time for printed and logged messages.
+
+padRep is short for pad-and-replace.
+
+#### TIMES
+
+Various scripts need to keep track of their own times (time since staging, time since changing runmode, time to warp to, etc.) and there exist common functions to allow this. The times are stored in this lexicon.
+
+#### LOG\_FILE
+
+The path of the log file we will write to if doLog() gets called. If set to "" (the initial value), no logging will take place.
+
+#### g0
+
+Standard gravity, 9.08665m/s^2
+
+#### INIT\_MET\_TS and INIT\_MET
+
+INIT\_MET\_TS stores the value of the Mission Elapsed Time when we last calculated the pretty-formatted version.
+INIT\_MET stores the last, calculated, pretty-formatted Mission Elapsed Time. 
+
+The pretty-formatted Mission Elapsed Time need not be recalculated until the next second has passed, which helps if trying to print out a lot of messages in quick succession.
+
+It has struck me that there may be a better way of handling this, that makes use of the TIMES lexicon.
+
+#### stageTime()
+
+A function delegate. This returns the time elapsed since the "STAGE" time was updated, which should either be the time since boot or the time since the last staging event.
+
+#### CRAFT\_SPECIFIC
+
+This is a lexicon. The idea is that craft-specific files can insert values (and even functions) into here for use elsewhere. Currently nothing has actually been implemented. There are some suggested uses in issue #55.
 
 ### Function reference
 
