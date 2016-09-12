@@ -14,14 +14,16 @@ setTime("STAGE").
 GLOBAL stageTime IS diffTime@:BIND("STAGE").
 
 GLOBAL CRAFT_SPECIFIC IS LEXICON().
-GLOBAL CRAFT_AFP IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
-GLOBAL CRAFT_LFP IS "1:/craft.ks".
-IF NOT EXISTS (CRAFT_LFP) AND EXISTS (CRAFT_AFP) { COPYPATH(CRAFT_AFP,CRAFT_LFP). }
-IF EXISTS(CRAFT_LFP) { RUNONCEPATH(CRAFT_LFP). }
+GLOBAL CRAFT_FILE IS "1:/craft.ks".
+IF NOT EXISTS (CRAFT_FILE) {
+  LOCAL afp IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
+  IF EXISTS (afp) { COPYPATH(afp,CRAFT_FILE). }
+}
+IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.2.0 20160902").
+pOut("init_common.ks v1.2.1 20160912").
 
 FUNCTION padRep
 {
@@ -31,7 +33,7 @@ FUNCTION padRep
 
 FUNCTION formatTS
 {
-  PARAMETER u_time1, u_time2.
+  PARAMETER u_time1, u_time2 IS TIME:SECONDS.
   LOCAL ts IS (TIME - TIME:SECONDS) + ABS(u_time1 - u_time2).
   RETURN "[T+" + pad2Z(ts:YEAR - 1) + " " + pad3Z(ts:DAY - 1) + " "
     + pad2Z(ts:HOUR) + ":" + pad2Z(ts:MINUTE) + ":" + pad2Z(ROUND(ts:SECOND)) + "]".
@@ -42,7 +44,7 @@ FUNCTION formatMET
   LOCAL m IS ROUND(MISSIONTIME).
   IF m > INIT_MET_TS {
     SET INIT_MET_TS TO m.
-    SET INIT_MET TO formatTS(TIME:SECONDS - m, TIME:SECONDS).
+    SET INIT_MET TO formatTS(TIME:SECONDS - m).
   }
   RETURN INIT_MET.
 }
