@@ -31,7 +31,7 @@ This is a different approach to others that I've seen, such as having a single b
 
 ##### User input
 
-The scripts were deliberately written to be useful early on in career game of KSP, when action groups are not available. Currently there are two main ways users can interact with a running script:
+The scripts were deliberately written to be useful early on in career game of KSP, when action groups are not available (though it seems the abort group may not be available so early once KSP reaches v1.2). Currently there are two main ways users can interact with a running script:
  * the ABORT button (usually backspace) is used to trigger a change in state. This is used for a launch abort, but also other occasions. For example, if you have rescued a Kerbal and still have empty seats in your vessel, hitting abort will initiate a return to home. 
    - An important thing to note here is that you shouldn't assign any part actions to the abort group, unless those parts have been jettisoned by the time you reach orbit. To be honest, this is an approach I had started to take myself prior to using kOS - jettisoning the rest of the ship from the command module is not something you want triggered midway through a Munar Orbit Insertion burn!
  * target selection. Some scripts will prompt the user to pick a target, chiefly those that require rendezvousing with another craft. If you have rescued a Kerbal and still have empty seats in your vessel, selecting a new target will initiate a new rescue mission. 
@@ -74,7 +74,7 @@ Other situations: The probe moon lander script and lander ascent libraries are u
 
 ##### Abort sequences
 
-The ABORT button (usually backspace) is one of the few ways the script can get input from a user. Effectively, its normal use is overridden, but it can still be used for a launch abort sequence. Launch aborts fall into two main categories:
+The ABORT button (usually backspace) is one of the few ways the script can get input from a user (it seems this may not be the case once KSP reaches v1.2). Effectively, its normal use is overridden, but it can still be used for a launch abort sequence. Launch aborts fall into two main categories:
  * With custom action groups allowed, kOS scripts can (and will) trigger the launch escape system on an abort during launch. To offer a complete automated sequence, the decoupler that attaches the command module to the rest of the rocket should be tagged "FINAL". On hitting abort, kOS will trigger this decoupler and the launch escape system together (as well as killing the throttle), wait, detach the escape tower then deploy parachutes.
  * Without custom action groups, abort sequences such as the above must be triggered manually, aside for the parachutes. Although we could keep staging until only the pod is left, the typical staging sequence for launch will detach the launch escape system as/before it fires, making it useless for an abort.
 
@@ -264,7 +264,7 @@ Next, it loops through all the processors on the vessel, checking their volumes 
  * do not have a boot file set
  * do not have a volume name that equals that of the local volume
 
-These checks are designed to prevent the current volume from being added twice and from including any volumes that are in use by another processor. If you have a vessel with two CPUs it may be because you intend to divide it into two at some point, so giving each one a boot file prevents once CPU from trying to use the other's disk.
+These checks are designed to prevent the current volume from being added twice and from including any volumes that are in use by another processor. If you have a vessel with two CPUs it may be because you intend to divide it into two at some point, so giving each one a boot file prevents each CPU from trying to use the other's disk.
 
 Before being added to the list, each volume is renamed if it doesn't already have a name. Names are generated numerically: "Disk1", "Disk2" etc.
 
@@ -286,7 +286,77 @@ Loops through the volumes names in VOLUME\_NAMES, looking to see if that volume 
 
 Returns the full filepath (including file\_name) if it can find a volume with enough space. Otherwise it'll print out an error, call pVolumes() so you can see what space is avaible and return "".
 
-#### TBD - add in the commands in init_common.ks.
+#### padRep(length, character, text)
+
+This will turn the input text into a string, pad the left-hand side with spaces if shorter than the input length then replace all spaces with the input character.
+
+padRep is short for pad-and-replace.
+
+#### formatTS(u_time1, u_time2)
+
+Calculates the difference between the two input universal timestamps and converts the result into a pretty string, of the format "[T+00 000 00:00:00]". This is intended to be used for Mission Elapsed Time.
+
+The default u_time2 value is the current universal timestamp (i.e. TIME:SECONDS).
+
+Note that kOS has an issue (logged as #1800) whereby Kerbin is assumed to have 365 (Kerbin) days a year. The actual value is 426. The number of years and days in the return string will not match KSP if the time difference is more than 365 days. We could calculate this ourselves, but then the function would be even longer and slower than it already is!
+
+#### formatMET()
+
+A wrapper around formatTS() that is used to produce Mission Elapsed Time in a pretty format suitable for displaying on the terminal and logging out. To avoid calling formatTS() too many times in quick succession, the MET string is kept and only recalculated once MISSIONTIME has ticked onto the next whole second.
+
+#### logOn(log\_file\_path)
+
+Enables logging to the input log\_file\_path. Can be used to disable logging if passed in an empty string as a parameter instead of a file path. When logging is successfully enabled, the current SHIP:NAME is logged out, along with a terminal message saying "Log file: _log\_file\_path_". As vessels are often not uniquely-named (e.g. during testing you may launch a rocket with the same name multiple times), the logging out of the SHIP:NAME acts as a useful break in the logfile to indicate a new mission.
+
+The default value for log\_file\_path is "0:/log/_ship\_name_.txt" (with any spaces in ship\_name converted to underscores).
+
+#### doLog(text)
+
+If logging is enabled (i.e. LOG\_FILE does not contain an empty string) write the input text to the log file.
+
+#### pOut(text, write\_MET\_timestamp)
+
+This is basically a wrapper around the PRINT command.
+
+Prints out the input text to the terminal. If write\_MET\_timestamp is true, the text is prefixed with the Mission Elapsed Time as returned by formatMET().
+
+pOut in turn calls doLog(text), so that each piece of output to the terminal is logged.
+
+The default value for write\_MET\_timestamp is true.
+
+#### hudMsg(text, colour, size)
+
+This is a wrapper around the HUDTEXT() command.
+
+Prints the input text to the (centre/top of the) screen, with a duration of three seconds.
+
+hudMsg in turn calls pPout(), though with the text prefixed "HUD: ". Hence such messages are printed to the terminal and can be logged to the log file.
+
+The default colour is yellow.
+
+The default size is 40.
+
+#### setTime(name, u\_time)
+
+Updates/sets the lexicon value TIMES[name] to contain the input universal timestamp. This is used to store timestamps of events such as the last staging event, the last time the run\_mode changed or the time in the future we want to timewarp to.
+
+If not specified, the value of u\_time is defaulted to TIME:SECONDS i.e. "now".
+
+#### diffTime(name)
+
+Returns the time difference (in seconds) that TIME:SECONDS is ahead of the lexicon value TIMES[name]. This effectively returns the time that has elapsed since the timestamp stored when setTime(name) was last called. Note that the stored timestamp need not be the time of the setTime() call - it could contain a time in the future in which case diffTime will return a negative value.
+
+#### doStage()
+
+A wrapper around the STAGE command.
+
+This additionally calls pOut() to indicate that a staging event has been triggered, and calls setTime("STAGE") to reset TIMES["STAGE"] to be the current universal timestamp i.e. sets the "time of last staging event" to be "now".
+
+#### mAngle(angle)
+
+This takes the input angle and normalises it to be between 0 and 360 degrees. This is used widely enough in various libraries that it made sense to put it in the common library.
+
+mAngle is short for "make angle".
 
 ## Libraries
 
