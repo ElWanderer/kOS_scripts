@@ -263,3 +263,5 @@ This additionally calls pOut() to indicate that a staging event has been trigger
 This takes the input angle and normalises it to be between 0 and 360 degrees. This is used widely enough in various libraries that it made sense to put it in the common library.
 
 mAngle is short for "make angle".
+
+Geoff Banks / ElWanderer
