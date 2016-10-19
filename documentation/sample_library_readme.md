@@ -2,6 +2,10 @@
 
 Text giving general, useful description
 
+### Requirements
+
+NAME\_OF\_EACH\_LIBRARY\_USED
+
 ### Global variable reference
 
 #### NAME\_OF\_GLOBAL
