@@ -1,28 +1,31 @@
 ## Title
 
+### Description
+
 Text giving general, useful description
 
 ### Requirements
 
-NAME\_OF\_EACH\_LIBRARY\_USED
+* `library_one.ks`
+* `library_two.ks`
 
 ### Global variable reference
 
-#### NAME\_OF\_GLOBAL
+#### `NAME_OF_GLOBAL`
 
 Description
 
-#### NAME\_OF\_GLOBAL2
+#### `NAME_OF_GLOBAL2`
 
 Description
 
 ### Function reference
 
-#### nameOfFunction(parameter1,parameter2)
+#### `nameOfFunction(parameter1,parameter2)`
 
 Description. Mention parameter defaults. Parameter names can be more descriptive than short versions used in the actual code.
 
-#### nameOfFunction2(parameter1,parameter2)
+#### `nameOfFunction2(parameter1,parameter2)`
 
 Description. Mention parameter defaults. Parameter names can be more descriptive than short versions used in the actual code.
 
