@@ -46,7 +46,7 @@ Once in orbit of the destination moon, the validity of the target will be rechec
 
 If the target is no longer valid, the craft will wait in orbit until either:
  * a valid target is selected, in which case rendezvous will proceed
- * the ABORT button is pressed, in which case the script will jump ahead to a return transfer (followed by re-entry and landing).
+ * the `ABORT` button is pressed, in which case the script will jump ahead to a return transfer (followed by re-entry and landing).
  
 Rendezvous currently takes place by a multiple-step process, starting with a plane change to match the target's inclination, a burn to ensure the orbits touch or cross if they don't already then a phasing burn at the intersection so that the two craft will be close together within a number of orbits.
 
@@ -73,7 +73,7 @@ Once the rescued Kerbal is aboard, the script will store the new number of crew 
 
 The script has two choices following this burn:
  * if the craft is full, the script will proceed automatically to a return transfer (followed by re-entry and landing).
- * if the craft has empty seats remaining, it will switch back to the rendezvous step. That is, it will wait for either a new, valid target to be selected (the old target should now be empty, making it invalid) or for the ABORT button to trigger a return.
+ * if the craft has empty seats remaining, it will switch back to the rendezvous step. That is, it will wait for either a new, valid target to be selected (the old target should now be empty, making it invalid) or for the `ABORT` button to trigger a return.
 
 #### Return transfer
 
@@ -89,12 +89,12 @@ Once this has been achieved, the script will time warp until the craft is close 
 
 #### Re-entry and landing
 
-The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged "FINAL", further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
+The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged `"FINAL"`, further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
 
 Note - with the changes expected in v1.2 (such as the changes to the atmosphere and the ability to stage parachutes with an automatic delay in opening them until they are safe) some of the re-entry procedure may want/need changing. 
 
 #### Failure cases
 
-If the script gets stuck, it may revert to an error state. Hitting ABORT will cause it to retry the last step that failed. For example, if the craft detaches from the launcher in Low Kerbin Orbit, the craft's own propulsion needs to be enabled for the rendezvous manoeuvres. If the staging set-up does not activate an engine, the craft will go into the error state. Staging or enabling the engine manually, then hitting ABORT should allow the script to carry on.
+If the script gets stuck, it may revert to an error state. Hitting `ABORT` will cause it to retry the last step that failed. For example, if the craft detaches from the launcher in Low Kerbin Orbit, the craft's own propulsion needs to be enabled for the rendezvous manoeuvres. If the staging set-up does not activate an engine, the craft will go into the error state. Staging or enabling the engine manually, then hitting `ABORT` should allow the script to carry on.
 
 Geoff Banks / ElWanderer
