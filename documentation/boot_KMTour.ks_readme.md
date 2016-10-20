@@ -4,7 +4,7 @@
 
 The purpose of this boot script is to launch a tourist craft into a specific orbit of Mun or Minmus, then return to Kerbin. The script has been written for Apollo-style craft i.e. a command module with a heat shield (I tend to set the ablator to about 50%), plus a service module consisting of fuel tanks and engines. Unlike the Kerbin Tourist script, no effort is currently made to target a specific landing area on return to Kerbin.
 
-Note - this script was developed from the Satellite script (KMSat.ks). As such, it will unnecessarily expend fuel correcting the orbit around the target body. Until this is improved, it's recommended to keep the target orbit at a low inclination. 
+Note - this script was developed from the Satellite script (`KMSat.ks`). As such, it will unnecessarily expend fuel correcting the orbit around the target body. Until this is improved, it's recommended to keep the target orbit at a low inclination. 
 
 ### Script Parameters
 
@@ -19,21 +19,21 @@ The parameters of the target orbit can be specified by changing the global varia
     GLOBAL SAT_LAN IS 0.
     GLOBAL SAT_W IS 0.
 
-#### SAT\_BODY
+#### `SAT_BODY`
 
-The destination body. Should be MUN or MINMUS.
+The destination body. Should be `MUN` or `MINMUS`.
 
-#### SAT\_NAME
+#### `SAT_NAME`
 
 On first boot, the ship will be renamed with this string.
 
-#### SAT\_AP, SAT\_PE and SAT\_W
+#### `SAT_AP`, `SAT_PE` and `SAT_W`
 
 The apoapsis, periapsis and argument of periapsis (a lower-case omega looks like a w) of the target orbit. The argument of periapsis indicates how far around the orbit from the ascending node (where the orbit crosses the equator South-to-North) the periapsis will be located.
 
 These parameters determine the shape of the orbit.
 
-#### SAT\_I and SAT\_LAN
+#### `SAT_I` and `SAT_LAN`
 
 The inclination and longitude of the ascending node of the target orbit. The longitude of the ascending node indicates how far around the body from the universal reference vector the ascending node (where the orbit crosses the equator South-to-North) will be located. Note that the reference vector is fixed and does not rotate with the orbit's body. 
 
@@ -43,7 +43,7 @@ These parameters determine the orientation/inclination of the target orbit.
 
 #### Init
 
-The craft is renamed SAT\_NAME and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
+The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
 The script will calculate when the orbit of the target body will pass over the launch site and the initial azimuth (compass bearing) that the craft should follow.
 
@@ -89,12 +89,12 @@ Once this has been achieved, the script will time warp until the craft is close 
 
 #### Re-entry and landing
 
-The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged "FINAL", further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
+The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged `"FINAL"`, further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
 
 Note - with the changes expected in v1.2 (such as the changes to the atmosphere and the ability to stage parachutes with an automatic delay in opening them until they are safe) some of the re-entry procedure may want/need changing. 
 
 #### Failure cases
 
-If the script gets stuck, it may revert to an error state. Hitting ABORT will cause it to retry the last step that failed. For example, if the craft detaches from the launcher in Low Kerbin Orbit, the craft's own propulsion needs to be enabled for the transfer to the target body. If the staging set-up does not activate an engine, the craft will go into the error state. Staging or enabling the engine manually, then hitting ABORT should allow the script to carry on.
+If the script gets stuck, it may revert to an error state. Hitting `ABORT` will cause it to retry the last step that failed. For example, if the craft detaches from the launcher in Low Kerbin Orbit, the craft's own propulsion needs to be enabled for the transfer to the target body. If the staging set-up does not activate an engine, the craft will go into the error state. Staging or enabling the engine manually, then hitting `ABORT` should allow the script to carry on.
 
 Geoff Banks / ElWanderer
