@@ -32,7 +32,7 @@ This can be thought of as asking "is the input inclination achievable, given the
 
 Perhaps a better description would be "could an orbit with this inclination pass over a spot with this latitude?"
 
-It is used widely to prevent various calculations throwing errors that would crash the script. If the inclination is lower (and bear in mind that a value of 179 degrees inclination is actually quite low, being a retrograde orbit inclined 1 degree from the equator) than the latitude, then an orbit with that inclination cannot pass over the given latitude and if we try to assume that it would we will run into lots of errors.
+It is used widely to prevent various calculations throwing errors that would crash the script. If the inclination is lower (and bear in mind that a value of `179` degrees inclination is actually quite low, being a retrograde orbit inclined `1` degree from the equator) than the latitude, then an orbit with that inclination cannot pass over the given latitude and if we try to assume that it would we will run into lots of errors.
 
 #### `etaToOrbitPlane(ascending_node, planet, target_orbit_LAN, target_orbit_inclination, current_latitude, current_longitude)`
 
@@ -88,13 +88,13 @@ The input azimuth is the compass heading that the target orbit has as it passes 
 This is effectively a piece of triangular maths using vectors. We have three vectors:
 * a target orbit vector that points towards a heading of `azimuth` degrees, with a magnitude that is orbital velocity at the desired `apoapsis` (assuming a circular orbit), `SQRT(planet:MU/(planet:RADIUS + apoapsis))`.
 * the current 'orbital' velocity our craft has as a result of the rotation of the planet. In KSP, this has a heading of 90 degrees and a magnitude given by `planetSurfaceSpeedAtLat(planet,latitude)`
-* the burn we need to get into orbit, which is the orbit vector minus the planet rotation vector
+* the vector we need to burn to get into the target orbit, which is the orbit vector minus the planet rotation vector
 
-Rearranging this, we get
+Rearranging this, we can calculate the delta-v required in the Easterly (x) and Northerly (y) axes, and from there determine the launch angle:
 
     v_launch_x = (v_orbit * SIN(azimuth)) - v_planet_rotation
     v_launch_y = v_orbit * COS(azimuth)
-    launch_angle = ARCTAN(v_launch_y / v_launch_x)
+    launch_angle = ARCTAN2(v_launch_y, v_launch_x)
 
 This is the angle *from* the equator we need to launch at. To convert this into a compass heading, we need to subtract it from `90`.
 
