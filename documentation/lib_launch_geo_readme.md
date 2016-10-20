@@ -40,7 +40,7 @@ Calculates the estimated time until the orbital plane described by the input `ta
 
 This function is rather short, but concentrated. It is the result of much scribbling in my notebook, a few false starts, a lot of testing and a lot of printing of vectors, with all the supporting structure then removed. The key to solving it was finding the following formula for determining the *relative* longitude of each point in an orbit based on the latitude and inclination: `relative_longitude = ARCSIN(TAN(latitude)/TAN(inclination))`.
 
-The relative longitude is the angle between the ascending node (where the orbit crosses the equator) and the point on the orbit we're interested in.
+The relative longitude is the angle around the planet between the ascending node (where the orbit crosses the equator) and the point on the orbit we're interested in. Note this is an angle around the planet's axis of rotation, not the usual angle around an orbit, which would be expressed as anomaly (true anomaly, eccentric anomaly, mean anomaly...)
 
 Note - this is not used if the `target_orbit_inclination` is `0` or `180` degrees. In such cases, the latitude does not vary, so you cannot use it to find the relative longitude.
 
