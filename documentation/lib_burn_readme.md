@@ -34,13 +34,13 @@ Staging is disabled for "small" burns. Should the available thrust drop to 0, th
 
 ### Global variable reference
 
-#### BURN\_WARP\_BUFF
+#### `BURN_WARP_BUFF`
 
 This defines the number of seconds prior to the burn start time (derived by taking the time of the node and subtracing half the the calculated time to burn the node's delta-v) that the script will warp to.
 
 The default is `15`. This is quite short because the script aligns the craft with the manoeuvre node prior to engaging time warp. If necessary, it can be changed by calling `changeBURN_WARP_BUFF(new_value)`. For larger vessels, more time may be needed to re-align between coming out of time warp and ignition.
 
-#### BURN\_MAX\_THROT
+#### `BURN_MAX_THROT`
 
 The function that sets `BURN_THROTTLE`, `burnThrottle(burn_time)`, will not set it higher than this value.
 
@@ -48,7 +48,7 @@ The default is `1` (100%).
 
 There is currently no function to change this value.
 
-#### BURN\_MIN\_THROT
+#### `BURN_MIN_THROT`
 
 The function that sets `BURN_THROTTLE`, `burnThrottle(burn_time)`, will not set it lower than this value.
 
@@ -56,7 +56,7 @@ The default is `0.1` (10%).
 
 There is currently no function to change this value.
 
-#### BURN\_SMALL\_SECS
+#### `BURN_SMALL_SECS`
 
 The burn length (in seconds) threshold below which a burn is deemed to be "small".
 
@@ -64,7 +64,7 @@ The default is `1`s.
 
 There is currently no function to change this value.
 
-#### BURN\_SMALL\_DV
+#### `BURN_SMALL_DV`
 
 The delta-v (in m/s) threshold below which a burn is deemed to be "small". This is also used during the burn of a node that isn't "small" - it is the threshold of delta-v remaining where we switch from aligning the steering with the node to following a fixed steering vector.
 
@@ -72,33 +72,33 @@ The default is `5`m/s.
 
 There is currently no function to change this value.
 
-#### BURN\_THROTTLE
+#### `BURN_THROTTLE`
 
 During the script we lock the throttle to this global: `LOCK THROTTLE TO BURN_THROTTLE.`
 
 `BURN_THROTTLE` can then be altered as needed to change the throttle.
 
-#### BURN\_NODE\_IS\_SMALL
+#### `BURN_NODE_IS_SMALL`
 
 A boolean to indicate whether the manoeuvre node burn is "small" or not. This is calculated during the burn set-up.
 
-#### BURN\_SMALL\_THROT
+#### `BURN_SMALL_THROT`
 
 When burning a "small" node, `BURN_THROTTLE` is set to this value following its calculation.
 
 ### Function reference
 
-#### changeBURN\_WARP\_BUFF(new\_value)
+#### `changeBURN_WARP_BUFF(new_value)`
 
 Sets the `BURN_WARP_BUFF` global to a new value, or 15 seconds if no new value has been provided.
 
-#### pointNode(node)
+#### `pointNode(node)`
 
 Firstly, this calls the `lib_steer` function `steerTo(anonymous_function_delegate)` to align the steering with the node. The anonymous function passed in to `steerTo()` depends on whether the node has been determined to be "small" or not. For "small" nodes, a copy of the node's current burn vector is passed through - this is fixed. Otherwise, a reference to the node's current burn vector is passed through - this will change as the node changes.
 
 Secondly, this calls the `lib_steer` function `WAIT UNTIL steerOk(0.4).` This will loop until the angle between the steering vector and the craft's fore vector is below 0.4 degrees, and the craft's angular velocity has dropped below a threshold. Or more simply, this waits until the craft is pointed at the manoeuvre node and barely rotating.
 
-#### checkNodeSize(node\_burn\_time, node\_delta-v, stage\_delta-v)
+#### `checkNodeSize(node_burn_time, node_delta-v, stage_delta-v)`
 
 This sets `BURN_NODE_IS_SMALL`.
 
@@ -106,17 +106,17 @@ A node is deemed to be "small" if either the node's delta-v is below `BURN_SMALL
 
 `BURN_NODE_IS_SMALL` cannot be set to `TRUE` if the calculated current stage delta-v is not higher than the node's delta-v. The "small" node execution function does not stage, so the full execution logic would need to be used instead.
 
-#### burnThrottle(burn\_time)
+#### `burnThrottle(burn_time)`
 
 Calculates and returns the throttle setting based on the input burn time. This drops the throttle proportionally if the burn time is below one second (i.e. if the burn time is half a second, the throttle will be set to 0.5), but with certain restrictions:
  * The throttle cannot be set to a value higher than `BURN_MAX_THROT` or a value lower than `BURN_MIN_THROT`.
  * For the purposes of realism, the throttle is set in 0.05 (5%) increments.
 
-#### burnSmallNode(node, burn\_time)
+#### `burnSmallNode(node, burn_time)`
 
 Burns at `BURN_SMALL_THROT` until either burn time seconds have elapsed, or the available thrust has dropped to 0.
 
-#### burnNode(node, burn\_time, staging\_allowed)
+#### `burnNode(node, burn_time, staging_allowed)`
 
 The basis of this function is/was the example node burn script in the kOS documentation, but I've made quite a few changes.
 
@@ -141,17 +141,17 @@ Once the burn has finished, the steering is damped and the throttle unlocked. Th
 Returns `TRUE` or `FALSE` depending on whether the burn was successful or not.
 Note - a burn is deemed unsuccessful if the node has 1m/s or greater remaining.
 
-#### warpCloseToNode(node, burn\_time)
+#### `warpCloseToNode(node, burn_time)`
 
 IF the node is more than 15 minutes in the future (900 seconds) and the predicted burn time is not greater than 28 minutes (1680 seconds), steers towards the Sun and calls `WARPTO()` to time warp until the burn is fifteen minutes away.
 
-Note - the check on the burn time uses 28 minutes rather than 30 (you'd reasonably expect it to use twice the 15 minutes/900 seconds) as an extra safety factor.
+Note - the check on the burn time uses 28 minutes rather than 30 (you'd reasonably expect it to use twice the 15 minutes/900 seconds we want to be before the node) as an extra safety factor.
 
-#### warpToNode(node, burn\_time)
+#### `warpToNode(node, burn_time)`
 
 Calculates a burn start time based on the current time, the node's ETA, half the input burn time and `BURN_WARP_BUFF`. If this time is in the future, it calls `WARPTO()` to time warp.
 
-#### execNode(staging\_allowed)
+#### `execNode(staging_allowed)`
 
 The main function. This calls the others in turn to execute the next manoeuvre node.
 
