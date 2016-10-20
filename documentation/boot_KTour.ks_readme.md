@@ -18,7 +18,7 @@ Launch is to a standard, equatorial 85km by 85km Low Kerbin Orbit.
 
 A manoeuvre node is plotted and executed that will put the periapsis below 30km, to the East of the Kerbal Space Center. Some rough calculations plus some testing were enough to determine where to plot this burn for a typical command module & heat shield combination, such that the capsule will land in the sea to the East of the KSC.
 
-The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged "FINAL", further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
+The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged `"FINAL"`, further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
 
 Note - with the changes expected in v1.2 (such as the changes to the atmosphere and the ability to stage parachutes with an automatic delay in opening them until they are safe) some of the re-entry procedure may want/need changing. 
 
