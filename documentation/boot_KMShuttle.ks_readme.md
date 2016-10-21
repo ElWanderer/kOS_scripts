@@ -2,9 +2,11 @@
 
 ## Kerbin Moon Crew Shuttle boot script.
 
-The purpose of this boot script is to launch a craft into Low Kerbin Orbit, transfer to either Mun or Minmus and once there rendezvous with and dock with another craft. Once undocked, the craft will return to Kerbin, re-enter and land. The script has been written for Apollo-style craft i.e. a command module with a heat shield (I tend to set the ablator to about 50%), plus a service module consisting of fuel tanks and engines.
+The purpose of this boot script is to automate crew transfers between Kerbin and space stations in orbit of Kerbin's moons. It will launch a craft into Low Kerbin Orbit, transfer to either Mun or Minmus and once there rendezvous with and dock with another craft. Once undocked, the craft will return to Kerbin, re-enter and land. The script has been written for Apollo-style craft i.e. a command module with a heat shield (I tend to set the ablator to about 50%), plus a service module consisting of fuel tanks and engines.
 
 Note - this script additionally requires a craft with RCS thrusters and a free docking port to function correctly.
+
+Note 2 - unlike the KMRescue.ks script, this has not been programmed to allow multiple rendezvous per mission. It cannot be used to transfer crew between two different space stations. Issue `#67` exists to improve this.
 
 ### Script Parameters
 
