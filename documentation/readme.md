@@ -94,10 +94,10 @@ Being documented in separate files (boot\_FILE\_NAME.ks_readme.md).
 
 ## Init scripts/libraries
 
-Documented in init_readme.md
+Documented together in a single file: https://github.com/ElWanderer/kOS_scripts/blob/master/documentation/init_readme.md
 
 ## Libraries
 
-TBD - to be documented in separate files.
+Being documented in separate files (lib\_NAME\_readme.md).
 
 Geoff Banks / ElWanderer
