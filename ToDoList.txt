@@ -22,16 +22,3 @@ Lander probe
 Orbit:           Periapsis vel:  Landing relative to periapsis:
 12000km by 30km  3265m/s.        +6 degrees (approx)
 47000km by 30km  3325m/s.        +6 degrees (approx)
-
-
-run-modes:
------------
-
-1-49     launch (including various abort stages)
-51-98    re-entry
-99       *end*
-101-149  transfer
-201-249  lander descent
-301-349  lander ascent
-401-449  rendezvous
-801-999  mission steps
