@@ -29,15 +29,15 @@ The "mission steps" are run modes expected to be used by boot scripts for action
 
 #### `RM_FN`
 
-The filename used for the runmode-specific `store()`, `append()` and `resume()` calls. By default this is set to `rm.ks`.
+The filename used for the runmode-specific `store()`, `append()` and `resume()` calls. By default this is set to `rm.ks`. This could be changed if desired.
 
 #### `RM_RM`
 
-The run mode we are currently in. This is initialised as `-1`.
+The run mode we are currently in. This should not be altered directly. This is initialised as `-1`.
 
 #### `RM_AM`
 
-The abort mode we would switch to if the player hits `ABORT`. This is initialised as `-1`.
+The abort mode we would switch to if the player hits `ABORT`. This should not be altered directly. This is initialised as `-1`.
 
 #### `modeTime()`
 
