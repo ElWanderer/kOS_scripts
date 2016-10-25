@@ -4,7 +4,20 @@
 
 This library contains common functions used by the two launch libraries, `lib_launch_crew.ks` and `lib_launch_nocrew.ks`.
 
-Text
+The functions provided by this library allow for:
+* automatic staging when the thrust drops due to an engine flaming out. Note that this assumes rocket engines (whether liquid- or solid-fueled) rather than jet engines or any modded engines whose thrust curve changes during a burn. It's also possible that it will react oddly to separation motors if they remain on the active craft.
+* automatic jettisoning of fairings and Launch Escape Systems (LES) once no longer necessary.
+* following the right heading (which can change during ascent) to end up in the right inclination.
+* avoiding sharp turns while low in the atmosphere.
+* following a fixed, curved pitch program.
+  * As the curve is fixed, there are combinations of Thrust-to-Weight Ratios (TWR) that are preferable. I would usually go for a TWR off the pad of 1.3-1.5, dropping to about 1 for the next stage. I've been experimenting with upper stages whose TWR is much lower than 1 as these seem to be quite accurate at getting into the target orbit, if you are prepared to wait longer!
+  * There is an exception that allows an emergency pitch-up if a rocket is in danger of passing apoapsis too soon.
+* staging off the launcher once in stable orbit
+
+There are always improvements that can be made, some of which are listed under [Issue #46](https://github.com/ElWanderer/kOS_scripts/issues/46):
+* the pitch curve could change based on the TWR of the craft, rather than being fixed.
+* the launch trajectory could be improved to try to get into orbit on a single, continuous burn rather than the coast and circularise approach the launch libraries take.
+* handling for RSS/RO vessels could be added, allowing much longer between staging events so that engines have time to spool up, so that separation motors are not counted towards the "has our max thrust dropped?" check and so that we hold on the launch clamps until our thrust has built-up enough.
 
 ### Requirements
 
@@ -203,7 +216,7 @@ Once above the pitch-over altitude, the pitch follows a square-root-based pitch 
 
 The pitch is limited to being no lower than `0` degrees and no higher than `90` degrees.
 
-There is also an emergency pitch-up check. If the craft's `VERTICALSPEED` drops below `30`m/s, the minimum pitch angle will be `30-VERTICALSPEED` instead of `0`. This ensures that rockets with weak sustainer stages do not pass apoapsis and start coming back down during the ascent.
+There is also an emergency pitch-up check. If the craft's `VERTICALSPEED` drops below `30`m/s, the minimum pitch angle will be `30-VERTICALSPEED` instead of `0`. This ensures that rockets with weak sustainer stages do not pass apoapsis and start coming back down during the ascent, unless their engines are *really* weak!
 
 #### `launchMaxSteer()`
 
