@@ -16,7 +16,7 @@ The initial value is `0`, but this gets populated with the current crew size by 
 
 #### `CREW_FN`
 
-The filename used for the crew count-specific `store()` and `resume()` calls.
+The filename used for the crew count-specific `store()` and `resume()` calls. By default this is set to `cs.ks`.
 
 ### Function reference
 
