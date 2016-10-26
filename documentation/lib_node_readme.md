@@ -2,7 +2,7 @@
 
 ### Description
 
-Text giving general, useful description
+Functions that assist with placing manoeuvre nodes. Much of this library is used to drive helpful print statements.
 
 ### Global variable reference
 
