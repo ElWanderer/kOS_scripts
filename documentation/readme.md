@@ -94,10 +94,14 @@ Being documented in separate files (boot\_FILE\_NAME.ks_readme.md).
 
 ## Init scripts/libraries
 
-Documented together in a single file: https://github.com/ElWanderer/kOS_scripts/blob/master/documentation/init_readme.md
+[Documented together in a single file](https://github.com/ElWanderer/kOS_scripts/blob/master/documentation/init_readme.md)
 
 ## Libraries
 
 Being documented in separate files (lib\_NAME\_readme.md).
+
+### "Comment": Issues found during documentation
+
+The good thing about documenting code is that in trying to explain it, you often spot problems you hadn't noticed before. I'm spotting all kinds of issues of varying degrees that are being bundled together in [a single Github Issue](https://github.com/ElWanderer/kOS_scripts/issues/68). If you run across the phrase "Comment - " in a readme file, this should have a corresponding open entry in that issue. These comments should be removed as and when the issues are tackled.
 
 Geoff Banks / ElWanderer
