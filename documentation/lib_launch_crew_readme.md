@@ -52,7 +52,7 @@ This function will not do anything until the `ALTITUDE` is above `LCH_LES_ALT`. 
 
 #### `doLaunch(exit_mode, apoapsis, azimuth, inclination, pitchover_altitude)`
 
-All the input parameters are passed into `launchInit()` to set-up the variables that will be used to steer.
+All the input parameters (except `exit_mode`) are passed into `launchInit()` to set-up the variables that will be used to steer.
 
 Then we have a run mode loop. Launch is achieved by setting the throttle to `1`, waiting `3` seconds then staging. During the main run mode (11) that follows, we run multiple commands once per tick, as well as checking the apoapsis:
 
