@@ -179,7 +179,8 @@ UNTIL rm = exit_mode
     pOut("Leaving atmosphere.").
     PANELS ON.
     steerSun().
-    SET alt_atm TO BODY:ATM:HEIGHT + (MAX(0.1,ROUND(SHIP:OBT:ECCENTRICITY,1)) * 15000).
+    LOCAL alt_atm_by_ecc IS BODY:ATM:HEIGHT + ROUND(SHIP:OBT:ECCENTRICITY,2) * 15000.
+    SET alt_atm TO MIN(MAX(BODY:ATM:HEIGHT,APOAPSIS-500),alt_atm_by_ecc).
     pOut("Steer retrograde below: " + ROUND(alt_atm/1000) + "km.").
     runMode(86).
   } ELSE IF rm = 86 {
