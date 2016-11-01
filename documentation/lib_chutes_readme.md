@@ -66,6 +66,6 @@ This function is for checking that any parachutes haven't accidentally been trig
 
 `listChutes(TRUE)` is called because we need to list all the chutes, otherwise chutes that have accidentally been triggered won't appear.
 
-If any parachutes are disarmed by this function, the list of parachutes is rebuilt. Comment - wait, shouldn't we rebuild the list anyway, so it is not left containing any deployed parachutes?
+Following the check, the list of parachutes is rebuilt to contain just those that can be deployed.
 
 Geoff Banks / ElWanderer
