@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_orbit_change.ks v1.0 20160714").
+pOut("lib_orbit_change.ks v1.0.1 20161101").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -19,7 +18,7 @@ FUNCTION changeOrbit
 
   LOCAL o IS ORBITAT(SHIP,u_time).
   LOCAL w_diff IS 0.
-  IF w > 0 { SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS). }
+  IF w >= 0 { SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS). }
   LOCAL ap_diff IS ap - o:APOAPSIS.
   LOCAL pe_diff IS pe - o:PERIAPSIS.
 
