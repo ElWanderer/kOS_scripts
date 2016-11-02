@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_rcs.ks v1.1.0 20161101").
+pOut("lib_rcs.ks v1.1.0 20161102").
 
 GLOBAL RCS_MAX_THROT IS 1. // max and minimum RCS throttles
 GLOBAL RCS_MIN_THROT IS 0. //  - reduce these if RCS thrusters tend to rotate ship too much?
@@ -19,6 +19,7 @@ FUNCTION toggleRCS
   PARAMETER r IS NOT RCS.
   stopTranslation().
   SET RCS TO r.
+  WAIT 0.
 }
 
 FUNCTION doTranslation
