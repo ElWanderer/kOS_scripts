@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.2.0 20161101").
+pOut("lib_dock.ks v1.2.0 20161102").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -48,7 +48,7 @@ FUNCTION hasReadyPort
 {
   PARAMETER t.
   LOCAL np IS readyPorts(t):LENGTH.
-  pOut(t:NAME + " has " + np + " available docking ports.").
+  pOut(t:NAME + " has " + np + " available docking port(s).").
   RETURN np > 0.
 }
 
@@ -238,6 +238,32 @@ FUNCTION dockingVelForDist
   ELSE { RETURN DOCK_VEL. } 
 }
 
+FUNCTION checkDockingOkay
+{
+  PARAMETER t, do_draw, v_diff, is_start.
+
+  IF NOT RCS {
+    hudMsg("ABORT: RCS disengaged.").
+    IF v_diff:MAG >= 0.1 {
+      hudMsg("Re-engaging RCS to kill relative velocity.").
+      toggleRCS(TRUE).
+    }
+  } ELSE IF NOT activeDockingPoint(t, do_draw) {
+    hudMsg("ERROR: docking route obstruction.").
+  } ELSE IF NOT is_start AND SHIP:MONOPROPELLANT < DOCK_LOW_MONO {
+    hudMsg("ERROR: monoproprellant very low.").
+  } ELSE IF is_start AND SHIP:MONOPROPELLANT < DOCK_START_MONO {
+    hudMsg("ERROR: monoproprellant too low.").
+  } ELSE {
+    IF is_start AND SHIP:MONOPROPELLANT < (1.5 * DOCK_START_MONO) {
+      hudMsg("WARNING: monoproprellant low.").
+    }
+    RETURN TRUE.
+  }
+
+  RETURN FALSE.
+}
+
 FUNCTION followDockingRoute
 {
   PARAMETER s_port,t_port,do_draw IS TRUE.
@@ -245,13 +271,8 @@ FUNCTION followDockingRoute
   LOCAL t IS t_port:SHIP.
   LOCAL LOCK v_diff TO SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
 
-  SET ok TO activeDockingPoint(t, do_draw).
-  IF ok AND SHIP:MONOPROPELLANT < DOCK_START_MONO {
-    SET ok TO FALSE.
-    pOut("ERROR: monoproprellant too low.").
-  } ELSE IF ok AND SHIP:MONOPROPELLANT < (1.5 * DOCK_START_MONO) {
-    pOut("WARNING: monoproprellant low.").
-  }
+  hudMsg("Docking with " + t:NAME).
+  LOCAL ok IS checkDockingOkay(t, do_draw, v_diff, TRUE).
 
   UNTIL s_port:STATE <> "Ready" OR NOT ok {
     LOCAL pos_diff IS DOCK_ACTIVE_WP - S_NODE.
@@ -268,20 +289,16 @@ FUNCTION followDockingRoute
     } ELSE { doTranslation(rcs_vec, 2*rcs_vec:MAG). }
 
     WAIT 0.
-    SET ok TO activeDockingPoint(t, do_draw).
-    IF ok AND SHIP:MONOPROPELLANT < DOCK_LOW_MONO {
-      SET ok TO FALSE.
-      pOut("ERROR: monoproprellant very low.").
-    }
+    SET ok TO checkDockingOkay(t, do_draw, v_diff, FALSE).
   }
   IF ok {
     pOut("Docking port state change. Ending docking sequence.").
-    IF do_draw { CLEARVECDRAWS(). }
+    hudMsg("Docking port magnets active.").
   } ELSE {
-    pOut("ERROR: could not follow docking route.").
-    UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.1 { doTranslation(-v_diff, 2*v_diff:MAG). }
+    UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.2 { doTranslation(-v_diff). }
   }
   stopTranslation().
+  IF do_draw { CLEARVECDRAWS(). }
   RETURN ok.
 }
 
@@ -308,8 +325,8 @@ FUNCTION doDocking
     SET ok TO followDockingRoute(s_port,t_port,do_draw).
   }
   steerOff().
-  toggleRCS(FALSE).
   clearPorts().
+  toggleRCS(FALSE).
 
   RETURN ok.
 }
