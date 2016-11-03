@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_match.ks v1.1.0 20161101").
+pOut("lib_orbit_match.ks v1.1.0 20161103").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -75,11 +75,10 @@ FUNCTION nodeIncMatch
   LOCAL dv_DN is nodeDV(n_DN).
   IF (2 * ABS(dv_AN-dv_DN) / (dv_AN + dv_DN)) > 0.2 {
     IF dv_AN < dv_DN { RETURN n_AN. }
-    ELSE { RETURN n_DN. }
-  } ELSE {
-    IF n_AN:ETA < n_DN:ETA { RETURN n_AN. }
-    ELSE { RETURN n_DN. }
+    RETURN n_DN.
   }
+  IF n_AN:ETA < n_DN:ETA { RETURN n_AN. }
+  RETURN n_DN.
 }
 
 FUNCTION nodeIncMatchTarget
