@@ -60,12 +60,6 @@ A list of available volume names. By default this is an empty list, though this 
 
 This is used to store the names of all the disks we think we have access to. Various `init_multi.ks` functions rely on being able to loop through this list.
 
-#### `pad2Z()` and `pad3Z()`
-
-Function delegates. These will turn the input value into a string, pad the left-hand side with spaces until the length is 2 or 3 characters then replace all spaces with zeroes. Used as part of the function that generates a pretty Mission Elapsed Time for printed and logged messages.
-
-`padRep` is short for pad-and-replace.
-
 #### `TIMES`
 
 Various scripts need to keep track of their own times (time since staging, time since changing runmode, time to warp to, etc.) and there exist common functions to allow this. The times are stored in this lexicon.
@@ -203,6 +197,8 @@ Calculates the difference between the two input universal timestamps and convert
 The default `u_time2` value is the current universal timestamp (i.e. `TIME:SECONDS`).
 
 Note that kOS has an issue (logged as `#1800`) whereby Kerbin is assumed to have 365 (Kerbin) days a year. The actual value is 426. The number of years and days in the return string will not match KSP if the time difference is more than 365 days. We could calculate this ourselves, but then the function would be even longer and slower than it already is!
+
+Note 2 - we used to format the time portion ourselves, by padding in extra zeroes and rounding the seconds. Since kOS v1.0.1 does that automatically, we can call just `timestamp:CLOCK`.
 
 #### `formatMET()`
 
