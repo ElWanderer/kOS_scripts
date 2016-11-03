@@ -2,9 +2,6 @@
 IF WARP <> 0 { SET WARP TO 0. }
 WAIT UNTIL SHIP:UNPACKED.
 
-GLOBAL pad2Z IS padRep@:BIND(2,"0").
-GLOBAL pad3Z IS padRep@:BIND(3,"0").
-
 GLOBAL TIMES IS LEXICON().
 GLOBAL LOG_FILE IS "".
 GLOBAL g0 IS 9.80665.
@@ -23,7 +20,7 @@ IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.2.1 20160912").
+pOut("init_common.ks v1.2.2 20161103").
 
 FUNCTION padRep
 {
@@ -35,8 +32,7 @@ FUNCTION formatTS
 {
   PARAMETER u_time1, u_time2 IS TIME:SECONDS.
   LOCAL ts IS (TIME - TIME:SECONDS) + ABS(u_time1 - u_time2).
-  RETURN "[T+" + pad2Z(ts:YEAR - 1) + " " + pad3Z(ts:DAY - 1) + " "
-    + pad2Z(ts:HOUR) + ":" + pad2Z(ts:MINUTE) + ":" + pad2Z(ROUND(ts:SECOND)) + "]".
+  RETURN "[T+" + padRep(2,"0",ts:YEAR - 1) + " " + padRep(3,"0",ts:DAY - 1) + " " + ts:CLOCK + "]".
 }
 
 FUNCTION formatMET
