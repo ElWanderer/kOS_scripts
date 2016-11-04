@@ -1,26 +1,24 @@
 @LAZYGLOBAL OFF.
-IF WARP <> 0 { SET WARP TO 0. }
-WAIT UNTIL SHIP:UNPACKED.
 
 GLOBAL TIMES IS LEXICON().
 GLOBAL LOG_FILE IS "".
 GLOBAL g0 IS 9.80665.
 GLOBAL INIT_MET_TS IS -1.
 GLOBAL INIT_MET IS "".
-setTime("STAGE").
 GLOBAL stageTime IS diffTime@:BIND("STAGE").
-
 GLOBAL CRAFT_SPECIFIC IS LEXICON().
 GLOBAL CRAFT_FILE IS "1:/craft.ks".
+
+killWarp().
+setTime("STAGE").
 IF NOT EXISTS (CRAFT_FILE) {
   LOCAL afp IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
   IF EXISTS (afp) { COPYPATH(afp,CRAFT_FILE). }
 }
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
-
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.2.2 20161103").
+pOut("init_common.ks v1.2.2 20161104").
 
 FUNCTION padRep
 {
@@ -98,4 +96,20 @@ FUNCTION mAngle
   PARAMETER a.
   UNTIL a >= 0 { SET a TO a + 360. }
   RETURN MOD(a,360).
+}
+
+FUNCTION killWarp
+{
+  KUNIVERSE:TIMEWARP:CANCELWARP().
+  WAIT UNTIL SHIP:UNPACKED.
+}
+
+FUNCTION doWarp
+{
+  PARAMETER wt, stop_func IS { RETURN FALSE. }.
+  pOut("Engaging time warp.").
+  WARPTO(wt).
+  WAIT UNTIL stop_func() OR wt < TIME:SECONDS.
+  killWarp().
+  pOut("Time warp over.").
 }
