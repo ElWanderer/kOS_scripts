@@ -6,4 +6,4 @@ RUNONCEPATH("1:/init.ks").
 pOut("node.ks v1.0.1 20161104").
 
 RUNONCEPATH(loadScript("lib_burn.ks")).
-ExecNode(FALSE).
+execNode(FALSE).
