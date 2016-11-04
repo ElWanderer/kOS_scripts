@@ -28,11 +28,11 @@ If passed in a non-zero value, sets `HALF_LAUNCH` to the parameter.
 
 #### `latIncOk(latitude, inclination)`
 
-This can be thought of as asking "is the input inclination achievable, given the craft's current latitude?"
-
-Perhaps a better description would be "could an orbit with this inclination pass over a spot with this latitude?"
+This can be thought of as asking "is the input inclination achievable, given the craft's current latitude?" Perhaps a better description would be "could an orbit with this inclination pass over a spot with this latitude?" There is a similar function latOkForInc in `lib_geo.ks`, though the two are slightly different from each other. This was defined here to avoid needing the entire `lib_geo.ks` library just for the one function.
 
 It is used widely to prevent various calculations throwing errors that would crash the script. If the inclination is lower (and bear in mind that a value of `179` degrees inclination is actually quite low, being a retrograde orbit inclined `1` degree from the equator) than the latitude, then an orbit with that inclination cannot pass over the given latitude and if we try to assume that it would we will run into lots of errors.
+
+There is also a check that the latitude is not precisely `90` degrees (unlikely though this is), as inputting that into `TAN()` may cause a crash or push a huge number into a calculation.
 
 #### `etaToOrbitPlane(ascending_node, planet, target_orbit_LAN, target_orbit_inclination, current_latitude, current_longitude)`
 
@@ -52,13 +52,13 @@ and if so we calculate the relative longitude:
 
       LOCAL rel_lng IS ARCSIN(TAN(current_latitude)/TAN(target_orbit_inclination)).
 
-ARCSIN() will return values between `-90` and `90`. If we are interested in the descending node, subtract the relative longitude from 180 to get values in the range `90` to `270`:
+ARCSIN() will return values between `-90` and `90`. If we are interested in the descending node, subtract the relative longitude from `180` to get values in the range `90` to `270`:
 
       IF NOT is_AN { SET rel_lng TO 180 - rel_lng. }
 Now the hard/clever bit. We want to convert from a longitude relative to the orbit's `LAN`, to a geographical longitude relative to the planet. In kOS, `BODY:ROTATIONANGLE` gives you the angle between the universal reference vector and the body's zero longitude. Subtracting `BODY:ROTATIONANGLE` from the orbit's `LAN` gives the current geographical longitude of the orbit's ascending node as it crosses the equator. Adding the calculated relative longitude for the point of the orbit that we're interested in to this gives the current geographical longitude of that point. As is standard, we call mAngle() to restrict the result to the range `0`-`360` degrees:
 
       LOCAL geo_lng IS mAngle(target_orbit_LAN + rel_lng - planet:ROTATIONANGLE).
-The rest is much easier. We have our current geographical longitude and the geographical longitude where the orbit plane meets our latitude. The angle between them will change predictably as the planet rotates. The time it will take for the planet to rotate us under the orbit plane is given by the difference in the longitudes, divided by 360, multiplied by the planet's `ROTATIONPERIOD`:
+The rest is much easier. We have our current geographical longitude and the geographical longitude where the orbit plane meets our latitude. The angle between them will change predictably as the planet rotates. The time it will take for the planet to rotate us under the orbit plane is given by the difference in the longitudes, divided by `360`, multiplied by the planet's `ROTATIONPERIOD`:
 
       LOCAL node_angle IS mAngle(geo_lng - current_longitude).
       SET eta TO (node_angle / 360) * planet:ROTATIONPERIOD.
@@ -73,7 +73,7 @@ This calculates the azimuth (compass heading) of the orbit with the input inclin
 
 Returns `-1` if the craft's current latitude is too high for the input inclination.
 
-Otherwise returns `ARCSIN(COS(inclination) / COS(SHIP:LATITUDE))`. Note that there are two azimuth values, ascending and descending. The second value can be determined by subtracting the first from 180.
+Otherwise returns `ARCSIN(COS(inclination) / COS(SHIP:LATITUDE))`. Note that there are two azimuth values, ascending and descending. The second value can be determined by subtracting the first from `180`.
 
 #### `planetSurfaceSpeedAtLat(planet, latitude)`
 
@@ -133,6 +133,6 @@ Returns a list containing the calculated launch azimuth and launch timestamp.
 
 #### `warpToLaunch(launch_time)`
 
-A simple wrapper around `WARPTO()` that warps time forward until the calculated launch time.
+A simple wrapper around `doWarp()` that warps time forward until the calculated launch time.
 
 Geoff Banks / ElWanderer
