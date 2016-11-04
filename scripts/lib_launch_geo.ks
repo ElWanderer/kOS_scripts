@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_geo.ks v1.0.2 20160906").
+pOut("lib_launch_geo.ks v1.0.3 20161104").
 
 GLOBAL HALF_LAUNCH IS 145.
 
@@ -9,7 +9,6 @@ FUNCTION changeHALF_LAUNCH
   IF h > 0 { SET HALF_LAUNCH TO h. }
 }
 
-// slightly different check to lib_geo
 FUNCTION latIncOk
 {
   PARAMETER lat,i.
@@ -18,9 +17,7 @@ FUNCTION latIncOk
 
 FUNCTION etaToOrbitPlane
 {
-  PARAMETER is_AN.
-  PARAMETER planet, orb_lan, i.
-  PARAMETER ship_lat, ship_lng.
+  PARAMETER is_AN, planet, orb_lan, i, ship_lat, ship_lng.
 
   LOCAL eta IS -1.
   IF latIncOk(ship_lat,i) {
@@ -33,7 +30,6 @@ FUNCTION etaToOrbitPlane
   RETURN eta.
 }
 
-// second azimuth is given by 180-az
 FUNCTION azimuth
 {
   PARAMETER i.
@@ -43,8 +39,7 @@ FUNCTION azimuth
 
 FUNCTION planetSurfaceSpeedAtLat
 {
-  PARAMETER planet.
-  PARAMETER lat.
+  PARAMETER planet, lat.
 
   LOCAL v_rot IS 0.
   LOCAL circum IS 2 * CONSTANT:PI * planet:RADIUS.
@@ -55,9 +50,7 @@ FUNCTION planetSurfaceSpeedAtLat
 
 FUNCTION launchAzimuth
 {
-  PARAMETER planet.
-  PARAMETER az.
-  PARAMETER ap. // metres
+  PARAMETER planet, az, ap.
 
   LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
   LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
@@ -120,7 +113,6 @@ FUNCTION warpToLaunch
   IF launch_time - TIME:SECONDS > 5 {
     pOut("Waiting for orbit plane to pass overhead.").
     WAIT 5.
-    WARPTO(launch_time).
-    WAIT UNTIL launch_time - TIME:SECONDS < 0.
+    doWarp(launch_time).
   }
 }
