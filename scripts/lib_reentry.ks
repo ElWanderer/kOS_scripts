@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_reentry.ks v1.0.5 20160728").
+pOut("lib_reentry.ks v1.1.1 20161104").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -115,8 +115,7 @@ UNTIL rm = exit_mode
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_stage,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_stage {
       pOut("Warping until altitude " + alt_stage + "m.").
-      WARPTO(warp_time).
-      WAIT UNTIL warp_time < TIME:SECONDS.
+      doWarp(warp_time).
     }
     runMode(56).
   } ELSE IF rm = 56 {
@@ -150,8 +149,7 @@ UNTIL rm = exit_mode
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_atm,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_atm {
       pOut("Warping until altitude " + alt_atm + "m.").
-      WARPTO(warp_time).
-      WAIT UNTIL warp_time < TIME:SECONDS.
+      doWarp(warp_time).
     }
     runMode(74).
   } ELSE IF rm = 74 {
@@ -159,16 +157,17 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 76 {
     PANELS OFF.
     steerSurf(FALSE).
+    SET alt_atm TO BODY:ATM:HEIGHT.
     runMode(78).
   } ELSE IF rm = 78 {
     IF NOT isSteerOn() { steerSurf(FALSE). }
-    IF ALTITUDE > alt_atm { runMode(82). } 
+    IF ALTITUDE > alt_atm AND VERTICALSPEED > 0 { runMode(82). } 
     IF ALTITUDE < alt_steer_off {
       steerOff().
       runMode(80).
     }
   } ELSE IF rm = 80 {
-    IF ALTITUDE > alt_atm { runMode(82). } 
+    IF ALTITUDE > alt_atm AND VERTICALSPEED > 0 { runMode(82). } 
     IF ALTITUDE < alt_chutes {
       hudMsg("Will deploy parachutes once safe.").
       listChutes().
@@ -176,18 +175,18 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 82 {
     pOut("Leaving atmosphere.").
-    IF APOAPSIS > alt_atm {
-      PANELS ON.
-      runMode(84).
-    } ELSE { runMode(72). }
-  } ELSE IF rm = 84 {
+    PANELS ON.
     steerSun().
+    LOCAL alt_atm_by_ecc IS BODY:ATM:HEIGHT + ROUND(SHIP:OBT:ECCENTRICITY,2) * 15000.
+    SET alt_atm TO MIN(MAX(BODY:ATM:HEIGHT,APOAPSIS-500),alt_atm_by_ecc).
+    pOut("Steer retrograde below: " + ROUND(alt_atm/1000) + "km.").
     runMode(86).
   } ELSE IF rm = 86 {
     IF NOT isSteerOn() { steerSun(). }
-    IF steerOk(1,4) {
+    IF ALTITUDE < alt_atm AND VERTICALSPEED < 0 { runMode(76). }
+    ELSE IF steerOk() {
       steerOff().
-      runMode(72).
+      runMode(70).
     }
   } ELSE IF rm = 90 {
     IF hasChutes() { deployChutes(). }
