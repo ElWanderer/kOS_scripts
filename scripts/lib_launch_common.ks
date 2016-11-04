@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.2.1 20160824").
+pOut("lib_launch_common.ks v1.3.0 20161101").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -62,11 +62,11 @@ FUNCTION checkLES
 
 FUNCTION launchInit
 {
-  PARAMETER exit_mode,ap,az,i,pitch_alt.
+  PARAMETER ap,az,i,pitch_alt.
 
   SET LCH_ORBIT_VEL TO SQRT(BODY:MU/(BODY:RADIUS + ap)).
   SET LCH_I TO i.
-  SET LCH_AN TO (az <= 90 OR az >= 270).
+  SET LCH_AN TO (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)).
   SET LCH_PITCH_ALT TO pitch_alt.
 
   checkFairing().

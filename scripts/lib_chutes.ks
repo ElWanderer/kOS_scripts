@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_chutes.ks v1.2.4 20160902").
+pOut("lib_chutes.ks v1.2.5 20161101").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -45,9 +45,8 @@ FUNCTION deployChutes
 FUNCTION disarmChutes
 {
   listChutes(TRUE).
-  LOCAL act IS FALSE.
-  FOR m IN CHUTE_LIST { IF canDisarm(m) { doDisarm(m). SET act TO TRUE. } }
-  IF act { listChutes(). }
+  FOR m IN CHUTE_LIST { IF canDisarm(m) { doDisarm(m). } }
+  listChutes().
 }
 
 listChutes(TRUE).

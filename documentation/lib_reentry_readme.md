@@ -78,9 +78,7 @@ On being called, the function will calculate and print out four altitudes. These
 * 3. Steering off: the altitude below which the craft will disengage the steering to save electricity, assuming that the craft should now be in a stable descent, guided by air-flow. For Kerbin, this altitude is `50`km.
 * 4. Chutes on: the altitude below which the craft will start checking the parachutes each tick to see if they can be deployed. For Kerbin this altitude is `20`km. It is assumed that a craft reaching this altitude will definitely re-enter.
 
-Should a craft leave the atmosphere prior to reaching the fourth altitude (chutes on), it will check if the apoapsis will go above the second altitude (atmospheric interface). If so, it will steer towards the Sun and open the solar panels again. This is to handle shallow trajectories that skip in and out of the atmosphere a few times before committing to re-entry.
-
-Comment - there seems to be a bug here: If the craft leaves the atmosphere during re-entry, it tries to switch to a run mode that doesn't exist (72). It looks like this should be 70 or 76, depending on whether the apoapsis rises high enough to justify opening the solar panels. Also: we could possibly recalculate the atmospheric interface altitude if we have bled off velocity during the first pass through the atmosphere.
+Should a craft leave the atmosphere prior to reaching the fourth altitude (chutes on), it will steer towards the Sun and open the solar panels again. It will also recalculate the second altitude (atmospheric interface) as the eccentricity is likely to have reduced following a trip through the atmosphere and either warp to this altitude or steer retrograde if we're already below it and descending. This is to handle shallow trajectories that skip in and out of the atmosphere before committing to re-entry.
 
 Following touchdown, the function will disengage steering if it is active, and change the run mode to `exit_mode`.
 

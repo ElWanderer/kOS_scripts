@@ -22,9 +22,8 @@ This function is only expected to be called from `doOrbitChange()`. It runs in t
 * `TRUE` - manoeuvre nodes are plotted and executed in turn to put the apoapsis and periapsis in the right places according to the input parameters. The function will then return `TRUE` or `FALSE` depending on whether the burns were successful or not.
 
 The function begins by calculating the difference between the current orbital parameters and the input parameters. It will only create nodes if the difference in these values is above certain parameters:
-* If the input `argument_of_periapsis` is greater than `0` and the difference between the input and current value is greater than 0.05 degrees, this will trigger two burns to rotate the orbit and put the apoapsis and periapsis to the right values.
-  * Comment - shouldn't this be greater or equal to `0`, in case we want to set the argument of periapsis *to* zero?
-* If the input `argument_of_periapsis` is `0` or less, then we may still need one or two burns:
+* If the input `argument_of_periapsis` is greater than or equal to `0` and the difference between the input and current value is greater than `0.05` degrees, this will trigger two burns to rotate the orbit and put the apoapsis and periapsis to the right values.
+* If the input `argument_of_periapsis` is less than `0` or within `0.05` degrees of the current value, then we may still need one or two burns:
   * If the difference between the input `apoapsis` and the orbit's current apoapsis is greater than `apoapsis/50`, it is considered to be different enough to require a burn to change the apoapsis.
   * If the difference between the input `periapsis` and the orbit's current periapsis is greater than `periapsis/50`, it is considered to be different enough to require a burn to change the periapsis.
 
