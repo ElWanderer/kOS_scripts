@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.2.1 20160906").
+pOut("lib_burn.ks v1.2.2 20161104").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -118,7 +118,7 @@ FUNCTION warpCloseToNode
   IF warp_time > TIME:SECONDS AND bt < 1680 {
     steerSun().
     WAIT UNTIL steerOk().
-    WARPTO(warp_time).
+    doWarp(warp_time).
     WAIT UNTIL TIME:SECONDS > warp_time.
   }
 }
@@ -127,7 +127,7 @@ FUNCTION warpToNode
 {
   PARAMETER n, bt.
   LOCAL time_to_warp IS n:ETA - (bt / 2) - BURN_WARP_BUFF.
-  IF time_to_warp > 0 { WARPTO(TIME:SECONDS + time_to_warp). }
+  IF time_to_warp > 0 { doWarp(TIME:SECONDS + time_to_warp). }
 }
 
 FUNCTION execNode
