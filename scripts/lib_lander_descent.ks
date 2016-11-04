@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.1.0 20160812").
+pOut("lib_lander_descent.ks v1.1.1 20161104").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -82,9 +82,7 @@ FUNCTION addNodeLowerPeriapsisOverSpot
   } ELSE IF eta < (SHIP:OBT:PERIOD / 2) + nodeBuffer() {
     pOut("Cannot lower periapsis in time for next time ship overflies target spot.").
     pOut("Warping beyond overflight to recalculate.").
-    LOCAL warp_time IS bufferTime() + (SHIP:OBT:PERIOD / 2).
-    WARPTO(warp_time).
-    WAIT UNTIL TIME:SECONDS > warp_time.
+    doWarp(bufferTime() + (SHIP:OBT:PERIOD / 2)).
     RETURN addNodeLowerPeriapsisOverSpot(lat,lng,safety_factor,max_dist,days_limit - (ONE_DAY/eta)).
   } ELSE {
     LOCAL time_of_burn IS time_over_site - (SHIP:OBT:PERIOD / 2).
@@ -121,9 +119,7 @@ FUNCTION warpToPeriapsis
   LOCAL warp_time IS TIME:SECONDS + ETA:PERIAPSIS - 30.
   IF warp_time - TIME:SECONDS > 5 {
     pOut("Warping until close to periapsis.").
-    WARPTO(warp_time).
-    WAIT UNTIL warp_time - TIME:SECONDS < 0 OR ALT:RADAR < (safety_factor / 2).
-    SET WARP TO 0.
+    doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
   }
 }
 
