@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_probe.ks v1.1.0 20161103").
+pOut("lib_probe.ks v1.1.1 20161104").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -36,9 +36,7 @@ FUNCTION visitContractWaypoints
     pOut("Next waypoint: " + wp_name + 
        ". Expected closest approach of " + ROUND(ca_dist) + "m at " + time_str).
 
-    LOCAL warp_time IS wp_time - WP_BUFFER.
-    WARPTO(warp_time).
-    WAIT UNTIL TIME:SECONDS > warp_time.
+    doWarp(wp_time - WP_BUFFER).
 
     LOCAL prev_dist IS greatCircleDistance(BODY,SHIP:GEOPOSITION,wp_spot).
     LOCAL done IS FALSE.

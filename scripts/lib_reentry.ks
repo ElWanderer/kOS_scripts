@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_reentry.ks v1.1.0 20161101").
+pOut("lib_reentry.ks v1.1.1 20161104").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -115,8 +114,7 @@ UNTIL rm = exit_mode
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_stage,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_stage {
       pOut("Warping until altitude " + alt_stage + "m.").
-      WARPTO(warp_time).
-      WAIT UNTIL warp_time < TIME:SECONDS.
+      doWarp(warp_time).
     }
     runMode(56).
   } ELSE IF rm = 56 {
@@ -150,8 +148,7 @@ UNTIL rm = exit_mode
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_atm,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_atm {
       pOut("Warping until altitude " + alt_atm + "m.").
-      WARPTO(warp_time).
-      WAIT UNTIL warp_time < TIME:SECONDS.
+      doWarp(warp_time).
     }
     runMode(74).
   } ELSE IF rm = 74 {

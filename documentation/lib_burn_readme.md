@@ -143,13 +143,13 @@ Note - a burn is deemed unsuccessful if the node has 1m/s or greater remaining.
 
 #### `warpCloseToNode(node, burn_time)`
 
-IF the node is more than 15 minutes in the future (900 seconds) and the predicted burn time is not greater than 28 minutes (1680 seconds), steers towards the Sun and calls `WARPTO()` to time warp until the burn is fifteen minutes away.
+IF the node is more than 15 minutes in the future (900 seconds) and the predicted burn time is not greater than 28 minutes (1680 seconds), steers towards the Sun and calls `doWarp()` to time warp until the burn is fifteen minutes away.
 
 Note - the check on the burn time uses 28 minutes rather than 30 (you'd reasonably expect it to use twice the 15 minutes/900 seconds we want to be before the node) as an extra safety factor.
 
 #### `warpToNode(node, burn_time)`
 
-Calculates a burn start time based on the current time, the node's ETA, half the input burn time and `BURN_WARP_BUFF`. If this time is in the future, it calls `WARPTO()` to time warp.
+Calculates a burn start time based on the current time, the node's ETA, half the input burn time and `BURN_WARP_BUFF`. If this time is in the future, it calls `doWarp()` to time warp.
 
 #### `execNode(staging_allowed)`
 
