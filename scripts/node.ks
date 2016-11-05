@@ -1,9 +1,9 @@
 @LAZYGLOBAL OFF.
 
-COPYPATH("0:/init.ks","1:/init.ks").
+IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("node.ks v1.0 20160714").
+pOut("node.ks v1.0.1 20161104").
 
 RUNONCEPATH(loadScript("lib_burn.ks")).
-ExecNode(FALSE).
+execNode(FALSE).
