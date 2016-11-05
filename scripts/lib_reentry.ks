@@ -1,5 +1,4 @@
 @LAZYGLOBAL OFF.
-
 pOut("lib_reentry.ks v1.1.1 20161104").
 
 FOR f IN LIST(

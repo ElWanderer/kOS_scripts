@@ -1,5 +1,4 @@
 @LAZYGLOBAL OFF.
-
 pOut("lib_probe.ks v1.1.1 20161104").
 
 FOR f IN LIST(
@@ -13,14 +12,14 @@ GLOBAL WP_BUFFER IS 30.
 FUNCTION pointAtSun
 {
   steerSun().
-  WAIT UNTIL steerOk(0.5,5).
+  WAIT UNTIL steerOk().
   steerOff().
 }
 
 FUNCTION visitContractWaypoints
 {
-  PARAMETER max_dist. // kilometres
-  PARAMETER days_limit.
+  // max_dist in kilometres
+  PARAMETER max_dist,days_limit.
 
   pointAtSun().
 
@@ -33,9 +32,9 @@ FUNCTION visitContractWaypoints
     LOCAL ca_dist IS details[2].
     LOCAL wp_spot IS details[3].
 
-    LOCAL time_str IS formatTime(wp_time - TIME:SECONDS).
+    LOCAL time_str IS formatTS(wp_time,TIME:SECONDS-MISSIONTIME).
     pOut("Next waypoint: " + wp_name + 
-       ". Expected closest approach of " + ROUND(ca_dist) + "m in " + time_str).
+       ". Expected closest approach of " + ROUND(ca_dist) + "m at " + time_str).
 
     doWarp(wp_time - WP_BUFFER).
 

@@ -145,20 +145,18 @@ Sets `LCH_HAS_LES` according to whether we have a Launch Escape System (LES) or 
 
 The reliance on the ability to do actions (3rd level Vehicle Assembly Building or SpacePlane Hanger) comes about because activating the LES is an Action rather than an Event. We cannot activate the LES via staging as the normal staging sequence of a rocket will not fire the LES except when jettisoning it.
 
-#### `launchInit(exit_mode, apoapsis, azimuth, inclination, pitchover_alt)`
+#### `launchInit(apoapsis, azimuth, inclination, pitchover_alt)`
 
 This function is called once when initiating a launch. It initialises quite a few launch settings:
 
 * `LCH_ORBIT_VEL` is set to the orbital velcoity need for a circular orbit at an altitude matching the input `apoapsis`.
 * `LCH_I` is set to the input `inclination`
-* `LCH_AN` is set to `TRUE` or `FALSE` depend on whether the input `azimuth` is a Northwards or Southwards compass bearing. Bearings of `90` and `270` are treated as Northwards for the purposes of this. Comment - though perhaps this should take the latitude into account?
+* `LCH_AN` is set to `TRUE` or `FALSE` depend on whether the input `azimuth` is a Northwards or Southwards compass bearing. Bearings of `90` and `270` are treated as Northwards if the active vessel's latitude is negative (below the Equator) and Southwards otherwise.
 * `LCH_PITCH_ALT` is set to the input `pitchover_alt`
 * `checkFairing()` and `checkLES()` are called to set `LCH_HAS_FAIRING` and `LCH_HAS_LES` appropriately
 * the maximum thrust is initialised as being `0` by calling `mThrust(0)`
 
 If the run mode has not been initialised yet (i.e. it is less than `0`), a HUD Message is displayed that we are about to laucnh, and the run mode set to `1` by calling `runMode(1)`.
-
-Comment - `exit_mode` is not currently used by this function. Perhaps it should be removed.
 
 #### `launchStaging()`
 
