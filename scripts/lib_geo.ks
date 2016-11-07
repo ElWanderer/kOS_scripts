@@ -1,67 +1,51 @@
 @LAZYGLOBAL OFF.
-
-
-pOut("lib_geo.ks v1.0 20160714").
+pOut("lib_geo.ks v1.1.0 20161103").
 
 RUNONCEPATH(loadScript("lib_orbit.ks")).
 
-GLOBAL ONE_MINUTE IS 60.
-GLOBAL ONE_HOUR IS 60 * ONE_MINUTE.
-GLOBAL ONE_DAY IS 6 * ONE_HOUR.
+GLOBAL ONE_DAY IS KUNIVERSE:HOURSPERDAY * 3600.
 
 FUNCTION latOkForInc
 {
-  PARAMETER lat.
-  PARAMETER i.
-  RETURN (i > 0 AND i >= ABS(lat) AND (180 - i) >= ABS(lat)).
+  PARAMETER lat,i.
+  RETURN (i > 0 AND MIN(i,180-i) >= ABS(lat)).
 }
 
 FUNCTION latAtTA
 {
-  PARAMETER orb.
-  PARAMETER ta.
+  PARAMETER o,ta.
 
-  LOCAL w IS orb:ARGUMENTOFPERIAPSIS.
-  LOCAL i IS orb:INCLINATION.
+  LOCAL w IS o:ARGUMENTOFPERIAPSIS.
+  LOCAL i IS o:INCLINATION.
   RETURN ARCSIN(SIN(i) * SIN(mAngle(ta + w))).
 }
 
 FUNCTION firstTAAtLat
 {
-  PARAMETER orb.
-  PARAMETER lat.
+  PARAMETER o,lat.
 
-  LOCAL ta1 IS -1.
-  LOCAL i IS orb:INCLINATION.
-  IF latOkForInc(lat,i) {
-    LOCAL w IS mAngle(orb:ARGUMENTOFPERIAPSIS).
-    SET ta1 TO mAngle(ARCSIN((SIN(lat)/SIN(i))) - w).
-  }
-  RETURN ta1.
+  LOCAL i IS o:INCLINATION.
+  IF NOT latOkForInc(lat,i) { RETURN -1. }
+  LOCAL w IS mAngle(o:ARGUMENTOFPERIAPSIS).
+  RETURN mAngle(ARCSIN((SIN(lat)/SIN(i))) - w).
 }
 
 FUNCTION secondTAAtLat
 {
-  PARAMETER orb.
-  PARAMETER lat.
+  PARAMETER o,lat.
 
-  LOCAL ta2 IS -1.
-  LOCAL i IS orb:INCLINATION.
-  IF latOkForInc(lat,i) {
-    LOCAL w IS orb:ARGUMENTOFPERIAPSIS.
-    LOCAL ta_extreme_lat IS mAngle(90 - w).
-    IF lat < 0 { SET ta_extreme_lat TO mAngle(270 - w). }
-    LOCAL ta1 IS firstTAAtLat(orb,lat).
-    SET ta2 TO mAngle((2 * ta_extreme_lat) - ta1).
-  }
-  RETURN ta2.
+  LOCAL i IS o:INCLINATION.
+  IF NOT latOkForInc(lat,i) { RETURN -1. }
+  LOCAL w IS o:ARGUMENTOFPERIAPSIS.
+  LOCAL ta_extreme_lat IS mAngle(90 - w).
+  IF lat < 0 { SET ta_extreme_lat TO mAngle(270 - w). }
+  LOCAL ta1 IS firstTAAtLat(o,lat).
+  RETURN mAngle((2 * ta_extreme_lat) - ta1).
 }
 
 FUNCTION spotAtTime
 {
-  PARAMETER planet.
-  PARAMETER craft.
-  PARAMETER u_time.
+  PARAMETER planet,craft,u_time.
 
   LOCAL p IS planet:ROTATIONPERIOD.
   LOCAL spot IS planet:GEOPOSITIONOF(POSITIONAT(craft,u_time)).
@@ -72,54 +56,48 @@ FUNCTION spotAtTime
 
 FUNCTION greatCircleDistance
 {
-  PARAMETER planet.
-  PARAMETER spot1.
-  PARAMETER spot2.
+  PARAMETER planet,spot1,spot2.
 
-  LOCAL d IS -1.
   LOCAL latD IS spot2:LAT - spot1:LAT.
   LOCAL lngD IS spot2:LNG - spot1:LNG.
   LOCAL h IS ((SIN(latD/2))^2) + (COS(spot1:LAT) * COS(spot2:LAT) * ((SIN(lngD/2))^2)).
-  IF h >= 0 AND h <= 1 { SET d TO 2 * planet:RADIUS * ARCSIN(SQRT(h)) * CONSTANT:DEGTORAD. }
-  RETURN d.
+  IF h < 0 OR h > 1 { RETURN -1. }
+  RETURN (2 * planet:RADIUS * ARCSIN(SQRT(h)) * CONSTANT:DEGTORAD).
+}
+
+FUNCTION distAtTime
+{
+  PARAMETER craft,planet,spot,u_time.
+  RETURN greatCircleDistance(planet,spot,spotAtTime(planet,craft,u_time)).
 }
 
 FUNCTION findNextPassCA
 {
-  PARAMETER craft.
-  PARAMETER planet.
-  PARAMETER t_spot. // target geoposition
-  PARAMETER u_time.
-  LOCAL STEP_TIME IS 0.05. // seconds
+  PARAMETER craft,planet,t_spot,u_time.
 
-  LOCAL spot IS spotAtTime(planet,craft,u_time).
-  LOCAL ca_dist IS greatCircleDistance(planet,t_spot,spot).
+  LOCAL step IS 0.04.
+
+  LOCAL ca_dist IS distAtTime(craft,planet,t_spot,u_time).
   LOCAL ca_time IS u_time.
 
-  LOCAL mod_time IS u_time - STEP_TIME.
-  SET spot TO spotAtTime(planet,craft,mod_time).
-  IF greatCircleDistance(planet,t_spot,spot) < ca_dist { SET STEP_TIME TO -STEP_TIME. }
+  LOCAL mod_time IS u_time - step.
+  IF distAtTime(craft,planet,t_spot,mod_time) < ca_dist { SET step TO -step. }
 
   LOCAL mod_dist IS ca_dist.
   SET mod_time TO ca_time.
   UNTIL mod_dist > ca_dist {
     SET ca_dist TO mod_dist.
     SET ca_time TO mod_time.
-    SET mod_time TO mod_time + STEP_TIME.
-    SET spot TO spotAtTime(planet,craft,mod_time).
-    SET mod_dist TO greatCircleDistance(planet,t_spot,spot).
+    SET mod_time TO mod_time + step.
+    SET mod_dist TO distAtTime(craft,planet,t_spot,mod_time).
   }
   RETURN ca_time.
 }
 
 FUNCTION findNextPass
 {
-  PARAMETER craft.
-  PARAMETER planet.
-  PARAMETER t_spot. // target geoposition
-
-  PARAMETER max_dist. // metres
-  PARAMETER days_limit.
+  // max_dist in metres
+  PARAMETER craft,planet,t_spot,max_dist,days_limit.
 
   LOCAL u_time IS TIME:SECONDS.
   LOCAL return_time IS 0.
@@ -150,8 +128,7 @@ FUNCTION findNextPass
       LOCAL spot IS spotAtTime(planet,craft,pass_time).
       IF ABS(spot:LNG - t_spot:LNG) < 3 {
         LOCAL ca_time IS findNextPassCA(craft,planet,t_spot,pass_time).
-        SET spot TO spotAtTime(planet,craft,ca_time).
-        LOCAL dist IS greatCircleDistance(planet,t_spot,spot).
+        LOCAL dist IS distAtTime(craft,planet,t_spot,ca_time).
         LOCAL eta IS ca_time - TIME:SECONDS.
         IF dist < max_dist AND dist >= 0 {
           SET found_pass TO TRUE.
@@ -179,11 +156,10 @@ FUNCTION waypointsForBody
 
 FUNCTION addWaypointToList
 {
-  PARAMETER wayDetails. // first element of this list should be the ETA
-  PARAMETER etaList.
+  // first element of wayDetails list should be the ETA
+  PARAMETER wayDetails,etaList.
 
   LOCAL len IS etaList:LENGTH.
-
   IF len = 0 { etaList:ADD(wayDetails). }
   ELSE {
     LOCAL i IS 0.
@@ -200,42 +176,11 @@ FUNCTION addWaypointToList
   RETURN etaList.
 }
 
-FUNCTION padTime
-{
-  PARAMETER t.
-  PARAMETER digits.
-  RETURN ("" + t):PADLEFT(digits).
-}
-
-FUNCTION formatTime
-{
-  PARAMETER secs.
-  LOCAL ret_time IS "".
-
-  If secs < ONE_DAY { SET ret_time TO "      ". }
-  ELSE {
-    SET ret_time TO ret_time + padTime(FLOOR(secs/ONE_DAY),4) + "d ".
-    SET secs TO MOD(secs,ONE_DAY).
-  }
-
-  SET ret_time TO ret_time + padTime(FLOOR(secs/ONE_HOUR),1) + "h ".
-  SET secs TO MOD(secs,ONE_HOUR).
-
-  SET ret_time TO ret_time + padTime(FLOOR(secs/ONE_MINUTE),2) + "m ".
-  SET secs TO ROUND(MOD(secs,ONE_MINUTE)).
-
-  SET ret_time TO ret_time + padTime(secs,2) + "s".
-
-  RETURN ret_time.
-}
-
 FUNCTION listContractWaypointsByETA
 {
-  PARAMETER craft.
-  PARAMETER max_dist. // kilometres
-  PARAMETER days_limit.
+  // max_dist here is in kilometres
+  PARAMETER craft,max_dist,days_limit.
 
-  LOCAL u_time IS TIME:SECONDS.
   LOCAL planet IS craft:OBT:BODY.
   LOCAL i IS craft:OBT:INCLINATION.
   LOCAL wayList IS wayPointsForBody(planet).
@@ -247,22 +192,17 @@ FUNCTION listContractWaypointsByETA
       LOCAL wp_eta_time IS findNextPass(craft,planet,wp_spot,max_dist*1000,days_limit).
       LOCAL eta IS wp_eta_time - TIME:SECONDS.
       IF eta >= 0 AND eta <= (days_limit * ONE_DAY) {
-        LOCAL spot IS spotAtTime(planet,craft,wp_eta_time).
-        LOCAL wp_dist IS greatCircleDistance(planet,wp_spot,spot).
+        LOCAL wp_dist IS distAtTime(craft,planet,wp_spot,wp_eta_time).
         LOCAL wayDetails IS LIST(wp_eta_time, wp:NAME, wp_dist, wp_spot).
         SET etaList TO addWaypointToList(wayDetails, etaList).
       }
     }
   }
-  IF etaList:LENGTH > 0 { pOut("Waypoints in order of ETA of closest approach:"). }
+  IF etaList:LENGTH > 0 { pOut("Waypoints passed (times in MET):"). }
   ELSE { pOut("No waypoints passed within time limit."). }
-  SET u_time TO TIME:SECONDS.
-  FOR details IN etaList {
-    LOCAL eta IS ROUND(details[0] - u_time).
-    IF eta >= 0 {
-      LOCAL time_str IS formatTime(eta).
-      PRINT time_str + "   " + details[1] + " " + ROUND(details[2]) + "m.".
-    }
-  }
+  FOR details IN etaList { IF details[0] > TIME:SECONDS {
+    LOCAL time_str IS formatTS(details[0],TIME:SECONDS-MISSIONTIME).
+    pOut("At " + time_str + ": " + details[1] + " " + ROUND(details[2]) + "m.",FALSE).
+  } }
   RETURN etaList.
 }

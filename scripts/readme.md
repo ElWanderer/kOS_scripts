@@ -15,6 +15,6 @@ The current script file layout is as follows:
 * lib_xxx - library files, pulled in as needed.
 
 ## Further reading
-Most of the script files are deliberately light on comments (and descriptive variable names) to keep the file sizes low. Documentation will be provided in the separate ../documentation directory and/or the Github wiki. At the time of writing, this is largely incomplete - issue #24 exists for this.
+Most of the script files are deliberately light on comments (and descriptive variable names) to keep the file sizes low. Documentation will be provided in the separate ../documentation directory. At the time of writing, this is partially incomplete - issue #24 exists for completing this.
 
 Geoff Banks / ElWanderer

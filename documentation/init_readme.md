@@ -17,9 +17,9 @@ Finally, each boot script then runs `"1:/init.ks"`. So on each subsequent boot a
 
 In turn, both of the init scripts will load and run the common library. There is a potential circular dependency here. `loadScript()` is a function in the `init.ks`/`init_multi.ks` file, but it in turn calls `pOut()`, a printing function in the `init_common.ks` library. We can't use `pOut()` until we've actually run the common library. To solve this we make use of an extra parameter in the `loadScript()` function, `loud_mode`. By passing in `FALSE`, we disable the usual printing and logging that the `loadScript()` function does. Not all printing is disabled: if there were an error, this is still printed. That happens on the grounds that we were going to crash anyway, if we couldn't load a file (e.g. due to lack of space).
 
-The `init_common.ks` library triggers quite a few pieces of code as well as adding a suite of library functions. If timewarp was active when we booted up (which can happen if we run out of electrical power during time warp), this is disabled. We also wait for the ship to be unpacked:
+The `init_common.ks` library triggers quite a few pieces of code as well as adding a suite of library functions. If timewarp was active when we booted up (which can happen if we run out of electrical power during time warp), this is disabled. We also wait for the ship to be unpacked by calling `killWarp()`:
 
-    IF WARP <> 0 { SET WARP TO 0. }
+    KUNIVERSE:TIMEWARP:CANCELWARP().
     WAIT UNTIL SHIP:UNPACKED.
 
 We initialise the staging timer with the current time. This is often used for checks such as "has it been more than x seconds since we last staged" to guide whether it's okay to stage again and for certain actions e.g. we want to wait for about 5 seconds after triggering the launch escape system, then jettison it.
@@ -59,12 +59,6 @@ This is used to store commands to be run to recover a previous state following a
 A list of available volume names. By default this is an empty list, though this is quickly populated by running listVolumes(). Practically, the real default value is a list containing the local volume, which gets renamed `"Disk0"`.
 
 This is used to store the names of all the disks we think we have access to. Various `init_multi.ks` functions rely on being able to loop through this list.
-
-#### `pad2Z()` and `pad3Z()`
-
-Function delegates. These will turn the input value into a string, pad the left-hand side with spaces until the length is 2 or 3 characters then replace all spaces with zeroes. Used as part of the function that generates a pretty Mission Elapsed Time for printed and logged messages.
-
-`padRep` is short for pad-and-replace.
 
 #### `TIMES`
 
@@ -204,6 +198,8 @@ The default `u_time2` value is the current universal timestamp (i.e. `TIME:SECON
 
 Note that kOS has an issue (logged as `#1800`) whereby Kerbin is assumed to have 365 (Kerbin) days a year. The actual value is 426. The number of years and days in the return string will not match KSP if the time difference is more than 365 days. We could calculate this ourselves, but then the function would be even longer and slower than it already is!
 
+Note 2 - we used to format the time portion ourselves, by padding in extra zeroes and rounding the seconds. Since kOS v1.0.1 does that automatically, we can call just `timestamp:CLOCK`.
+
 #### `formatMET()`
 
 A wrapper around `formatTS()` that is used to produce Mission Elapsed Time in a pretty format suitable for displaying on the terminal and logging out. To avoid calling `formatTS()` too many times in quick succession, the MET string is kept and only recalculated once `MISSIONTIME` has ticked onto the next whole second.
@@ -261,5 +257,21 @@ This additionally calls `pOut()` to indicate that a staging event has been trigg
 This takes the input angle and normalises it to be between `0` and `360` degrees. This is used widely enough in various libraries that it made sense to put it in the common library.
 
 `mAngle` is short for "make angle".
+
+#### `killWarp()`
+
+This function does two things:
+* It calls `KUNIVERSE:TIMEWARP:CANCELWARP()` to kill any time warping that is currently taking place.
+* It waits until `SHIP:UNPACKED` returns `TRUE`. This is a safety step to ensure that the active vessel is fully loaded and unpacked before we try to do anything with it.
+
+#### `doWarp(universal_timestamp, stop_function)`
+
+This function is a wrapper around `WARPTO(universal_timestamp)`, with an optional check that will stop time warp early.
+
+The input parameter `stop_function` is expected to be a function delegate that returns `TRUE` or `FALSE` when called. `stop_function` will be called each tick during the time warp, with a value of `TRUE` indicating that time warp should be stopped. A value of `FALSE` indicates that the time warp should continue.
+
+Once either the current time passes the input `universal_timestamp` or `stop_function` returns TRUE, `killWarp()` will be called to stop the time warp and wait until the ship is unpacked and ready for further processing.
+
+If not specified, the value of `stop_function` is defaulted to the anonymous function `{ RETURN FALSE. }`. This will not apply any checking during the time warp.
 
 Geoff Banks / ElWanderer

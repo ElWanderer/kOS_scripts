@@ -1,10 +1,13 @@
 @LAZYGLOBAL OFF.
+pOut("lib_skeep.ks v1.1.0 20161107").
 
-pOut("lib_skeep.ks v1.0.2 20160812").
-
-RUNONCEPATH(loadScript("lib_burn.ks")).
+FOR f IN LIST(
+  "lib_orbit.ks",
+  "lib_burn.ks"
+) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL SKEEP_VESSELS IS LIST().
+GLOBAL SKEEP_FACTOR IS 1.
 
 FUNCTION listNearbyVessels
 {
@@ -12,79 +15,86 @@ FUNCTION listNearbyVessels
   SKEEP_VESSELS:CLEAR.
   LOCAL all_vessels IS LIST().
   LIST TARGETS IN all_vessels.
-  FOR craft IN all_vessels {
-    IF ORBITAT(craft,u_time):BODY = ORBITAT(SHIP,u_time):BODY AND
-       NOT LIST("LANDED","SPLASHED","PRELAUNCH"):CONTAINS(craft:STATUS) {
-      IF (POSITIONAT(craft,u_time)-POSITIONAT(SHIP,u_time)):MAG < 2500 { SKEEP_VESSELS:ADD(craft). }
+  FOR c IN all_vessels {
+    IF ORBITAT(c,u_time):BODY = ORBITAT(SHIP,u_time):BODY AND
+       NOT LIST("LANDED","SPLASHED","PRELAUNCH"):CONTAINS(c:STATUS) AND
+       (posAt(c,u_time)-posAt(SHIP,u_time)):MAG < 2500 { SKEEP_VESSELS:ADD(c). }
     }
   }
+  RETURN SKEEP_VESSELS:LENGTH.
+}
+
+FUNCTION sepTime
+{
+  LOCAL start_time IS TIME:SECONDS + 1.
+  LOCAL u_time IS start_time.
+  UNTIL listNearbyVessels(u_time) = 0 {
+    SET u_time TO u_time + 60.
+    IF u_time - start_time > SHIP:OBT:PERIOD { RETURN 0. }
+  }
+  RETURN u_time.
 }
 
 FUNCTION minSepAngle
 {
   PARAMETER d.
-  LOCAL min_ang IS 25.
-  IF d <= 100 { SET min_ang TO 40. }
-  ELSE IF d <= 500 { SET min_ang TO 30. }
-  ELSE IF d <= 1500 { SET min_ang TO 15. }
-  RETURN min_ang.
+  IF d <= 100 { RETURN 45. }
+  ELSE IF d <= 500 { RETURN 30. }
+  RETURN 15.
 }
 
-FUNCTION sepOK
+FUNCTION sepBurnOK
 {
-  PARAMETER burn_vec, burn_dv.
-  PARAMETER u_time.
-  LOCAL ok IS TRUE.
-  FOR craft IN SKEEP_VESSELS {
-    LOCAL craft_pos IS POSITIONAT(craft,u_time)-POSITIONAT(SHIP,u_time).
-    LOCAL v_vec IS VELOCITYAT(SHIP,u_time):ORBIT-VELOCITYAT(craft,u_time):ORBIT.
+  PARAMETER burn_vec, burn_dv, u_time.
+  FOR c IN SKEEP_VESSELS {
+    LOCAL c_pos IS posAt(c,u_time)-posAt(SHIP,u_time).
+    LOCAL v_vec IS velAt(SHIP,u_time)-velAt(c,u_time).
     LOCAL v_diff IS (burn_dv * burn_vec) + v_vec.
-    IF VANG(craft_pos,v_diff) < minSepAngle(craft_pos:MAG) { SET ok TO FALSE. }
+    IF VANG(c_pos,v_diff) < minSepAngle(c_pos:MAG) { RETURN FALSE. }
   }
-  RETURN ok.
+  RETURN TRUE.
 }
 
-FUNCTION sepMan
+FUNCTION sepBurn
 {
-  PARAMETER dv.
-  PARAMETER man_secs.
+  LOCAL u_time IS bufferTime().
+  listNearbyVessels(u_time).
 
-  LOCAL ok IS TRUE.
-  LOCAL done IS FALSE.
-  LOCAL start_time IS TIME:SECONDS.
+  LOCAL s_vel IS velAt(SHIP,u_time).
+  LOCAL dv IS SKEEP_FACTOR * SQRT(s_vel:MAG) / 5.
   LOCAL dv_r IS SQRT(2) * dv / 2.
+  LOCAL pro_vec IS s_vel:NORMALIZED.
+  LOCAL norm_vec IS VCRS(s_vel,posAt(SHIP,u_time)):NORMALIZED.
+  LOCAL n IS NODE(u_time, 0, 0, 0).
 
-  listNearbyVessels(start_time).
-  UNTIL SKEEP_VESSELS:LENGTH = 0 OR done {
-    IF TIME:SECONDS - start_time > SHIP:OBT:PERIOD {
-      pOut("ERROR: did not achieve separation.").
-      SET ok TO FALSE.
-      BREAK.
-    }
-
-    LOCAL u_time IS TIME:SECONDS+man_secs.
-    LOCAL pro_vec IS VELOCITYAT(SHIP,u_time):ORBIT:NORMALIZED.
-    LOCAL norm_vec IS VCRS(pro_vec,-POSITIONAT(SHIP:BODY,u_time)):NORMALIZED.
-    LOCAL node_ok IS TRUE.
-    LOCAL n IS NODE(u_time, 0, 0, 0).
-    IF sepOK(norm_vec,dv,u_time) { SET n:NORMAL TO dv. }
-    ELSE IF sepOK(pro_vec+norm_vec,dv,u_time) {
-      SET n:PROGRADE TO dv_r.
-      SET n:NORMAL TO dv_r.
-    } ELSE IF sepOK(pro_vec-norm_vec,dv,u_time) {
-      SET n:PROGRADE TO dv_r.
-      SET n:NORMAL TO -dv_r.
-    } ELSE { SET node_ok TO FALSE. }
-
-    IF node_ok {
-      addNode(n).
-      SET ok TO execNode(FALSE).
-      SET done TO TRUE.
-    }
-
-    WAIT man_secs.
-    listNearbyVessels(u_time).
+  IF sepBurnOK(norm_vec,dv,u_time) {
+    SET n:NORMAL TO dv.
+  } ELSE IF sepBurnOK(pro_vec+norm_vec,dv,u_time) {
+    SET n:PROGRADE TO dv_r.
+    SET n:NORMAL TO dv_r.
+  } ELSE IF sepBurnOK(pro_vec-norm_vec,dv,u_time) {
+    SET n:PROGRADE TO dv_r.
+    SET n:NORMAL TO -dv_r.
   }
 
-  RETURN ok.
+  IF nodeDV(n) > dv_r {
+    addNode(n).
+    RETURN execNode(FALSE).
+  }
+
+  pOut("Could not plot separation burn.").
+  RETURN FALSE.
+}
+
+FUNCTION doSeparation
+{
+  LOCAL ok IS TRUE.
+  LOCAL sep_time IS sepTime().
+  IF sep_time = 0 {
+    SET ok TO sepBurn().
+    IF ok { SET sep_time TO sepTime(). }
+  }
+  IF sep_time > 0 AND ok { doWarp(sep_time). RETURN ok. }
+  pOut("ERROR: did not achieve separation.").
+  RETURN FALSE.
 }

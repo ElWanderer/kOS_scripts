@@ -10,7 +10,7 @@ As with a lot of new kOS programmers, I started out by writing simple launch scr
 
 There are many, many things that can be automated in Kerbal Space Program, so this is ongoing and probably never-ending work! I had always intended to make the scripts public once I got them to a high-enough standard. That isn't really the case at the time of writing, but the v1.0.0 pre-release of kOS prompted me to start putting the code online and documenting it properly. Being on Github, it means others could see and use the code, or even contribute to it.
 
-The code is written to work with kOS v1.0.0 / KSP 1.1.3, but most of the development has taken place with earlier versions, particularly KSP v1.0.5.
+The code is written to work with kOS v1.0.1 / KSP 1.1.3.
 
 ### Core concepts
 
@@ -90,7 +90,7 @@ Secondly, though the burn time may be calculated accurately, no attempt is curre
 
 ## Boot scripts
 
-Being documented in separate files (boot\_FILE\_NAME.ks_readme.md).
+Being documented in separate files (`boot_FILE_NAME_readme.md`).
 
 ## Init scripts/libraries
 
@@ -98,7 +98,11 @@ Being documented in separate files (boot\_FILE\_NAME.ks_readme.md).
 
 ## Libraries
 
-Being documented in separate files (lib\_NAME\_readme.md).
+Being documented in separate files (`lib_LIBNAME_readme.md`).
+
+## Miscellaneous files
+
+There is the occasional odd script file that is useful for manual control / testing. These are being documented in separate files (`FILE_NAME_readme.md`).
 
 ### "Comment": Issues found during documentation
 
