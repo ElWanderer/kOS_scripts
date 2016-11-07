@@ -115,14 +115,14 @@ FUNCTION activeDockingPoint
   LOCAL count IS 1.
   LOCAL vec_colour IS RGB(1,1,1).
   FOR p IN DOCK_POINTS {
-    IF count = 1 OR checkRouteStep(t,pos+p,-p) { SET vec_colour TO RGB(0,0,1). }
+    IF count = 1 OR checkRouteStep(t,pos+p,pos) { SET vec_colour TO RGB(0,0,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
     IF do_draw { VECDRAW(pos + p,-p,vec_colour,"Waypoint " +  count,1,TRUE). }
     SET pos TO pos + p.
     SET count TO count + 1.
   }
   IF do_draw {
-    IF count = 1 OR checkRouteStep(t,S_NODE,pos-S_NODE) { SET vec_colour TO RGB(0,1,1). }
+    IF count = 1 OR checkRouteStep(t,S_NODE,pos) { SET vec_colour TO RGB(0,1,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
     VECDRAW(S_NODE,pos - S_NODE,vec_colour,"Waypoint " + count + " (ACTIVE)",1,TRUE).
   }
