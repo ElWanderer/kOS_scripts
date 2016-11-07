@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_orbit_phase.ks v1.0 20160714").
+pOut("lib_orbit_phase.ks v1.0.1 20161101").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -44,11 +43,4 @@ FUNCTION orbitPeriodForAlt
   LOCAL r1 IS radiusAtTA(orb,ta).
   LOCAL a IS (r1 + r2_alt + planet:RADIUS)/2.
   RETURN 2 * CONSTANT:PI() * SQRT(a^3 / planet:MU).
-}
-
-FUNCTION orbitTAOffset
-{
-  PARAMETER orb1, orb2.
-  LOCAL ta_offset IS (orb2:LAN + orb2:ARGUMENTOFPERIAPSIS) - (orb1:LAN + orb1:ARGUMENTOFPERIAPSIS).
-  RETURN mAngle(ta_offset).
 }
