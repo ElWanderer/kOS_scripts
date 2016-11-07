@@ -19,7 +19,6 @@ FUNCTION listNearbyVessels
     IF ORBITAT(c,u_time):BODY = ORBITAT(SHIP,u_time):BODY AND
        NOT LIST("LANDED","SPLASHED","PRELAUNCH"):CONTAINS(c:STATUS) AND
        (posAt(c,u_time)-posAt(SHIP,u_time)):MAG < 2500 { SKEEP_VESSELS:ADD(c). }
-    }
   }
   RETURN SKEEP_VESSELS:LENGTH.
 }
