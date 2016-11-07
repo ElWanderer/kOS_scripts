@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.2.0 20161102").
+pOut("lib_dock.ks v1.2.0 20161107").
 
 FOR f IN LIST(
   "lib_rcs.ks",
