@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderCrew.ks v1.1.0 20160902").
+pOut("KMLanderCrew.ks v1.1.1 20161107").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -54,7 +54,7 @@ IF rm < 0 {
 
 } ELSE IF rm = 803 {
   RUNONCEPATH(loadScript("lib_skeep.ks")).
-  IF sepMan(5,30) { runMode(811,0). }
+  IF doSeparation() { runMode(811,0). }
   ELSE { runMode(809,803). }
 
 } ELSE IF rm = 811 {
