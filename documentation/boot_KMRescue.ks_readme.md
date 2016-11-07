@@ -69,7 +69,7 @@ It will wait for the number of crew aboard the craft to go above the stored valu
 
 #### Boarding and separation
 
-Once the rescued Kerbal is aboard, the script will store the new number of crew then plot and execute a 5m/s separation burn to move away from the target craft.
+Once the rescued Kerbal is aboard, the script will store the new number of crew then plot and execute a small separation burn to move away from the target craft.
 
 The script has two choices following this burn:
  * if the craft is full, the script will proceed automatically to a return transfer (followed by re-entry and landing).
