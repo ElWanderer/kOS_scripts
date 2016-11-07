@@ -103,7 +103,7 @@ IF rm < 0 {
   }
 } ELSE IF rm = 823 {
   RUNONCEPATH(loadScript("lib_skeep.ks")).
-  IF sepMan(5,30) { runMode(824). }
+  IF doSeparation() { runMode(824). }
   ELSE { runMode(829,823). }
 } ELSE IF rm = 824 {
   IF crewSpaces() > 0 { runMode(811). }
