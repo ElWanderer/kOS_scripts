@@ -4,7 +4,7 @@
 
 This library provides functions for translating via RCS, and for turning RCS on/off.
 
-The main function is `doTranslation()`, which uses logic based on a Cheers Kevin tutorial to convert an input vector into individual fore/starboard/top translation controls.
+The main function is `doTranslation()`, which uses logic based on a [Cheers Kevin tutorial](https://github.com/gisikw/ksprogramming/tree/master/episodes/e022) to convert an input vector into individual fore/starboard/top translation controls.
 
 ### Global variable reference
 
@@ -57,7 +57,7 @@ The function also calls `stopTranslation()` to disable translation while the tog
 
 This function sets the translation controls according to the input `translation_vector` and `translation_magnitude`. Though the second of these inputs can be determined from the first, they are available as separate parameters so that direction and magnitude can be specified independently.
 
-This part of the code is based heavily on Cheers Kevin's Kerbal Space Programming series:
+This part of the code is based heavily on [Cheers Kevin's Kerbal Space Programming episode 22](https://github.com/gisikw/ksprogramming/tree/master/episodes/e022):
 
     SET SHIP:CONTROL:FORE TO VDOT(translation_vector,FACING:FOREVECTOR).
     SET SHIP:CONTROL:STARBOARD TO VDOT(translation_vector,FACING:STARVECTOR).
