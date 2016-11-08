@@ -134,25 +134,9 @@ FUNCTION plotDockingRoute
   DOCK_POINTS:CLEAR.
   pOut("Calculating docking route.").
 
-  // if within DOCK_DIST of port and within 1 degree of angle to port, proceed directly to port
-  // else if within DOCK_DIST of port
-  //   - plot a single waypoint in line with the target port facing, keeping our distance to target
-  //   - if route to this waypoint is obstructed, extend it until we are clear or the length reaches DOCK_DIST
-  // else, plot a waypoint in line with the target port, DOCK_DIST out
-  //
-  // if we plotted a waypoint and the route to it is obstructed, place another leg at 90 degrees to the first leg.
-  // if this leg is obstructed, rotate it around (using the first leg as the axis) until clear or full circle
-  // if we went full circle, go back and double the length of the first leg, then repeat placement of second leg
-  // this assumes we will eventually find a clear second leg
-  //
-  // if we plotted a second waypoint and the route to it is obstructed, place another leg at 90 degrees to the second
-  // if this leg or our route to it is obstructed, rotate it around (using the first leg as the axis) until clear
-  // or full circle. If we go full circle, double the length and go around again.
-  // This should eventually result in a clear route, but it may not, in which case we'll return FALSE.
-    LOCAL port_pos IS T_NODE - S_NODE.
+  LOCAL port_pos IS T_NODE - S_NODE.
   LOCAL port_ang IS VANG(T_FACE,-port_pos).
   IF port_pos:MAG < DOCK_DIST AND port_ang < 1 {
-    // aligned with port
     pOut("Proceed directly to docking port.").
   } ELSE {
     LOCAL p1_dist IS DOCK_DIST.
@@ -170,7 +154,6 @@ FUNCTION plotDockingRoute
 
     IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1) {
       pOut("Route to first docking waypoint obstructed.").
-      // plot avoiding route around target vessel
       LOCAL rot_ang IS 0.
       LOCK POINT2 TO DOCK_DIST * (ANGLEAXIS(rot_ang,POINT1) * VXCL(POINT1,T_NODE - S_NODE):NORMALIZED).
 
@@ -193,8 +176,6 @@ FUNCTION plotDockingRoute
 
       IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1+POINT2) {
         pOut("Route to second docking waypoint obstructed.").
-        // Plot third waypoint that allows obstacle-free course between ship and
-        // second waypoint, if one can be found
         LOCAL p3_dist IS -4.
         LOCAL rot_ang IS 0.
         LOCK POINT3 TO p3_dist * (ANGLEAXIS(rot_ang,POINT2) * T_FACE):NORMALIZED.
