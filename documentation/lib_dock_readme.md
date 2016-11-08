@@ -2,11 +2,15 @@
 
 ### Description
 
-Text
+A library for docking the active vessel with a target, using the RCS translation functions.
 
-#### Subtitle
+#### Assumptions
 
-Text
+The active vessel doing the docking must have RCS.
+
+Docking ports are assumed to face out into open space. Any that point back towards the same vessel could cause problems if selected i.e. collisions or an inability to plot a valid route.
+
+The state change on a docking port is assumed to herald a successful docking. In my testing so far, this has always been the case, but it is conceivable that two large vessels docking at an awkward angle may bounce off each other despite the magnets activating.
 
 ### Requirements
 
@@ -175,7 +179,7 @@ The waypoint placement logic is as follows:
 
 If the active vessel is within `DOCK_DIST` of port and the angle between the position vector from `target_port` to `ship_port` and the `target_port`'s facing vector (`T_FACE`) is less than `1` degree, no waypoints are added. The active vessel can proceed directly to the `target_port`. Otherwise, at least one waypoint is required.
 
-#### Waypoint 1
+##### Waypoint 1
 
 If the active vessel is within `DOCK_DIST` of `target_port`, plot a single waypoint facing directly outwards from the `target_port`, with a length that matches our separation distance. If the route from `ship_port` to this waypoint is obstructed, extend the length of the waypoint until either the route to it is clear, or the length reaches `DOCK_DIST`
 
@@ -183,7 +187,7 @@ Otherwise, plot a single waypoint facing directly outwards from the `target_port
 
 If we have plotted a waypoint, and our route to it is unobstructed, the active vessel can proceed to waypoint 1 then the `target_port`. If the route is obstructed, at least one more waypoint is required.
 
-#### Waypoint 2
+##### Waypoint 2
 
 If required, plot a second waypoint of length `DOCK_DIST` at `90` degrees to the first waypoint. If the route to this new waypoint from the first waypoint is obstructed, rotate it around (using the first waypoint as the axis of rotation) until clear or we have gone round full circle.
 
@@ -193,34 +197,64 @@ This continues indefinitely - it assumes we will eventually find a clear route f
 
 Once waypoint 2 has been plotted, we check our route to it from the active vessel to see if it is obstructed. If it is obstructed, we will need a third waypoint.
 
-#### Waypoint 3
+##### Waypoint 3
 
-If required, we initially place this waypoint in the opposite direction to waypoint 1, those ensuring it will be at `90` degrees to the second waypoint.
+If required, we initially place this waypoint in the opposite direction to waypoint 1, those ensuring it will be at `90` degrees to the second waypoint. It is deliberately quite short, `4`m, but this will be extended if necessary.
 
 This waypoint will be the last one added. As such, each possibility must be checked for obstructions twice - once between the active vessel and waypoint 3, once between waypoint 3 and waypoint 2. Both legs must be clear for the third waypoint to be valid.
 
 If either route is obstructed, rotate the waypoint around (using the second waypoint as the axis) until clear or we have gone round full circle. If we go full circle, double the length of this waypoint and repeat the rotation.
 
-This should eventually result in a clear route, but it may not. We'll give up once the length of the third waypoint goes over `500`m.
+This should eventually result in a clear route, but to prevent an infinite loop we'll give up once the length of this third waypoint goes over `500`m.
 
-#### Return
+##### Return
 
 If a set of waypoints has been plotted and the route from the active vessel to the `target_port` is clear, the function will return `TRUE`. Otherwise it will return `FALSE`.
 
 #### `dockingVelForDist(distance)`
 
-Text
+This function returns the desired relative velocity between the active vessel and the docking target, based on the `distance` between the active vessel's docking port and the target waypoint/port.
+
+This steps down the velocity as the vessel gets close to its destination. Otherwise, the desired velocity is `DOCK_VEL`.
+
+For craft with under/over-powered RCS systems, these velocities may need changing, but I have tried to err on the careful side.
 
 #### `checkDockingOkay(target_craft, do_draw, velocity_difference, is_start)`
 
-Text
+This function performs a set of checks to see if it is okay to start/continue docking. The docking route is checked for obstructions and the level of monopropellant remaining compared to various thresholds. As part of this check, activeDockingPoint is called which set/updates `DOCK_ACTIVE_WP` to point at the currently active docking waypoint.
+
+There is also an abort check that activates if RCS is turned off. If the relative velocity is significant, RCS gets re-enabled so that the active vessel can match velocity with the target.
 
 #### `followDockingRoute(ship_port, target_port, do_draw)`
 
-Text
+This function is in control of the translation of the active vessel. It 'flies' the craft from waypoint to waypoint using the `doTranslation()` function from `lib_rcs.ks`.
+
+At its core, the function has a loop whereby we:
+* Check the docking route so that the current active waypoint is updated. This is normalised and multiplied by the appropriate docking velocity returned by `dockingVelForDist()`. This gives us the direction we want to be going in.
+* Calculate the current difference in velocities between the vessel and target. This is where we are actually going.
+* Push the difference between the two velocities into `doTranslation()`.
+* Once close to a waypoint (defined as being within `0.1`m with relative velocity below `0.1`m/s), the waypoint is removed from the list so the craft can move onto the next one.
+
+Endpoints:
+* The `STATE` of the craft's docking port is monitored. If it changes from `Ready`, it is assumed to be because it has got close enough to the target docking port and the magnets have activated. This is the only successful endpoint.
+* If the docking route becomes obscured, docking is aborted.
+* If the craft runs low on monopropellent, docking is aborted.
+* If the RCS is turned off, docking is aborted.
+
+If docking is aborted, `doTranslation()` is called again to reduce the relative velocity to zero, or until the craft runs very, very low on monopropellent. This is intended to leave the craft in a safe mode.
+
+The function will return `FALSE` if docking was aborted, `TRUE` if it was successful.
+
+If not specified, the default value for `do_draw` is `TRUE`.
 
 #### `doDocking(target_craft, do_draw)`
 
-Text
+This is the main function. It calls the other functions in sequence to perform a docking.
+
+It selects a suitable, available docking port on both the active vessel and the `target_craft`. It sets the ship control from the selected docking port then steers to point in the opposite direction to the facing of the target docking port. It then plots a route between the two ports; if successful it turns on the RCS and follows this route.
+
+Once the docking has finished, either because it has been aborted or because the docking ports' magnets have activated, the function disengages the steering and turns off RCS.
+
+The function will then return `TRUE` or `FALSE` to indicate success or failure. It is expected that the script that called this function will handle those two states appropriately.
 
 Geoff Banks / ElWanderer
