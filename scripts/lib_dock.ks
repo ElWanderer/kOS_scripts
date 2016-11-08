@@ -285,15 +285,15 @@ FUNCTION doDocking
   IF NOT hasReadyPort(SHIP) OR NOT hasReadyPort(t) { RETURN FALSE. }
 
   LOCAL s_port IS selectOurPort(t).
-  s_port:CONTROLFROM.
   LOCAL t_port IS selectTargetPort(t).
   setupPorts(s_port,t_port).
+  s_port:CONTROLFROM. WAIT 0.
 
-  IF ok { SET ok TO plotDockingRoute(s_port,t_port,do_draw). }
+  steerTo({ RETURN -T_FACE. }).
+  WAIT UNTIL steerOk().
+  SET ok TO plotDockingRoute(s_port,t_port,do_draw).
 
   IF ok {
-    steerTo({ RETURN -T_FACE. }).
-    WAIT UNTIL steerOk().
     toggleRCS(TRUE).
     SET ok TO followDockingRoute(s_port,t_port,do_draw).
   }
