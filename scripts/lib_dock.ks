@@ -106,7 +106,8 @@ FUNCTION activeDockingPoint
   LOCAL pos IS T_NODE.
   LOCAL count IS 1.
   LOCAL vec_colour IS RGB(1,1,1).
-  FOR p IN DOCK_POINTS {
+  FOR pf IN DOCK_POINTS {
+    LOCAL p IS pf().
     IF count = 1 OR checkRouteStep(t,pos+p,pos) { SET vec_colour TO RGB(0,0,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
     IF do_draw { VECDRAW(pos + p,-p,vec_colour,"Waypoint " +  count,1,TRUE). }
@@ -147,46 +148,46 @@ FUNCTION plotDockingRoute
       }
       SET p1_dist TO temp_dist.
     }
-    LOCK POINT1 TO p1_dist * T_FACE.
+    LOCAL POINT1 IS { RETURN p1_dist * T_FACE. }.
     pOut("Adding first docking waypoint.").
     DOCK_POINTS:ADD(POINT1).
     activeDockingPoint(t,do_draw,1).
 
-    IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1) {
+    IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1()) {
       pOut("Route to first docking waypoint obstructed.").
       LOCAL rot_ang IS 0.
-      LOCK POINT2 TO DOCK_DIST * (ANGLEAXIS(rot_ang,POINT1) * VXCL(POINT1,T_NODE - S_NODE):NORMALIZED).
+      LOCAL POINT2 IS { RETURN DOCK_DIST * (ANGLEAXIS(rot_ang,POINT1()) * VXCL(POINT1(),T_NODE - S_NODE):NORMALIZED). }.
 
-      UNTIL checkRouteStep(t,T_NODE+POINT1,T_NODE+POINT1+POINT2) {
+      UNTIL checkRouteStep(t,T_NODE+POINT1(),T_NODE+POINT1()+POINT2()) {
         SET rot_ang TO rot_ang + 15.
         IF rot_ang >= 360 {
           SET rot_ang TO 0.
           SET p1_dist TO p1_dist * 2.
           DOCK_POINTS:CLEAR.
-          LOCK POINT1 TO p1_dist * T_FACE.
+          SET POINT1 TO { RETURN p1_dist * T_FACE. }.
           pOut("Doubling length of first docking waypoint.").
           DOCK_POINTS:ADD(POINT1).
           activeDockingPoint(t,do_draw,1).
         }
-        LOCK POINT2 TO DOCK_DIST * (ANGLEAXIS(rot_ang,POINT1) * VXCL(POINT1,T_NODE - S_NODE):NORMALIZED).
+        SET POINT2 TO { RETURN DOCK_DIST * (ANGLEAXIS(rot_ang,POINT1()) * VXCL(POINT1(),T_NODE - S_NODE):NORMALIZED). }.
       }
       pOut("Adding second docking waypoint.").
       DOCK_POINTS:ADD(POINT2).
       activeDockingPoint(t,do_draw,1).
 
-      IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1+POINT2) {
+      IF NOT checkRouteStep(t,S_NODE,T_NODE+POINT1()+POINT2()) {
         pOut("Route to second docking waypoint obstructed.").
         LOCAL p3_dist IS -4.
         LOCAL rot_ang IS 0.
-        LOCK POINT3 TO p3_dist * (ANGLEAXIS(rot_ang,POINT2) * T_FACE):NORMALIZED.
-        UNTIL (checkRouteStep(t,T_NODE+POINT1+POINT2,T_NODE+POINT1+POINT2+POINT3) AND
-               checkRouteStep(t,S_NODE,T_NODE+POINT1+POINT2+POINT3)) OR NOT ok {
+        LOCAL POINT3 IS { RETURN p3_dist * (ANGLEAXIS(rot_ang,POINT2()) * T_FACE):NORMALIZED. }.
+        UNTIL (checkRouteStep(t,T_NODE+POINT1()+POINT2(),T_NODE+POINT1()+POINT2()+POINT3()) AND
+               checkRouteStep(t,S_NODE,T_NODE+POINT1()+POINT2()+POINT3())) OR NOT ok {
           SET rot_ang TO rot_ang + 45.
           IF rot_ang >= 360 {
             SET rot_ang TO 0.
             SET p3_dist TO p3_dist * 2.
           }
-          LOCK POINT3 TO p3_dist * (ANGLEAXIS(rot_ang,POINT2) * T_FACE):NORMALIZED.
+          SET POINT3 TO { RETURN p3_dist * (ANGLEAXIS(rot_ang,POINT2()) * T_FACE):NORMALIZED. }.
           IF ABS(p3_dist) > 500 {
             pOut("ERROR: third docking waypoint obstructed.").
             SET ok TO FALSE.
