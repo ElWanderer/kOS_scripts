@@ -163,7 +163,49 @@ If not specified, the default value for `do_draw` is `TRUE`. If not specified, t
 
 #### `plotDockingRoute(ship_port, target_port, do_draw)`
 
-Text
+This function has the difficult job of plotting a set of waypoints leading from `ship_port` to `target_port`. The resulting waypoints end up in `DOCK_POINTS`.
+
+The function starts at the `target_port` and plots up to three waypoints, so that the docking route has up to four legs/steps. Three waypoints was felt to be enough as it allows the docking route to form a square/rectangle and thereby get from one side of the target vessel to the other.
+
+Note - each waypoint is defined by a position vector from the previous waypoint (starting with `target_port`). As such, my explanation often talks about how long they are.
+
+Comment - each waypoint is defined by a LOCK statement in the hope that they would update if/when the target moves. Unfortunately testing with a small probe that rotated all too easily showed that this does not seem to happen. Instead, it should be possible to define each waypoint as a function and store a list of delegates.
+
+The waypoint placement logic is as follows:
+
+If the active vessel is within `DOCK_DIST` of port and the angle between the position vector from `target_port` to `ship_port` and the `target_port`'s facing vector (`T_FACE`) is less than `1` degree, no waypoints are added. The active vessel can proceed directly to the `target_port`. Otherwise, at least one waypoint is required.
+
+#### Waypoint 1
+
+If the active vessel is within `DOCK_DIST` of `target_port`, plot a single waypoint facing directly outwards from the `target_port`, with a length that matches our separation distance. If the route from `ship_port` to this waypoint is obstructed, extend the length of the waypoint until either the route to it is clear, or the length reaches `DOCK_DIST`
+
+Otherwise, plot a single waypoint facing directly outwards from the `target_port`, with a length of `DOCK_DIST`.
+
+If we have plotted a waypoint, and our route to it is unobstructed, the active vessel can proceed to waypoint 1 then the `target_port`. If the route is obstructed, at least one more waypoint is required.
+
+#### Waypoint 2
+
+If required, plot a second waypoint of length `DOCK_DIST` at `90` degrees to the first waypoint. If the route to this new waypoint from the first waypoint is obstructed, rotate it around (using the first waypoint as the axis of rotation) until clear or we have gone round full circle.
+
+If we went full circle, we go back and double the length of the first waypoint, then repeat placement of second waypoint.
+
+This continues indefinitely - it assumes we will eventually find a clear route from waypoint 2 to waypoint 1.
+
+Once waypoint 2 has been plotted, we check our route to it from the active vessel to see if it is obstructed. If it is obstructed, we will need a third waypoint.
+
+#### Waypoint 3
+
+If required, we initially place this waypoint in the opposite direction to waypoint 1, those ensuring it will be at `90` degrees to the second waypoint.
+
+This waypoint will be the last one added. As such, each possibility must be checked for obstructions twice - once between the active vessel and waypoint 3, once between waypoint 3 and waypoint 2. Both legs must be clear for the third waypoint to be valid.
+
+If either route is obstructed, rotate the waypoint around (using the second waypoint as the axis) until clear or we have gone round full circle. If we go full circle, double the length of this waypoint and repeat the rotation.
+
+This should eventually result in a clear route, but it may not. We'll give up once the length of the third waypoint goes over `500`m.
+
+#### Return
+
+If a set of waypoints has been plotted and the route from the active vessel to the `target_port` is clear, the function will return `TRUE`. Otherwise it will return `FALSE`.
 
 #### `dockingVelForDist(distance)`
 
