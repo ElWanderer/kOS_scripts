@@ -1,16 +1,16 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.2.0 20161107").
+pOut("lib_dock.ks v1.2.0 20161108").
 
 FOR f IN LIST(
   "lib_rcs.ks",
   "lib_steer.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL DOCK_VEL IS 1.       // max translation velocity (m/s)
-GLOBAL DOCK_DIST IS 50.     // distance (m) between docking waypoints
-GLOBAL DOCK_AVOID IS 10.    // minimum close approach distance (m) between docking route and ship parts
-GLOBAL DOCK_START_MONO IS 5.// minimum units of monoprop for us to start docking
-GLOBAL DOCK_LOW_MONO IS 2.  // minimum units of monoprop - drop below this and we cancel docking
+GLOBAL DOCK_VEL IS 1.
+GLOBAL DOCK_DIST IS 50.
+GLOBAL DOCK_AVOID IS 10.
+GLOBAL DOCK_START_MONO IS 5.
+GLOBAL DOCK_LOW_MONO IS 2.
 
 GLOBAL DOCK_POINTS IS LIST().
 GLOBAL DOCK_ACTIVE_WP IS V(0,0,0).
@@ -59,12 +59,9 @@ FUNCTION bestPort
   LOCAL best_port IS ports[0].
   LOCAL best_score IS 0.
   FOR p IN ports {
-    LOCAL face_score IS VDOT(p:PORTFACING:VECTOR,face_vec).
-    // a port facing backwards is prefered to one pointing sideways
-    IF face_score < 0 { SET face_score TO -face_score * 0.8. }
-    // distance score is small - used mainly as a tie-breaker where ports are facing the same way
-    LOCAL pos_score IS -(p:NODEPOSITION-pos_vec):MAG / 10000.
-    LOCAL score IS face_score + pos_score.
+    LOCAL score IS VDOT(p:PORTFACING:VECTOR,face_vec).
+    IF score < 0 { SET score TO -score * 0.8. }
+    SET score TO score - ((p:NODEPOSITION-pos_vec):MAG / 10000).
     IF score > best_score {
       SET best_port TO p.
       SET best_score TO score.
@@ -76,7 +73,6 @@ FUNCTION bestPort
 FUNCTION selectOurPort
 {
   PARAMETER t.
-  // prioritise pointing fowards
   LOCAL fwd IS FACING:FOREVECTOR.
   RETURN bestPort(readyPorts(SHIP),fwd,100 * fwd).
 }
@@ -84,13 +80,9 @@ FUNCTION selectOurPort
 FUNCTION selectTargetPort
 {
   PARAMETER t.
-  IF t:POSITION:MAG < DOCK_DIST {
-    // prioritise pointing towards our ship
-    RETURN bestPort(readyPorts(t),-t:POSITION,-t:POSITION).
-  } ELSE {
-    // prioritise pointing towards the target's normal vector
-    RETURN bestPort(readyPorts(t),VCRS(t:VELOCITY:ORBIT,t:POSITION-BODY:POSITION),-t:POSITION).
-  }
+  LOCAL tp IS t:POSITION.
+  IF tp:MAG < DOCK_DIST { RETURN bestPort(readyPorts(t),-tp,-tp). }
+  ELSE { RETURN bestPort(readyPorts(t),VCRS(t:VELOCITY:ORBIT,tp-BODY:POSITION),-tp). }
 }
 
 FUNCTION checkRouteStep
