@@ -1,10 +1,9 @@
 @LAZYGLOBAL OFF.
+pOut("lib_rcs.ks v1.1.0 20161108").
 
-pOut("lib_rcs.ks v1.1.0 20161102").
-
-GLOBAL RCS_MAX_THROT IS 1. // max and minimum RCS throttles
-GLOBAL RCS_MIN_THROT IS 0. //  - reduce these if RCS thrusters tend to rotate ship too much?
-GLOBAL RCS_DEADBAND IS 0.  // don't fire RCS thrusters unless RCS vector magnitude is greater than this
+GLOBAL RCS_MAX_THROT IS 1.
+GLOBAL RCS_MIN_THROT IS 0.
+GLOBAL RCS_DEADBAND IS 0.
 
 FUNCTION changeRCSParams
 {
@@ -12,6 +11,13 @@ FUNCTION changeRCSParams
   SET RCS_MAX_THROT TO mxr.
   SET RCS_MIN_THROT TO mnr.
   SET RCS_DEADBAND TO dead.
+}
+
+FUNCTION stopTranslation
+{
+  SET SHIP:CONTROL:FORE TO 0.
+  SET SHIP:CONTROL:STARBOARD TO 0.
+  SET SHIP:CONTROL:TOP TO 0.
 }
 
 FUNCTION toggleRCS
@@ -35,11 +41,4 @@ FUNCTION doTranslation
   } ELSE {
     stopTranslation().
   }
-}
-
-FUNCTION stopTranslation
-{
-  SET SHIP:CONTROL:FORE TO 0.
-  SET SHIP:CONTROL:STARBOARD TO 0.
-  SET SHIP:CONTROL:TOP TO 0.
 }
