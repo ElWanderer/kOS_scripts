@@ -31,7 +31,7 @@ The initial value is `50`m.
 
 #### `DOCK_AVOID`
 
-The minimum distance that the plotted docking route must maintain from all parts on the target craft. This may need to be increased for docking together larger vessels.
+The minimum distance that the plotted docking route must maintain from all parts on the target craft. This may need to be increased for docking together larger vessels. It may also need to be increased if parts are particularly large, as we can only calculate the distance to the part's centre.
 
 The initial value is `10`m.
 
@@ -105,23 +105,61 @@ This function calls `readyPorts(craft)` and counts the number of ports in the re
 
 #### `bestPort(port_list, facing_vector, position_vector)`
 
-Text
+This function takes a list of ports and returns the 'best' one to use for docking, based on the input `facing_vector` and `position_vector`.
 
-#### `selectOurPort(taret_craft)`
+The function loops through each port in the list, assigning a score. The port with the highest score is returned.
 
-Text
+The scoring system primarily goes by facing:
+
+    // p is the docking port
+    LOCAL score IS VDOT(p:PORTFACING:VECTOR,facing_vector).
+    IF score < 0 { SET score TO -score * 0.8. }
+
+A port that is facing in the same way as the input `facing_vector` will score very highly. A port that is facing directly away will also score fairly highly. This is deliberately done to prioritise them over side-facing ports. Side-facing ports are more likely to be awkward to use as the main port on the active vessel. Forward and backward-facing ports on the target are easier to dock with if we have set the `facing_vector` towards the the orbit normal vector. That's because the normal direction won't change during the craft's orbit, whereas a port facing prograde would slowly be rotated around the vessel during the orbit.
+
+The score is penalised slightly, based on the distance between the docking port and the input `position_vector`. Nearer ports have a smaller penalty. This is mainly used as a tie-breaker where multiple ports are facing the same way:
+
+    SET score TO score - ((p:NODEPOSITION-position_vector):MAG / 10000).
+
+#### `selectOurPort(target_craft)`
+
+This function chooses which docking port on the active vessel to use for docking. This is done by passing the list of available ports (returned by `readyPorts(SHIP)`) into `bestPort()`. The vessel's current facing vector is passed in, along with a position vector `100`m in front of the vessel's centre of mass. Together should prioritise docking ports that are pointing forwards and that are at the front of the active vessel.
 
 #### `selectTargetPort(target_craft)`
 
-Text
+This function chooses which docking port on the target vessel to use for docking with. This is done by passing the list of available ports (returned by `readyPorts(target_craft)`) into `bestPort()`. 
+
+There are two different set of scoring criteria used:
+* if the `target_craft` is within `DOCK_DIST` of the vessel, we prioritise docking ports pointing towards the active vessel.
+* otherwise we prioritise docking ports that are aligned towards the target_craft's orbit normal vector
+In both cases, for ports facing in the same direction, the port closest to the active vessel will be selected.
 
 #### `checkRouteStep(target_craft, start_position_vector, end_position_vector)`
 
-Text
+This function checks that a given step on the docking route will not come too close to the `target_craft`. It is called both when trying to plot a docking route and when trying to navigate a route that has been set-up. 
+
+It loops through all parts on the `target_craft`, comparing two vectors:
+* the vector from the `start_position_vector` to the position of the part,
+* the vector from the `start_position_vector` to the `end_position_vector`.
+If the angle between these two vectors is less than `90` degrees, then the 'closest approach' is calculated. If this is below `DOCK_AVOID`, the function will immediately return `FALSE`.
+
+If no obstructions are found, the function will return `TRUE`.
+
+Note - the 'closest approach' is based on the position of each part, which defines the centre rather than the extremities. Where parts are very large, this function may not spot that a route is obstructed. In such cases, the size of `DOCK_AVOID` should be increased.
+
+Note 2 - the input vector parameters are both expected to be position vectors from the centre of the active vessel. This is different to the inputs expected by `VECDRAW()`, and also to the way in which the waypoints are stored in `DOCK_POINTS`.
 
 #### `activeDockingPoint(target_craft, do_draw, wait_then_blank_secs)`
 
-Text
+The primary purpose of this function is to set/update `DOCK_ACTIVE_WP` to be a position vector that the active vessel should follow to reach the next ('active') docking waypoint.
+
+Each step in the route is plotted and checked for obstructions by calling checkRouteStep(), working backwards from the target docking port to the active vessel's docking port. As part of this, it will draw the route using `VECDRAW()`s if `do_draw` is `TRUE`. The usual colour scheme is blue, but steps will turn red if an obstruction is detected. If `wait_then_blank_secs` is not negative, the function will wait that long then clear the drawn vectors from the screen.
+
+Note - the route to the final waypoint (to the docking port of the `target_craft`) is not checked for obstructions, as by definition it will get very close to the `target_craft`.
+
+The function will return `TRUE` if the docking route is ok, `FALSE` if an obstruction was found.
+
+If not specified, the default value for `do_draw` is `TRUE`. If not specified, the default value for `wait_then_blank_secs` is `-1`.
 
 #### `plotDockingRoute(ship_port, target_port, do_draw)`
 
