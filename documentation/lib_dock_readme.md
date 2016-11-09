@@ -173,7 +173,7 @@ The function starts at the `target_port` and plots up to three waypoints, so tha
 
 Note - each waypoint is defined by a position vector from the previous waypoint (starting with `target_port`). As such, my explanation often talks about how long they are.
 
-Comment - each waypoint is defined by a LOCK statement in the hope that they would update if/when the target moves. Unfortunately testing with a small probe that rotated all too easily showed that this does not seem to happen. Instead, it should be possible to define each waypoint as a function and store a list of delegates.
+Note 2 - each waypoint is defined by a LOCK statement as the idea was that they would update if/when the target moves. Unfortunately, testing showed that this does not happen and that the waypoints are fixed once the route has been finalised. It should be possible to define each waypoint as a function and store a list of delegates so that they do update, but testing showed that this requires further changes to prevent it from breaking down completely due to the route flip-flopping between two opposite directions.
 
 The waypoint placement logic is as follows:
 
