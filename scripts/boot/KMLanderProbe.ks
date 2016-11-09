@@ -3,13 +3,13 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderProbe.ks v1.2.1 20160903").
+pOut("KMLanderProbe.ks v1.2.2 20161109").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Lander Test 44".
-GLOBAL CORE_HEIGHT IS 3.25.
+GLOBAL SAT_NAME IS "Lander Test 1".
+GLOBAL CORE_HEIGHT IS 3.25. // metres
 
 GLOBAL LAND_BODY IS MUN.
 GLOBAL LAND_LAT IS 25.
@@ -139,20 +139,15 @@ IF rm < 0 {
 } ELSE IF rm = 842 {
   RUNONCEPATH(loadScript("lib_science.ks")).
   transmitScience(FALSE,TRUE).
-  pOut("Waiting five minutes").
-  WAIT 300.
-  pOut("Wait over").
   resetScience().
   doScience(TRUE,TRUE).
   runMode(843).
 } ELSE IF rm = 843 {
-  RUNONCEPATH(loadScript("lib_science.ks")).
-  IF powerOkay() {
+  IF SHIP:ELECTRICCHARGE > 50 {
+    killWarp().
     pOut("Preparing for lift-off.").
-    SET WARP TO 0.
-    WAIT 5.
     runMode(844).
-  }
+  } ELSE { doWarp(TIME:SECONDS + 3600, { RETURN SHIP:ELECTRICCHARGE > 50. }). }
 } ELSE IF rm = 844 {
   RUNONCEPATH(loadScript("lib_lander_ascent.ks")).
   store("doLanderAscent("+RETURN_ORBIT+",90,1,851).").
