@@ -7,7 +7,6 @@ GLOBAL SCI_MIT_RATE IS 3.
 GLOBAL SCI_EC_PER_MIT IS 6.
 
 listScienceModules().
-setTime("SCI_NEXT_TX").
 
 FUNCTION listScienceModules
 {
@@ -38,10 +37,10 @@ FUNCTION powerOkay
 {
   PARAMETER m.
   LOCAL LOCK ec TO SHIP:ELECTRICCHARGE.
-  setTime("EC").
+  setTime("SCI_EC").
   LOCAL ec0 IS ec.
   WAIT 0.2.
-  LOCAL p_rate IS (ec - ec0) / diffTime("EC").
+  LOCAL p_rate IS (ec - ec0) / diffTime("SCI_EC").
   LOCAL p_req IS powerReq(m).
   LOCAL p_avail IS ec + (p_rate * timeReq(m)).
   pOut("Power required: " + ROUND(p_req,2) + " / Power available: " + ROUND(p_avail,2)).
@@ -68,7 +67,6 @@ FUNCTION txMod
 {
   PARAMETER m.
   pOut("Transmitting data from " + m:PART:TITLE).
-  setTime("SCI_NEXT_TX", TIME:SECONDS + timeReq(m)).
   m:TRANSMIT().
 }
 
@@ -88,7 +86,6 @@ FUNCTION transmitScience
   setTime("SCI_START_TX").
 
   FOR m IN SCI_LIST { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
-    WAIT UNTIL diffTime("SCI_NEXT_TX") > 0.
     UNTIL powerOkay(m) {
       IF NOT wait_for_power {
         pOut("ERROR: Power too low to transmit science.").
@@ -99,7 +96,9 @@ FUNCTION transmitScience
         RETURN FALSE.
       }
     }
+    setTime("SCI_TX", TIME:SECONDS + timeReq(m)).
     txMod(m).
+    WAIT UNTIL diffTime("SCI_TX") > 0.
   }}
 
   RETURN TRUE.
