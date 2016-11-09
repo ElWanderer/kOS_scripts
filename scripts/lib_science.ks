@@ -1,58 +1,82 @@
 @LAZYGLOBAL OFF.
+pOut("lib_science.ks v1.1.0 20161109").
 
-pOut("lib_science.ks v1.0 20160714").
+GLOBAL SCI_LIST IS LIST().
+GLOBAL SCI_MIN_POW IS 10.
+GLOBAL SCI_MIT_RATE IS 3.
+GLOBAL SCI_EC_PER_MIT IS 6.
 
-GLOBAL scienceList IS LIST().
-GLOBAL POWER_REQ IS 250.
-
-FUNCTION changePOWER_REQ
-{
-  PARAMETER p.
-  SET POWER_REQ TO p.
-}
+listScienceModules().
+setTime("SCI_NEXT_TX").
 
 FUNCTION listScienceModules
-
 {
-  SET scienceList TO SHIP:MODULESNAMED("ModuleScienceExperiment").
+  SET SCI_LIST TO SHIP:MODULESNAMED("ModuleScienceExperiment").
+}
+
+FUNCTION scienceData
+{
+  PARAMETER m.
+  LOCAL td IS 0.
+  FOR d IN m:DATA { SET td TO td + d:DATAAMOUNT. }
+  RETURN td.
+}
+
+FUNCTION powerReq
+{
+  PARAMETER m.
+  RETURN SCI_MIN_POW + (scienceData(m) * SCI_EC_PER_MIT).
+}
+
+FUNCTION timeReq
+{
+  PARAMETER m.
+  RETURN scienceData(m) / SCI_MIT_RATE.
 }
 
 FUNCTION powerOkay
 {
-  LOCAL ec0 IS SHIP:ELECTRICCHARGE.
-  WAIT 1.
-  LOCAL ec1 IS SHIP:ELECTRICCHARGE.
-  LOCAL pa IS ec1 + ((ec1-ec0) * 10).
-  RETURN pa >= POWER_REQ.
+  PARAMETER m.
+  LOCAL LOCK ec TO SHIP:ELECTRICCHARGE.
+  setTime("EC").
+  LOCAL ec0 IS ec.
+  WAIT 0.2.
+  LOCAL p_rate IS (ec - ec0) / diffTime("EC").
+  LOCAL p_req IS powerReq(m).
+  LOCAL p_avail IS ec + (p_rate * timeReq(m)).
+  pOut("Power required: " + ROUND(p_req,2) + " / Power available: " + ROUND(p_avail,2)).
+  RETURN p_avail >= p_req.
 }
 
 FUNCTION resetMod
 {
   PARAMETER m.
-  m:RESET.
-  WAIT UNTIL NOT m:DEPLOYED.
+  pOut("Reseting science in " + m:PART:TITLE).
+  m:RESET().
+  WAIT UNTIL NOT (m:DEPLOYED OR m:HASDATA).
 }
 
 FUNCTION doMod
 {
   PARAMETER m.
-  m:DEPLOY.
+  pOut("Collecting science from " + m:PART:TITLE).
+  m:DEPLOY().
   WAIT UNTIL m:HASDATA.
 }
 
 FUNCTION txMod
 {
   PARAMETER m.
-  WAIT UNTIL powerOkay().
-  m:TRANSMIT.
-  WAIT 10.
+  pOut("Transmitting data from " + m:PART:TITLE).
+  setTime("SCI_NEXT_TX", TIME:SECONDS + timeReq(m)).
+  m:TRANSMIT().
 }
 
 FUNCTION doScience
 {
-  PARAMETER one_use, overwrite.
+  PARAMETER one_use IS TRUE, overwrite IS FALSE.
 
-  FOR m IN scienceList { IF NOT m:INOPERABLE AND (m:RERUNNABLE OR one_use) {
+  FOR m IN SCI_LIST { IF NOT m:INOPERABLE AND (m:RERUNNABLE OR one_use) {
     IF m:DEPLOYED AND overwrite { resetMod(m). }
     IF NOT m:DEPLOYED { doMod(m). }
   }}
@@ -60,16 +84,28 @@ FUNCTION doScience
 
 FUNCTION transmitScience
 {
-  PARAMETER one_use, wait_for_power.
+  PARAMETER one_use IS TRUE, wait_for_power IS TRUE, max_wait IS -1.
+  setTime("SCI_START_TX").
 
-  FOR m IN scienceList { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
-    IF wait_for_power OR powerOkay() { txMod(m). }
+  FOR m IN SCI_LIST { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
+    WAIT UNTIL diffTime("SCI_NEXT_TX") > 0.
+    UNTIL powerOkay(m) {
+      IF NOT wait_for_power {
+        pOut("ERROR: Power too low to transmit science.").
+        RETURN FALSE.
+      }
+      IF max_wait > 0 AND diffTime("SCI_START_TX") > max_wait {
+        pOut("ERROR: Science transmission timed out.").
+        RETURN FALSE.
+      }
+    }
+    txMod(m).
   }}
+
+  RETURN TRUE.
 }
 
 FUNCTION resetScience
 {
-  FOR m IN scienceList { IF m:DEPLOYED AND NOT m:INOPERABLE { resetMod(m). } }
+  FOR m IN SCI_LIST { IF m:DEPLOYED AND NOT m:INOPERABLE { resetMod(m). } }
 }
-
-listScienceModules().
