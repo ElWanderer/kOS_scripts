@@ -24,7 +24,7 @@ There is a potential problem with this calculation. `ARCCOS()` will throw an err
 
 #### `velAt(craft, universal_timestamp)`
 
-A wrapper around the kOS `VELOCITYAT` prediction function that returns the orbital velocity.
+A wrapper around the kOS `VELOCITYAT` prediction function that returns the orbital velocity vector for the input `craft` at the input `universal_timestamp`.
 
 #### `posAt(craft, universal_timestamp)`
 
