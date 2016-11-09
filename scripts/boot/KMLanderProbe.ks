@@ -138,17 +138,20 @@ IF rm < 0 {
   runMode(842).
 } ELSE IF rm = 842 {
   RUNONCEPATH(loadScript("lib_science.ks")).
-  transmitScience(FALSE,TRUE).
-  resetScience().
-  doScience(TRUE,TRUE).
+  UNTIL transmitScience(FALSE,TRUE,300) { doWarp(TIME:SECONDS + 600). }
   runMode(843).
 } ELSE IF rm = 843 {
+  RUNONCEPATH(loadScript("lib_science.ks")).
+  resetScience().
+  doScience(TRUE,TRUE).
+  runMode(844).
+} ELSE IF rm = 844 {
   IF SHIP:ELECTRICCHARGE > 50 {
     killWarp().
     pOut("Preparing for lift-off.").
-    runMode(844).
+    runMode(845).
   } ELSE { doWarp(TIME:SECONDS + 3600, { RETURN SHIP:ELECTRICCHARGE > 50. }). }
-} ELSE IF rm = 844 {
+} ELSE IF rm = 845 {
   RUNONCEPATH(loadScript("lib_lander_ascent.ks")).
   store("doLanderAscent("+RETURN_ORBIT+",90,1,851).").
   doLanderAscent(RETURN_ORBIT,90,1,851).
