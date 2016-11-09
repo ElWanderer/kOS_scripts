@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderCrew.ks v1.1.1 20161107").
+pOut("KMLanderCrew.ks v1.1.1 20161109").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -90,10 +90,10 @@ IF rm < 0 {
 
   RUNONCEPATH(loadScript("lib_launch_geo.ks")).
 
-  LOCAL b_I IS TARGET:OBT:BODY:OBT:INCLINATION.
-  LOCAL b_LAN IS TARGET:OBT:BODY:OBT:LAN.
+  LOCAL t_I IS TARGET:OBT:INCLINATION.
+  LOCAL t_LAN IS TARGET:OBT:LAN.
 
-  LOCAL launch_details IS calcLaunchDetails(RETURN_ORBIT,b_I,b_LAN).
+  LOCAL launch_details IS calcLaunchDetails(RETURN_ORBIT,t_I,t_LAN).
   LOCAL az IS launch_details[0].
   LOCAL launch_time IS launch_details[1].
   warpToLaunch(launch_time).
