@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_probe.ks v1.1.1 20161104").
+pOut("lib_probe.ks v1.1.1 20161109").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -45,7 +45,7 @@ FUNCTION visitContractWaypoints
       LOCAL wp_dist IS greatCircleDistance(BODY,SHIP:GEOPOSITION,wp_spot).
       IF NOT done AND wp_dist > prev_dist {
         pOut("Closest approach. Triggering science.").
-        doScience(TRUE,FALSE).
+        doScience().
         resetScience().
         SET done TO TRUE.
       } ELSE { SET prev_dist TO wp_dist. }
