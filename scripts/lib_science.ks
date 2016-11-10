@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
-pOut("lib_science.ks v1.1.0 20161109").
+pOut("lib_science.ks v1.1.0 20161110").
+
+RUNONCEPATH(loadScript("lib_ant.ks")).
 
 GLOBAL SCI_LIST IS LIST().
 GLOBAL SCI_MIN_POW IS 10.
@@ -83,6 +85,7 @@ FUNCTION doScience
 FUNCTION transmitScience
 {
   PARAMETER one_use IS TRUE, wait_for_power IS TRUE, max_wait IS -1.
+  extendAllAntennae().
   setTime("SCI_START_TX").
 
   FOR m IN SCI_LIST { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
