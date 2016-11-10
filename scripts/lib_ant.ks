@@ -21,15 +21,11 @@ FUNCTION antToggle {
   RETURN antExtend(p) OR antRetract(p).
 }
 
-FUNCTION allAntennae {
-  PARAMETER f, w IS TRUE.
-  FOR m IN SHIP:MODULESNAMED(ANT_TX_MOD) {
-    IF w { waitUntilIdle(m:PART). }
-    f(m:PART).
-    IF w { waitUntilIdle(m:PART). }
-  }
+FUNCTION doAllAnt {
+  PARAMETER fl.
+  FOR m IN SHIP:MODULESNAMED(ANT_TX_MOD) { FOR f IN fl { f(m:PART). } }
 }
 
 FUNCTION extendAllAntennae {
-  allAntennae(antExtend).
+  doAllAnt(LIST(waitUntilIdle@,antExtend,waitUntilIdle@)).
 }
