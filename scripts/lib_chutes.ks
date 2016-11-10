@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_chutes.ks v1.2.5 20161101").
+pOut("lib_chutes.ks v1.3.0 20161110").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -13,7 +13,7 @@ GLOBAL doDisarm IS modEvent@:BIND("Disarm").
 FUNCTION safeToDeploy
 {
   PARAMETER m.
-  RETURN m:GETFIELD("Safe To Deploy?")="Safe".
+  RETURN modField("Safe To Deploy?",m)="Safe".
 }
 
 FUNCTION hasChutes

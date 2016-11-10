@@ -22,6 +22,16 @@ Checks to see if the input `part` has a module named `module_name` and if so whe
 
 If both these conditions are met, the `event` is triggered on the part module and the function returns `TRUE`. Otherwise the function takes no action and returns `FALSE`.
 
+#### `modField(field_name, part_module)`
+
+A wrapper around the kOS `GETFIELD()` part module function. This checks `HASFIELD()` first and will return `-` if the field does not exist.
+
+#### `partModField(field_name, module_name, part)`
+
+Checks to see if the input `part` has a module named `module_name` and if so calls `modField()`.
+
+This function returns the contents of the module field if it exists, otherwise returns `-`.
+
 #### `decouplePart(part)`
 
 This function decouples the input `part`, if necessary by recursing upwards through the part tree until a decoupler (which could be a docking port) is found.

@@ -6,6 +6,10 @@ Functions for dealing with science parts - running science experiments, resettin
 
 There are three functions that are expected to be called from outside scripts: `doScience()`, `transmitScience()` and `resetScience()`.
 
+### Requirements
+
+* `lib_ant.ks`
+
 ### Global variable reference
 
 #### `SCI_LIST`
@@ -94,7 +98,7 @@ If not specified the default value of `overwrite` is `FALSE`.
 
 #### `transmitScience(one_use, wait_for_power, max_wait)`
 
-This function transmits science from the science experiments on the active vessel.
+This function transmits science from the science experiments on the active vessel. It will extend all extendable antennae on the active vessel prior to doing so. Note - it does not currently retract the antennae afterwards.
 
 If `one_use` is set to `FALSE`, only those experiments that can be re-run have their data transmitted i.e. one-shot experiments such as Goo Cannisters and the Science Junior will be left alone. If `one_use` is set to `TRUE`, all experiments containing data will have that data transmitted if possible.
 
