@@ -43,10 +43,7 @@ FUNCTION powerOkay
   LOCAL ec0 IS ec.
   WAIT 0.2.
   LOCAL p_rate IS (ec - ec0) / diffTime("SCI_EC").
-  LOCAL p_req IS powerReq(m).
-  LOCAL p_avail IS ec + (p_rate * timeReq(m)).
-  pOut("Power required: " + ROUND(p_req,2) + " / Power available: " + ROUND(p_avail,2)).
-  RETURN p_avail >= p_req.
+  RETURN (ec + (p_rate * timeReq(m))) >= powerReq(m).
 }
 
 FUNCTION resetMod
