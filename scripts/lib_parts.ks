@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.0.1 20160831").
+pOut("lib_parts.ks v1.1.0 20161110").
 
 FUNCTION canEvent
 {
@@ -22,6 +22,20 @@ FUNCTION partEvent
     IF canEvent(e,m) { modEvent(e,m). RETURN TRUE. }
   }
   RETURN FALSE.
+}
+
+FUNCTION modField
+{
+  PARAMETER fn, m.
+  IF m:HASFIELD(fn) { RETURN m:GETFIELD(fn). }
+  RETURN "-".
+}
+
+FUNCTION partModField
+{
+  PARAMETER fn, mn, p.
+  IF p:MODULES:CONTAINS(mn) { RETURN modField(fn, p:GETMODULE(mn)). }
+  RETURN "-".
 }
 
 FUNCTION decouplePart
