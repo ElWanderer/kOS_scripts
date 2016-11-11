@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_match.ks v1.1.0 20161103").
+pOut("lib_orbit_match.ks v1.1.0 20161111").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -66,7 +66,7 @@ FUNCTION nodeMatchAtNode
   LOCAL dv2 IS ((ANGLEAXIS(ang,s_normal) * s_vel) - s_vel):MAG.
 
 // if this works (law of cosines)
-  LOCAL dv3 IS SQRT(2 * velAt(SHIP,n_time):SQRMAGNITUDE * (1-COS(ang)).
+  LOCAL dv3 IS SQRT(2 * velAt(SHIP,n_time):SQRMAGNITUDE * (1-COS(ang))).
 
 // checking... (all three values should be the same!)
   pOut("dv (old vector way):  " + ROUND(dv,2) + "m/s.").
