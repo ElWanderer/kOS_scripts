@@ -53,11 +53,26 @@ FUNCTION nodeMatchAtNode
   IF NOT ascending { SET n_ta TO mAngle(n_ta + 180). }
 
   LOCAL n_time IS u_time + secondsToTA(SHIP,u_time,n_ta).
-  LOCAL n_r IS radiusAtTA(ORBITAT(SHIP,u_time),n_ta).
   LOCAL s_normal IS craftNormal(SHIP,n_time).
-  LOCAL n_normal IS s_normal:MAG * o_normal:NORMALIZED.
   LOCAL ang IS VANG(s_normal,o_normal).
-  LOCAL dv IS ABS((n_normal - s_normal):MAG / n_r).
+
+// remove this (old vector way)
+  LOCAL n_r IS radiusAtTA(ORBITAT(SHIP,u_time),n_ta).
+  LOCAL n_normal IS s_normal:MAG * o_normal:NORMALIZED.
+  LOCAL dv IS (n_normal - s_normal):MAG / n_r.
+
+// and this (new vector way)
+  LOCAL s_vel IS velAt(SHIP,n_time).
+  LOCAL dv2 IS ((ANGLEAXIS(ang,s_normal) * s_vel) - s_vel):MAG.
+
+// if this works (law of cosines)
+  LOCAL dv3 IS SQRT(2 * velAt(SHIP,n_time):SQRMAGNITUDE * (1-COS(ang)).
+
+// checking... (all three values should be the same!)
+  pOut("dv (old vector way):  " + ROUND(dv,2) + "m/s.").
+  pOut("dv2 (new vector way): " + ROUND(dv2,2) + "m/s.").
+  pOut("dv3 (law of cosines): " + ROUND(dv3,2) + "m/s.").
+
   LOCAL dv_pro IS -1 * ABS(dv * SIN(ang / 2)).
   LOCAL dv_norm IS dv * COS(ang / 2).
   IF ascending { SET dv_norm TO -1 * dv_norm. }
