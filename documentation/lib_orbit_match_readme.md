@@ -62,17 +62,9 @@ The description here could use some of the diagrams I drew in my notebook when I
 
 This function generates a manoeuvre node to match inclination with the orbit plane defined by the input `orbit_normal_vector`, at either the ascending node or descending node depending on the value of `at_ascending`. If burnt, the node will effect a 'simple plane change', that is the magnitude of the orbital velocity after the burn should be (roughly) the same as it was before the burn: the only difference is the direction of that velocity.
 
-There are a couple of tricks to this, one of which I will struggle to explain. This is a rare example of a piece of code doing a calculation that I have copied from elsewhere, without deriving the result myself first.
+There are a couple of tricks to this, one of which I have struggled to understand myself.
 
-Firstly, if you try to change inclination by burning in just the normal direction, you end up increasing the magnitude of your orbital velocity as well as changing the direction in which you are going. For very small angles, this is hard to notice, but it can become very important once the change is more than a few degrees. To effect a simple plane change, the final velocity must be the same velocity as the initial velocity. If we did this in two burns, the second burn would be entirely to retrograde, the slow the velocity back down to the original magnitude... but we can do this in a single, combined burn. So a typical plane change burn consists of a normal component and a retrograde component. They differ in magnitude depending on the angle of the plane change: at one extreme, a complete `180` degree change in velocity requires a wholly retrograde burn.
-
-Having established the delta-v required and the angle of the plane change, these are split into normal and retrograde components as follows (note that if we are at the ascending node, we have to burn anti-normal instead of normal):
-
-    LOCAL delta-v_prograde IS -1 * ABS(delta-v * SIN(angle / 2)).
-    LOCAL delta-v_normal   IS delta-v * COS(angle / 2).
-    IF at_ascending { SET delta-v_normal TO -1 * delta-v_normal. }
-
-Secondly (this is a funny order to treat these points, I admit), it is the calculation of the delta-v required to change inclination that I struggled with most of all. According to trigonometry, the delta-v *should* be given by applying the law of cosines:
+Firstly, it is the calculation of the delta-v required to change inclination that I struggled with most of all. According to trigonometry (picture a triangle where two of the sides are the initial velocity vector and the final velocity vector, with an angle between them that matches the inclination change, then the third side is the delta-v vector required to change from one to the other), the delta-v *should* be given by applying the law of cosines:
 
     delta-v^2 = initial_velocity^2 + final_velocity^2 - (2 x initial_velocity x final_velocity x COS(angle))
     initial_velocity = final_velocity
@@ -80,16 +72,26 @@ Secondly (this is a funny order to treat these points, I admit), it is the calcu
     delta-v^2 = 2 x initial_velocity^2 x (1 - COS(angle))
     delta-v = SQRT(2 x initial_velocity^2 x (1 - COS(angle)))
     
-But I never seemed to get the right velocity from doing this. Instead, I came across code that did this:
+But for some mysterious reason, I never seemed to get the right velocity from doing this. Instead, I came across code that did this:
 
     LOCAL ship_orbit_normal_vector IS craftNormal(SHIP,universal_timestamp_of_node).
     LOCAL new_orbit_normal_vector IS ship_orbit_normal_vector:MAG * orbit_normal_vector:NORMALIZED.
     LOCAL radius IS radiusAtTA(ORBITAT(SHIP,universal_timestamp), true_anomaly_of_node).
     LOCAL delta-v IS ABS((orbit_normal_vector - ship_orbit_normal_vector):MAG / radius).
 
-This takes the input `orbit_normal_vector` and changes it to be the same magnitude as the active vessel's orbit normal vector. It then finds the magnitude of the vector difference between the two and divides it by the orbital radius at the point where we are placing the manoeuvre node. That the radius is involved suggests to me that this is to do with conserving angular momentum, but I must admit I don't really know why this works, only that it does.
+This takes the input `orbit_normal_vector` and changes it to be the same magnitude as the active vessel's orbit normal vector. It then finds the magnitude of the vector difference between the two and divides it by the orbital radius at the point where we are placing the manoeuvre node. This is basically forming an isosceles triangle where we know the length of the two similar sides and the angle between them, and so calculate the third edge, except doing this by subtracting a vector representing one similar side from a vector representing the other similar side. The orbital radius is involved because the magnitude of the orbit normal is equal to the magnitude of the velocity vector multipled by the magnitude of the position vector (the orbital radius), and so we need to divide it out of the results to be left with the velocity. We could alternatively take the velocity vector, rotate it by the angle we are changing inclination and finding the magnitude of the difference between the two. The results should be the same.
 
-Comment - I need to find the time to revisit this, so that I can work out why the method I calculated doesn't work and fix it, or work out how/why the method I've borrowed does work.
+Comment - testing in place to find out if a shorter, more easy to explain version will work, in which case all this extra wordage can be removed!
+
+Secondly, if you try to change inclination by burning in just the normal direction, you end up increasing the magnitude of your orbital velocity as well as changing the direction in which you are going. For very small angles, this is hard to notice, but it can become very important once the change is more than a few degrees. To effect a simple plane change, the final velocity must be the same velocity as the initial velocity. If we did this in two burns, the second burn would be entirely to retrograde, the slow the velocity back down to the original magnitude... but we can do this in a single, combined burn. So a typical plane change burn consists of a normal component and a retrograde component. They differ in magnitude depending on the angle of the plane change: at one extreme, a complete `180` degree change in velocity requires a wholly retrograde burn.
+
+Having established the delta-v required and the angle of the plane change, these are split into normal and retrograde components as follows (note that if we are at the ascending node, we have to burn anti-normal instead of normal):
+
+    LOCAL delta-v_prograde IS -1 * ABS(delta-v * SIN(angle / 2)).
+    LOCAL delta-v_normal   IS delta-v * COS(angle / 2).
+    IF at_ascending { SET delta-v_normal TO -1 * delta-v_normal. }
+
+The two components can then be used when creating the manoeuvre node.
 
 #### `nodeIncMatch(universal_timestamp, orbit_normal_vector)`
 
