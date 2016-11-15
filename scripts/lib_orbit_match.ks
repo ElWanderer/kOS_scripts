@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_match.ks v1.1.0test 20161114").
+pOut("lib_orbit_match.ks v1.1.0test2 20161115").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -45,18 +45,40 @@ FUNCTION taAN
   RETURN mAngle(ang + taAt(SHIP,u_time)).
 }
 
+// move to lib_orbit?
+FUNCTION nodeFromVector
+{
+  PARAMETER vec, n_time IS TIME:SECONDS.
+  LOCAL s_pro IS velAt(SHIP,n_time).
+  LOCAL s_pos IS posAt(SHIP,n_time).
+  LOCAL s_nrm IS VCRS(s_pro,s_pos).
+  LOCAL s_rad IS VCRS(s_nrm,s_pro).
+
+  LOCAL pro IS VDOT(vec,s_pro:NORMALIZED).
+  LOCAL nrm IS VDOT(vec,s_nrm:NORMALIZED).
+  LOCAL rad IS VDOT(vec,s_rad:NORMALIZED).
+
+  RETURN NODE(n_time, rad, nrm, pro).
+}
+
+// move to lib_orbit?
+FUNCTION nodeToVector
+{
+  PARAMETER v1, n_time IS TIME:SECONDS.
+  RETURN nodeFromVector(v1 - velAt(SHIP,n_time),n_time).
+}
+
 FUNCTION nodeMatchAtNode
 {
   PARAMETER u_time, o_normal, ascending.
 
   LOCAL n_ta IS taAN(u_time,o_normal).
   IF NOT ascending { SET n_ta TO mAngle(n_ta + 180). }
-
   LOCAL n_time IS u_time + secondsToTA(SHIP,u_time,n_ta).
-  LOCAL s_normal IS craftNormal(SHIP,n_time).
-  LOCAL ang IS VANG(s_normal,o_normal).
 
 // remove this
+  LOCAL s_normal IS craftNormal(SHIP,n_time).
+  LOCAL ang IS VANG(s_normal,o_normal).
   pOut("Angle between normals: " + ROUND(ang,2)).
   
 // remove this (old vector way)
@@ -64,25 +86,24 @@ FUNCTION nodeMatchAtNode
   LOCAL n_normal IS s_normal:MAG * o_normal:NORMALIZED.
   LOCAL dv IS (n_normal - s_normal):MAG / n_r.
 
-// and this (new vector way)
-  LOCAL s_vel IS velAt(SHIP,n_time).
-  LOCAL dv2 IS ((ANGLEAXIS(ang,s_normal) * s_vel) - s_vel):MAG.
+// remove this (law of cosines with versine identity to simplify)
+  LOCAL dv2 IS 2 * velAt(SHIP,n_time):MAG * SIN(ang/2).
 
-// and this (law of cosines)
-  LOCAL dv3 IS SQRT(2 * velAt(SHIP,n_time):SQRMAGNITUDE * (1-COS(ang))).
-
-// if this works (law of cosines with versine identity to simplify)
-  LOCAL dv4 IS 2 * velAt(SHIP,n_time):MAG * SIN(ang/2).
-
-// remove all this
-  pOut("dv (old vector way):  " + ROUND(dv,2) + "m/s.").
-  pOut("dv2 (new vector way): " + ROUND(dv2,2) + "m/s.").
-  pOut("dv3 (law of cosines): " + ROUND(dv3,2) + "m/s.").
-  pOut("dv4 (law of cosines): " + ROUND(dv4,2) + "m/s.").
-
+// remove this
   LOCAL dv_pro IS -1 * ABS(dv * SIN(ang / 2)).
   LOCAL dv_norm IS dv * COS(ang / 2).
   IF ascending { SET dv_norm TO -1 * dv_norm. }
+
+// *if* this works
+  LOCAL s_vel iS velAt(SHIP,n_time).
+  LOCAL s_pos IS posAt(SHIP,n_time).
+  LOCAL f_ang IS 90 - VANG(s_vel,s_pos).
+  LOCAL new_vel IS s_vel:MAG * (ANGLEAXIS(f_ang,o_normal) * VCRS(s_pos,o_normal)):NORMALIZED.
+
+// remove this
+  pOut("dv (old vector way):  " + ROUND(dv,2) + "m/s.").
+  pOut("dv2 (law of cosines): " + ROUND(dv2,2) + "m/s.").
+  pOut("dv3 (vector rotation): " + ROUND((new_vel - s_vel):MAG,2) + "m/s.").
 
 // remove all this
   pOut("---").
@@ -99,21 +120,34 @@ FUNCTION nodeMatchAtNode
   REMOVE n. WAIT 0.
   pOut("---").
   pOut("Using law of cosines:").
-  LOCAL dv_pro4 IS -1 * ABS(dv4 * SIN(ang / 2)).
-  LOCAL dv_norm4 IS dv4 * COS(ang / 2).
-  IF ascending { SET dv_norm4 TO -1 * dv_norm4. }
-  LOCAL n4 IS NODE(n_time,0,dv_norm4,dv_pro4).
+  LOCAL dv_pro2 IS -1 * ABS(dv2 * SIN(ang / 2)).
+  LOCAL dv_norm2 IS dv2 * COS(ang / 2).
+  IF ascending { SET dv_norm2 TO -1 * dv_norm2. }
+  LOCAL n2 IS NODE(n_time,0,dv_norm2,dv_pro2).
   pOut("Velocity vector before burn: " + old_vel).
   pOut("Velocity before burn: " + ROUND(old_vel:MAG,2)).
   pOrbit(SHIP:ORBIT).
-  addNode(n4).
-  pOut("Velocity vector after burn: " + new_vel).
+  addNode(n2).
   SET new_vel TO velAt(SHIP,n_time+0.2).
+  pOut("Velocity vector after burn: " + new_vel).
   pOut("Velocity after burn: " + ROUND(new_vel:MAG,2)).
-  REMOVE n4. WAIT 0.
+  REMOVE n2. WAIT 0.
+  pOut("---").
+  pOut("Using vector rotation:").
+  LOCAL n3 IS nodeToVector(new_vel, n_time).
+  pOut("Velocity vector before burn: " + old_vel).
+  pOut("Velocity before burn: " + ROUND(old_vel:MAG,2)).
+  pOrbit(SHIP:ORBIT).
+  addNode(n3).
+  SET new_vel TO velAt(SHIP,n_time+0.2).
+  pOut("Velocity vector after burn: " + new_vel).
+  pOut("Velocity after burn: " + ROUND(new_vel:MAG,2)).
+  REMOVE n3. WAIT 0.
   pOut("---").
 
+// switch these
   RETURN NODE(n_time,0,dv_norm,dv_pro).
+// RETURN nodeToVector(new_vel, n_time).
 }
 
 FUNCTION nodeIncMatch
@@ -153,7 +187,7 @@ FUNCTION matchOrbitInc
   IF lan = -1 { SET lan TO ORBITAT(SHIP,u_time):LAN. }
 
 // checking...
-  pOut("---------------------------").
+  pOut("-----------BEGIN-----------").
   pOut("Target inclination: " + ROUND(i,3)).
   pOut("Target LAN:         " + ROUND(lan,3)).
   pOut("---------------------------").
@@ -171,9 +205,13 @@ FUNCTION matchOrbitInc
 
 // checking...
   pOut("---------------------------").
-  pOut("Result inclination: " + ROUND(SHIP:ORBIT:INCLINATION,3)).
-  pOut("Result LAN:         " + ROUND(SHIP:ORBIT:LAN,3)).
-  pOut("---------------------------").
+  if ok {
+    pOut("Result inclination: " + ROUND(SHIP:ORBIT:INCLINATION,3)).
+    pOut("Result LAN:         " + ROUND(SHIP:ORBIT:LAN,3)).
+  } ELSE {
+    pOut("Did not burn node successfully.").
+  }
+  pOut("-----------END-------------").
 
   RETURN ok.
 }
