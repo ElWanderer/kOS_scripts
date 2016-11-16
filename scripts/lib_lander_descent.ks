@@ -264,7 +264,7 @@ FUNCTION doSetDown
   WAIT UNTIL LIST("LANDED","SPLASHED"):CONTAINS(STATUS).
   hudMsg("Touchdown.").
   pOut("Landed at LAT: " + ROUND(LATITUDE,2) + " LNG: " + ROUND(LONGITUDE,2)).
-  PANELS ON.
+  PANELS ON. WAIT 2.
   dampSteering().
 }
 
