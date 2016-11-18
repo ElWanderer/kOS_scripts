@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMScience.ks v1.2.1 20161110").
+pOut("KMScience.ks v1.2.2 20161118").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -100,7 +100,7 @@ IF rm < 0 {
   hudMsg("Hit abort to return to Kerbin.").
   runMode(842,845).
 } ELSE IF rm = 842 {
-  IF modeTime > 60 { runMode(841,0). }
+  IF modeTime() > 60 { runMode(841,0). }
 
 } ELSE IF rm = 845 {
   delScript("lib_probe.ks").
