@@ -4,8 +4,6 @@
 
 The purpose of this boot script is to launch a tourist craft into a specific orbit of Mun or Minmus, then return to Kerbin. The script has been written for Apollo-style craft i.e. a command module with a heat shield (I tend to set the ablator to about 50%), plus a service module consisting of fuel tanks and engines. Unlike the Kerbin Tourist script, no effort is currently made to target a specific landing area on return to Kerbin.
 
-Note - this script was developed from the Satellite script (`KMSat.ks`). As such, it will unnecessarily expend fuel correcting the orbit around the target body. Until this is improved, it's recommended to keep the target orbit at a low inclination. 
-
 ### Script Parameters
 
 The parameters of the target orbit can be specified by changing the global variables near the top of the file:
@@ -14,10 +12,8 @@ The parameters of the target orbit can be specified by changing the global varia
     GLOBAL SAT_BODY IS MINMUS.
     GLOBAL SAT_NAME IS "Minmus Tourbus".
     GLOBAL SAT_AP IS 50000.
-    GLOBAL SAT_PE IS 50000.
     GLOBAL SAT_I IS 0.
     GLOBAL SAT_LAN IS 0.
-    GLOBAL SAT_W IS 0.
 
 #### `SAT_BODY`
 
@@ -67,13 +63,9 @@ The script will then time warp to the sphere of influence transition with the ta
 
 Once in the sphere of influence of the target body, another correction burn will be plotted and executed. This time the aim is to get the periapsis within 1km of the target apoapsis after the burn. When this is achieved, a node will be plotted at the periapsis to circularise the orbit.
 
-#### Match orbit inclination and shape
+#### Tourism
 
-The script will plot and execute a burn to reduce the relative inclination between the current orbit and the target orbit to zero. This will place the ascending node in the right place.
-
-The script will then plot and execute burns to put the periapsis and apoapsis in the target locations and altitudes.
-
-As noted above, these steps are not really necessary for the typical tourist mission, where the aim is only to get into orbit then come home.
+Once in orbit of the target body, the script does not wait around to allow the tourists to take pictures, enjoy the view etc. Instead, it'll move on to plotting the return transfer.
 
 #### Return transfer
 
