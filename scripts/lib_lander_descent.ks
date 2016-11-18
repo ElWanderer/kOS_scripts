@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.1.2 20161115").
+pOut("lib_lander_descent.ks v1.1.2 20161118").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -264,7 +264,7 @@ FUNCTION doSetDown
   WAIT UNTIL LIST("LANDED","SPLASHED"):CONTAINS(STATUS).
   hudMsg("Touchdown.").
   pOut("Landed at LAT: " + ROUND(LATITUDE,2) + " LNG: " + ROUND(LONGITUDE,2)).
-  PANELS ON. WAIT 2.
+  WAIT 5. PANELS ON.
   dampSteering().
 }
 
