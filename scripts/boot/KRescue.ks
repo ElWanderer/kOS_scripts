@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KRescue.ks v1.2.1 20161107").
+pOut("KRescue.ks v1.2.2 20161121").
 
 FOR f IN LIST(
   "lib_runmode.ks",
