@@ -64,7 +64,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL MOD(runMode,10) <> 9.
+  WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   delResume().
