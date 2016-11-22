@@ -1,7 +1,5 @@
 @LAZYGLOBAL OFF.
-
-
-pOut("lib_orbit.ks v1.0.2 20160726").
+pOut("lib_orbit.ks v1.0.3 20161108").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
@@ -19,10 +17,7 @@ FUNCTION calcTa
 FUNCTION velAt
 {
   PARAMETER c, u_time.
-  LOCAL b IS ORBITAT(c,u_time):BODY.
-  LOCAL v IS VELOCITYAT(c,u_time):ORBIT.
-  IF b <> BODY { SET v TO v - VELOCITYAT(b,u_time):ORBIT. }
-  RETURN v.
+  RETURN VELOCITYAT(c,u_time):ORBIT.
 }
 
 FUNCTION posAt

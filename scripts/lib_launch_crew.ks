@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.1.2 20160831").
+pOut("lib_launch_crew.ks v1.2.0 20161101").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -38,7 +38,7 @@ FUNCTION doLaunch
 {
   PARAMETER exit_mode, ap, az IS 90, i IS SHIP:LATITUDE, pitch_alt IS 250.
 
-  launchInit(exit_mode,ap,az,i,pitch_alt).
+  launchInit(ap,az,i,pitch_alt).
 
   LOCAL LOCK rm TO runMode().
 

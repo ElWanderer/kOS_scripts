@@ -88,7 +88,7 @@ When the kOS CPU boots up, the script will be in a runmode that does nothing but
 
 Steps to separate:
 * Optional: briefly engage the RCS system and use a few blasts to increase the separation speed away from the other craft.
-* Hit `ABORT` to put the script into separation mode. It will try to plot a `5`m/s burn that will avoid ramming other craft or hitting them with engine exhaust. This may not succeed if the craft are still very close together, in which case you may need to wait longer before hitting `ABORT`, or separate manually.
+* Hit `ABORT` to put the script into separation mode. It will try to plot a small burn that will avoid ramming other craft or hitting them with engine exhaust. This may not succeed if the craft are still very close together, in which case you may need to wait longer before hitting `ABORT`, or separate manually.
 
 Following a successful separation manoeuvre, the script will switch to calculating a return transfer.
 

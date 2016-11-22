@@ -1,13 +1,12 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_transfer.ks v1.2.4 20160828").
+pOut("lib_transfer.ks v1.2.5 20161104").
 
 FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
   "lib_runmode.ks",
-  "lib_hoh.ks",
-  "lib_warp.ks"
+  "lib_hoh.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL CURRENT_BODY IS BODY.

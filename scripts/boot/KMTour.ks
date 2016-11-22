@@ -3,18 +3,16 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMTour.ks v1.2.0 20160902").
+pOut("KMTour.ks v1.2.1 20161118").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
 // set these values ahead of launch
 GLOBAL SAT_BODY IS MINMUS.
-GLOBAL SAT_NAME IS "Minmus Tour Test 6".
+GLOBAL SAT_NAME IS "Minmus Tour Test 1".
 GLOBAL SAT_AP IS 60000.
-GLOBAL SAT_PE IS 60000.
 GLOBAL SAT_I IS 0.
 GLOBAL SAT_LAN IS 0.
-GLOBAL SAT_W IS 0.
 
 GLOBAL SAT_BODY_I IS SAT_BODY:OBT:INCLINATION.
 GLOBAL SAT_BODY_LAN IS SAT_BODY:OBT:LAN.
@@ -71,18 +69,8 @@ IF rm < 0 {
 
 } ELSE IF rm = 811 {
   RUNONCEPATH(loadScript("lib_transfer.ks")).
-  store("doTransfer(821, FALSE, "+SAT_BODY+","+SAT_AP+","+SAT_I+","+SAT_LAN+").").
-  doTransfer(821, FALSE, SAT_BODY, SAT_AP, SAT_I, SAT_LAN).
-
-} ELSE IF rm = 821 {
-  delResume().
-  RUNONCEPATH(loadScript("lib_orbit_match.ks")).
-  IF doOrbitMatch(FALSE,stageDV(),SAT_I,SAT_LAN) { runMode(822). }
-  ELSE { runMode(829,821). }
-} ELSE IF rm = 822 {
-  RUNONCEPATH(loadScript("lib_orbit_change.ks")).
-  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W) { runMode(851). }
-  ELSE { runMode(829,822). }
+  store("doTransfer(851, FALSE, "+SAT_BODY+","+SAT_AP+","+SAT_I+","+SAT_LAN+").").
+  doTransfer(851, FALSE, SAT_BODY, SAT_AP, SAT_I, SAT_LAN).
 
 } ELSE IF rm = 851 {
   RUNONCEPATH(loadScript("lib_transfer.ks")).

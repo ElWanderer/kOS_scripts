@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 
-
-pOut("lib_orbit_change.ks v1.0 20160714").
+pOut("lib_orbit_change.ks v1.0.1 20161110").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -19,10 +18,10 @@ FUNCTION changeOrbit
 
   LOCAL o IS ORBITAT(SHIP,u_time).
   LOCAL w_diff IS 0.
-  IF w > 0 { SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS). }
+  IF w >= 0 { SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS). }
   LOCAL ap_diff IS ap - o:APOAPSIS.
   LOCAL pe_diff IS pe - o:PERIAPSIS.
-
+  LOCAL double_pe_burn IS (ap < o:PERIAPSIS).
 
   IF w_diff > 0.05 OR ABS(ap_diff) > (ap / 50) {
     LOCAL n2 IS nodeAlterOrbit(u_time + secondsToTA(SHIP,u_time,w_diff), ap).
@@ -40,7 +39,7 @@ FUNCTION changeOrbit
 
   IF w_diff > 0.05 OR ABS(pe_diff) > (pe / 50) {
     LOCAL ap_ta IS 180.
-    IF ap < o:PERIAPSIS { SET ap_ta TO 0. }
+    IF double_pe_burn { SET ap_ta TO 0. }
     LOCAL n3 IS nodeAlterOrbit(u_time + secondsToTA(SHIP,u_time,ap_ta), pe).
     addNode(n3).
     UNTIL NOT n3:ORBIT:HASNEXTPATCH { SET n3:ETA TO n3:ETA + o:PERIOD. }

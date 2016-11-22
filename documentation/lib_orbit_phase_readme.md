@@ -47,14 +47,4 @@ The orbital period of an orbit can be determined from the semimajoraxis (a) by: 
 
 This function is typically used to create boundaries above/below which the phase period should not go e.g. because it would exit the current sphere of influence or drop too close to the parent body.
 
-#### `orbitTAOffset(orbit1, orbit2)`
-
-Returns the angle by which `orbit2` is offset from `orbit1`. This is expected to be used to convert the true anomaly of a position vector in one orbit to the true anomaly that position vector would have in the other orbit, where the two orbits are .
-
-For example, consider two orbits that share the same orbital plane, so their longitudes of the ascending node are the same, but they have arguments of periapsis that are `100` and `110` degrees respectively. A position vector that passes through the periapsis (true anomaly is `0`) of the first orbit will pass through the second orbit `10` degrees before the periapsis. The true anomaly of a craft in this position of the second orbit would have a true anomaly of `350` degrees.
-
-This function is typically used to compute the angular separation at an intersection between two craft in aligned orbits, so that the separation in time can be calculated, from where we can consider a phasing orbit to engineer a close approach.
-
-Comment - this function also exists in `lib_rendezvous.ks`. I suspect it should only live in one or the other.
-
 Geoff Banks / ElWanderer

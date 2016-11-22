@@ -58,6 +58,14 @@ Locks the steering to face the craft at the Sun.
 
 This calls `steerTo()`, passing in an anonymous function that returns the position of the Sun.
 
+#### `steerAV()`
+
+A craft will continually, slowly rotate as a result of motion around its parent body. This function calculates and returns the current 'expected' angular velocity (in radians per second) of the active vessel.
+
+In an orbit, the prograde vector moves relative to the universal reference vector as you orbit a body (e.g. if you face prograde then engage time warp for half an orbit, you'll be pointing at the retrograde marker). By taking the predicted velocity now and in one second's time, we can estimate the current angular velocity by taking the angle between the two.
+
+On the ground, the active vessel's facing will rotate as a result of the rotation of the planet. This will be constant, based on how long it takes the planet to rotate.
+
 #### `steerOk(allowed_angle, angular_vel_precision, timeout_seconds)`
 
 This function returns `TRUE` or `FALSE` depending on whether the steering is pointed in the right direction or not. It is typically called as part of a WAIT UNTIL: `WAIT UNTIL steerOk().`
@@ -70,14 +78,12 @@ We deliberately don't check the steering if we are within a tenth of a second of
     IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
 This is a problem. We should never call `steerOk()` unless we've locked the steering (a check on `STEER_ON` was removed to save a bit of space), in which case `STEERINGMANAGER:ENABLED` should always be `TRUE`. However, the steering manager can get confused in a few situations (repeated docking/undocking is the way I ran into this). In that situation, we have an error that a kOS script can't handle very well. Switching back to the space centre than back to the craft seemed to be the only solution that would clear it up; just rebooting didn't help. As such, we have a rare call to `hudMsg()` to print an error in the middle of the screen in the knowledge that the next step will cause the script to crash.
 
-    IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < allowed_angle AND 
-       SHIP:ANGULARVEL:MAG < (10 / angular_vel_precision) * MAX(2 * CONSTANT:PI / SHIP:ORBIT:PERIOD, 0.0002) {
+    IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND
+       SHIP:ANGULARVEL:MAG * angular_vel_precision / 10 < MAX(steerAV(), 0.0005) {
       pOut("Steering aligned.").
       RETURN TRUE.
     }
 This checks the angle between where we are facing and where we have asked the steering manager to face, we want this to be less than the `allowed_angle` parameter. Previous versions of the script used this to set off a timer, only returning `TRUE` once we had been facing the right direction for a few seconds. Instead of that, we now check the magnitude of the craft's angular velocity. If this drops below our required minimum, we return `TRUE`.
-
-Note - `2 * CONSTANT:PI / SHIP:ORBIT:PERIOD` is the angular velocity (in radians per second) that you would expect to have if you are following the prograde vector while in a circular orbit. This is because the prograde vector moves relative to the universal reference vector as you orbit a body (e.g. if you face prograde then engage time warp for half an orbit, you'll be pointing at the retrograde marker). This is not always an accurate calculation of the expected rotation, as it will vary quite a lot for eccentric orbits.
 
     IF diffTime("STEER") > timeout_seconds {
       pOut("Steering alignment timed out.").

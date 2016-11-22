@@ -24,11 +24,7 @@ There is a potential problem with this calculation. `ARCCOS()` will throw an err
 
 #### `velAt(craft, universal_timestamp)`
 
-A wrapper around the kOS `VELOCITYAT` prediction function. If the body that the input `craft` will be in the sphere of influence of at `universal_timestamp` is different to the active vessel's current body, this converts the velocity to be relative to the body of `craft`. Otherwise, `VELOCITYAT` will return the velocity relative to the current sphere of influence.
-
-This function is useful for plotting nodes in other spheres of influence. This has been tested by plotting a circularisation node around the Mun while still in orbit of Kerbin
-
-Comment - but does it actually work if we're trying to calculate the velocity of a solar orbit while around Kerbin? Or any other parent body?
+A wrapper around the kOS `VELOCITYAT` prediction function that returns the orbital velocity vector for the input `craft` at the input `universal_timestamp`.
 
 #### `posAt(craft, universal_timestamp)`
 

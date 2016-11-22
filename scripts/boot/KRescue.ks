@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KRescue.ks v1.2.0 20160902").
+pOut("KRescue.ks v1.2.2 20161121").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -64,7 +64,7 @@ IF rm < 0 {
   RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
-  WAIT UNTIL MOD(runMode,10) <> 9.
+  WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   delResume().
@@ -103,7 +103,7 @@ IF rm < 0 {
   }
 } ELSE IF rm = 823 {
   RUNONCEPATH(loadScript("lib_skeep.ks")).
-  IF sepMan(5,30) { runMode(824). }
+  IF doSeparation() { runMode(824). }
   ELSE { runMode(829,823). }
 } ELSE IF rm = 824 {
   IF crewSpaces() > 0 { runMode(811). }

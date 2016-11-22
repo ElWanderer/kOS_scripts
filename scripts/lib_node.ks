@@ -1,7 +1,5 @@
 @LAZYGLOBAL OFF.
-
-
-pOut("lib_node.ks v1.0.1 20160802").
+pOut("lib_node.ks v1.0.2 20161115").
 
 GLOBAL NODE_BUFF IS 60.
 
@@ -36,9 +34,10 @@ FUNCTION pOrbit
   pOut(" Bdy: " + o:BODY:NAME).
   pOut(" Ap:  " + ROUND(o:APOAPSIS) + "m").
   pOut(" Pe:  " + ROUND(o:PERIAPSIS) + "m").
-  pOut(" Prd: " + ROUND(o:PERIOD) + "s").
   pOut(" Inc: " + ROUND(o:INCLINATION,1) + " deg").
   pOut(" LAN: " + ROUND(o:LAN,1) + " deg").
+  pOut(" Arg: " + ROUND(o:ARGUMENTOFPERIAPSIS,1) + " deg").
+  pOut(" Prd: " + ROUND(o:PERIOD) + "s").
   IF o:HASNEXTPATCH { pOrbit(o:NEXTPATCH). }
 }
 

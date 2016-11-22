@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMScience.ks v1.2.0 20160902").
+pOut("KMScience.ks v1.2.2 20161118").
 
 RUNONCEPATH(loadScript("lib_runmode.ks")).
 
@@ -14,11 +14,11 @@ GLOBAL SAT_NAME IS "NEW NAME HERE".
 GLOBAL SAT_AP IS 250000.
 GLOBAL SAT_PE IS 250000.
 GLOBAL SAT_I IS 85.
-GLOBAL SAT_LAN IS 0.
-GLOBAL SAT_W IS 0.
+GLOBAL SAT_LAN IS -1.
+GLOBAL SAT_W IS -1.
 
-GLOBAL FINAL_AP IS 8400.
-GLOBAL FINAL_PE IS 8400.
+GLOBAL FINAL_AP IS 30000.
+GLOBAL FINAL_PE IS 30000.
 GLOBAL FINAL_I IS 85.
 
 GLOBAL SAT_BODY_I IS SAT_BODY:OBT:INCLINATION.
@@ -97,8 +97,12 @@ IF rm < 0 {
   delScript("lib_orbit_change.ks").
   RUNONCEPATH(loadScript("lib_probe.ks")).
   visitContractWaypoints(7,15).
-  runMode(842).
+  hudMsg("Hit abort to return to Kerbin.").
+  runMode(842,845).
 } ELSE IF rm = 842 {
+  IF modeTime() > 60 { runMode(841,0). }
+
+} ELSE IF rm = 845 {
   delScript("lib_probe.ks").
   delScript("lib_geo.ks").
   delScript("lib_science.ks").
