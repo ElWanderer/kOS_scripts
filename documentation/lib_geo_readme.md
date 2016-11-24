@@ -159,6 +159,6 @@ Note - not all waypoints are related to science contracts. Waypoints with a name
 
 Note - `max_distance` is in kilometres. This is different to the parameter in `findNextPass()`.
 
-Note - `days_limit` is used to restrict the number of orbits that will be checked. It is possible for a close approach to be found just past the time limit if the orbit began before the cut-off point.
+Note - `days_limit` is used to restrict the number of orbits that will be checked. It is possible for a close approach to be found just past the time limit if the orbit began before the cut-off point, but then rejected due to being beyond the cut-off.
 
 Geoff Banks / ElWanderer
