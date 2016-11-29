@@ -1,10 +1,10 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_transfer.ks v1.2.5 20161104").
+pOut("lib_transfer.ks v1.2.6 20161129").
 
 FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
+  "lib_orbit_match.ks",
   "lib_runmode.ks",
   "lib_hoh.ks"
 ) { RUNONCEPATH(loadScript(f)). }
@@ -69,24 +69,27 @@ FUNCTION scoreNodeDestOrbit
     LOCAL next_i IS next_orb:INCLINATION.
     LOCAL next_lan IS next_orb:LAN.
 
-    IF i >= 0 {
-      LOCAL i_diff IS ABS(next_i - i).
-      LOCAL lan_diff IS ABS(next_lan - lan).
-      IF lan >=0 AND lan_diff > 90 AND lan_diff < 270 AND i > 0 AND i < 180 {
-        SET i_diff TO next_i + i.
-      }
-      SET score TO score - (i_diff * 100).
-    }
+    // calculate additional delta-v required to correct periapsis after circularisation
+    LOCAL a0 IS dest:RADIUS + ((next_pe + dest_pe) / 2).
+    LOCAL v0 IS SQRT(dest:MU * ((2/dest_pe)-(1/a0))).
+    LOCAL v1 IS SQRT(dest:MU/(dest:RADIUS + dest_pe)).
+    LOCAL dv_pe IS ABS(v1 - v0).
+    SET score TO score - dv_pe.
 
-    SET score TO score - (ABS(next_pe - pe) / 10).
-    
-    LOCAL min_pe IS 20000.
-    IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT + 15000. }
-    IF next_pe < min_pe AND pe > min_pe { SET score TO score - ((5000 + min_pe - next_pe) / 250). }
+    // calculate additional delta-v required to correct orbit plane after circularisation
+    // and after correction of periapsis
+    IF i >= 0 {
+      IF lan < 0 { SET lan TO next_lan. }
+      LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
+      LOCAL v_circ IS SQRT(dest:MU/(dest:RADIUS + dest_pe)).
+      LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
+      SET score TO score - dv_inc.
+    }
 
   } ELSE {
     // assume we're trying to meet destination at apsis of our transfer orbit
-    // TBD - work out which orbit we should look at
+    SET orb_count TO orbitReachesBody(orb,dest:BODY).
+    IF orb_count > 0 { SET orb TO futureOrbit(orb,orb_count). }
     LOCAL apsis_secs IS orb:PERIOD / 2.
     LOCAL pe_secs IS secondsToTA(SHIP, TIME:SECONDS + n:ETA + 1, 0) + 1.
     IF orb:ECCENTRICITY > 1 { IF pe_secs > 0 { SET apsis_secs TO pe_secs. } }
