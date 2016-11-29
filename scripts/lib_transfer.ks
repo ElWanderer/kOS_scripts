@@ -64,15 +64,16 @@ FUNCTION scoreNodeDestOrbit
   LOCAL orb_count IS orbitReachesBody(orb,dest).
   IF orb_count >= 0 {
     SET score TO MAX_SCORE - nodeDV(n).
+    LOCAL r IS dest:RADIUS + pe.
     LOCAL next_orb IS futureOrbit(orb,orb_count).
     LOCAL next_pe IS next_orb:PERIAPSIS.
     LOCAL next_i IS next_orb:INCLINATION.
     LOCAL next_lan IS next_orb:LAN.
 
     // calculate additional delta-v required to correct periapsis after circularisation
-    LOCAL a0 IS dest:RADIUS + ((next_pe + dest_pe) / 2).
-    LOCAL v0 IS SQRT(dest:MU * ((2/dest_pe)-(1/a0))).
-    LOCAL v1 IS SQRT(dest:MU/(dest:RADIUS + dest_pe)).
+    LOCAL a0 IS dest:RADIUS + ((next_pe + pe) / 2).
+    LOCAL v0 IS SQRT(dest:MU * ((2/r)-(1/a0))).
+    LOCAL v1 IS SQRT(dest:MU/r).
     LOCAL dv_pe IS ABS(v1 - v0).
     SET score TO score - dv_pe.
 
@@ -81,7 +82,7 @@ FUNCTION scoreNodeDestOrbit
     IF i >= 0 {
       IF lan < 0 { SET lan TO next_lan. }
       LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
-      LOCAL v_circ IS SQRT(dest:MU/(dest:RADIUS + dest_pe)).
+      LOCAL v_circ IS SQRT(dest:MU/r).
       LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
       SET score TO score - dv_inc.
     }
