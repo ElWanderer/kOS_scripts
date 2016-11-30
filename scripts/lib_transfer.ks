@@ -92,6 +92,11 @@ FUNCTION scoreNodeDestOrbit
     LOCAL next_i IS next_orb:INCLINATION.
     LOCAL next_lan IS next_orb:LAN.
 
+    // bonus points for being close to target periapsis
+    LOCAL pe_diff IS ABS(next_pe - pe).
+    IF pe_diff < 1000 { SET score TO score + 15. }
+    ELSE IF pe_diff < 25000 { SET score TO score + 5. }
+
     // calculate additional delta-v required to correct periapsis after circularisation
     LOCAL a0 IS dest:RADIUS + ((next_pe + pe) / 2).
     LOCAL v0 IS SQRT(dest:MU * ((2/r)-(1/a0))).
