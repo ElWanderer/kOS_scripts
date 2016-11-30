@@ -37,8 +37,10 @@ FUNCTION futureOrbit
   LOCAL orb IS init_orb.
   LOCAL i IS 0.
   UNTIL i >= count {
-    IF orb:HASNEXTPATCH { SET orb TO orb:NEXTPATCH. }
-    ELSE { pOut("WARNING: futureOrbit("+count+") called but patch "+i+" is the last."). SET i TO count. }
+    IF NOT orb:HASNEXTPATCH {
+      pOut("WARNING: futureOrbit("+count+") called but patch "+i+" is the last.").
+      SET i TO count.
+    } ELSE { SET orb TO orb:NEXTPATCH. }
     SET i TO i + 1.
   }
   
@@ -137,13 +139,18 @@ FUNCTION updateBest
   RETURN MAX(ns, bs).
 }
 
+FUNCTION newNodeByDiff
+{
+  PARAMETER n, eta_diff, rad_diff, nrm_diff, pro_diff.
+  RETURN NODE(n:ETA+eta_diff, n:RADIALOUT+rad_diff, n:NORMAL+nrm_diff, n:PROGRADE+pro_diff).
+}
+
 FUNCTION improveNode
 {
   PARAMETER n, score_func.
   LOCAL ubn IS updateBest@:BIND(score_func).
 
-  LOCAL man_time IS TIME:SECONDS + n:ETA.
-  LOCAL best_node IS NODE(man_time,n:RADIALOUT,n:NORMAL,n:PROGRADE).
+  LOCAL best_node IS newNodeByDiff(0,0,0,0).
   LOCAL best_score IS score_func(best_node).
   LOCAL orig_score IS best_score.
 
@@ -156,14 +163,9 @@ FUNCTION improveNode
       LOCAL curr_score IS best_score.
       LOCAL dv_delta IS mult * 2^dv_power.
 
-      LOCAL new_node IS NODE(man_time,n:RADIALOUT,n:NORMAL,n:PROGRADE + dv_delta).
-      SET best_score TO ubn(new_node, best_node, best_score).
-
-      SET new_node TO NODE(man_time,n:RADIALOUT,n:NORMAL + dv_delta,n:PROGRADE).
-      SET best_score TO ubn(new_node, best_node, best_score).
-
-      SET new_node TO NODE(man_time,n:RADIALOUT + dv_delta,n:NORMAL,n:PROGRADE).
-      SET best_score TO ubn(new_node, best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,0,0,dv_delta), best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,0,dv_delta,0), best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,dv_delta,0,0), best_node, best_score).
 
       IF best_score > curr_score { SET dv_delta_power TO dv_power. }
     }
@@ -179,16 +181,12 @@ FUNCTION improveNode
   UNTIL done {
     LOCAL curr_score IS best_score.
 
-    FOR p_loop IN RANGE(-1,2,1) {
-      LOCAL new_pro IS n:PROGRADE + (dv_delta * p_loop).
-      FOR n_loop IN RANGE(-1,2,1) {
-        LOCAL new_norm IS n:NORMAL + (dv_delta * n_loop).
-        FOR r_loop IN RANGE(-1,2,1) {
-          LOCAL new_rad IS n:RADIALOUT + (dv_delta * r_loop).
-          SET best_score TO ubn(NODE(man_time,new_rad,new_norm,new_pro), best_node, best_score).
-        }
-      }
-    }
+    FOR p_loop IN RANGE(-1,2,1) { FOR n_loop IN RANGE(-1,2,1) { FOR r_loop IN RANGE(-1,2,1) {
+      LOCAL p_diff IS dv_delta * p_loop.
+      LOCAL n_diff IS dv_delta * n_loop.
+      LOCAL r_diff IS dv_delta * r_loop.
+      SET best_score TO ubn(newNodeByDiff(n,0,r_diff,n_diff,p_diff), best_node, best_score).
+    } } }
 
     IF best_score > curr_score { nodeCopy(best_node, n). }
     ELSE IF dv_delta < 0.01 { SET done TO TRUE. }
