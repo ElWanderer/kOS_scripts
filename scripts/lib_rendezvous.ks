@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_rendezvous.ks v1.2.5 20161104").
+pOut("lib_rendezvous.ks v1.3.0 20161130").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -8,7 +7,8 @@ FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
   "lib_orbit_phase.ks",
-  "lib_hoh.ks"
+  "lib_hoh.ks",
+  "lib_ca.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL RDZ_FN IS "rdz.ks".
@@ -117,38 +117,6 @@ FUNCTION findTargetMinSeparation
   RETURN findOrbitMinSeparation(ORBITAT(SHIP,TIME:SECONDS),ORBITAT(t,TIME:SECONDS)).
 }
 
-FUNCTION findTargetDist
-{
-  PARAMETER t, u_time.
-  RETURN (posAt(SHIP,u_time)-posAt(t,u_time)):MAG.
-}
-
-FUNCTION findTargetCA
-{
-  PARAMETER t, u_time.
-
-  LOCAL dist0 IS findTargetDist(t, u_time).
-  LOCAL dist_inc IS findTargetDist(t, u_time + 1).
-  LOCAL dist_dec IS findTargetDist(t, u_time - 1).
-
-  LOCAL found_ca IS FALSE.
-  LOCAL step IS 1.
-  IF dist0 < MIN(dist_inc,dist_dec) { SET step TO 0. SET found_ca TO TRUE. }
-  ELSE IF dist_dec < dist0 { SET step TO -1. }
-  SET u_time TO u_time + step.
-
-  LOCAL ca_details IS LIST(findTargetDist(t, u_time),u_time).
-
-  UNTIL found_ca {
-    SET u_time TO u_time + step.
-    LOCAL new_dist IS findTargetDist(t, u_time).
-    IF new_dist < ca_details[0] { SET ca_details TO LIST(new_dist,u_time). }
-    ELSE { SET found_ca TO TRUE. }
-  }
-
-  RETURN ca_details.
-}
-
 FUNCTION rdzBestSpeed
 {
   PARAMETER d, cv, sdv IS stageDV().
@@ -231,7 +199,7 @@ FUNCTION rdzApproach
 
 FUNCTION nodeRdzInclination
 {
-  PARAMETER t, u_time.
+  PARAMETER t, u_time IS bufferTime().
   removeAllNodes().
   IF craftRelInc(t,u_time) > 0.05 {
     pOut("Adding node to match inclination with rendezvous target.").
@@ -244,7 +212,7 @@ FUNCTION nodeRdzInclination
 
 FUNCTION nodeRdzHohmann
 {
-  PARAMETER t, u_time.
+  PARAMETER t, u_time IS bufferTime().
 
   LOCAL hnode IS nodeHohmann(t, u_time).
 
@@ -257,7 +225,7 @@ FUNCTION nodeRdzHohmann
 
 FUNCTION nodeForceIntersect
 {
-  PARAMETER t, u_time.
+  PARAMETER t, u_time IS bufferTime().
 
   removeAllNodes().
   LOCAL sepDetails IS findTargetMinSeparation(t).
@@ -295,7 +263,7 @@ FUNCTION nodeForceIntersect
 
 FUNCTION nodePhasingOrbit
 {
-  PARAMETER t, u_time.
+  PARAMETER t, u_time IS bufferTime().
 
   removeAllNodes().
   LOCAL sepDetails IS findTargetMinSeparation(t).
@@ -329,14 +297,11 @@ FUNCTION nodePhasingOrbit
   LOCAL phase_p IS s_p.
   LOCAL orbit_num IS 1.
 
-  LOCAL inc_diff IS 0.
-  LOCAL dec_diff IS 0.
+  LOCAL inc_diff IS t_p - eta_diff.
+  LOCAL dec_diff IS eta_diff.
   IF t_int_eta > s_int_eta {
     SET inc_diff TO eta_diff.
     SET dec_diff TO t_p - eta_diff.
-  } ELSE {
-    SET inc_diff TO t_p - eta_diff.
-    SET dec_diff TO eta_diff.
   }
 
   LOCAL inc_p IS t_p + inc_diff.
@@ -385,9 +350,10 @@ FUNCTION nodePhasingOrbit
 FUNCTION recalcCA
 {
   PARAMETER t.
-  LOCAL ca_details IS findTargetCA(t,TIMES[RDZ_CA]).
-  setTime(RDZ_CA,ca_details[1]).
-  SET RDZ_CA_DIST TO ROUND(ca_details[0]).
+  LOCAL slice IS MIN(SHIP:ORBIT:PERIOD / 16, rdzETA()).
+  LOCAL ca_time IS targetCA(t,TIMES[RDZ_CA]-slice,TIMES[RDZ_CA]+slice,0.1,10).
+  setTime(RDZ_CA,ca_time).
+  SET RDZ_CA_DIST TO ROUND(targetDist(t,ca_time)).
   pOut("Closest approach: " + RDZ_CA_DIST + "m in " + ROUND(TIMES[RDZ_CA]-TIME:SECONDS) + "s.").
   storeRdzDetails().
 }
@@ -432,19 +398,15 @@ UNTIL rm = exit_mode
     runMode(411).
   } ELSE IF rm = 411 {
     // add node to match inclination if necessary
-    IF nodeRdzInclination(t, bufferTime()) { runMode(412). } ELSE { runMode(415). }
+    IF nodeRdzInclination(t) { runMode(412). } ELSE { runMode(415). }
   } ELSE IF rm = 412 {
-    IF HASNODE {
-      IF execNode(can_stage) { runMode(411). } ELSE { runMode(419,412). }
-    } ELSE {
-      runMode(411).
-    }
-
+    IF NOT HASNODE { runMode(411). }
+    ELSE IF execNode(can_stage) { runMode(411). }
+    ELSE { runMode(419,412). }
   } ELSE IF rm = 415 {
 // TBD - is a Hohmann transfer appropriate? (low eccentricity, large difference in semimajoraxis):
 //   yes - calculate a single transfer, avoiding other bodies (421)
 //   no  - calculate an intersect and a phasing orbit (431)
-
     // calculate intersect and then a phasing orbit    
     runMode(431).
 
@@ -453,23 +415,18 @@ UNTIL rm = exit_mode
 
   } ELSE IF rm = 431 {
     // check if we get close to the target's orbit, if not force intersect
-    IF nodeForceIntersect(t, bufferTime()) { runMode(432). } ELSE { runMode(433). }
+    IF nodeForceIntersect(t) { runMode(432). } ELSE { runMode(433). }
   } ELSE IF rm = 432 {
-    IF HASNODE {
-      IF execNode(can_stage) { runMode(433). } ELSE { runMode(439,432). }
-    } ELSE {
-      runMode(431).
-    }
-
+    IF NOT HASNODE { runMode(431). }
+    ELSE IF execNode(can_stage) { runMode(433). }
+    ELSE { runMode(439,432). }
   } ELSE IF rm = 433 {
     // calculate phasing orbit, store details, generate node
-    IF nodePhasingOrbit(t, bufferTime()) { runMode(434). } ELSE { runMode(441). }
+    IF nodePhasingOrbit(t) { runMode(434). } ELSE { runMode(441). }
   } ELSE IF rm = 434 {
-    IF HASNODE {
-      IF execNode(can_stage) { runMode(435). } ELSE { runMode(439,434). }
-    } ELSE {
-      runMode(433).
-    }
+    IF NOT HASNODE { runMode(433). }
+    ELSE IF execNode(can_stage) { runMode(435). }
+    ELSE { runMode(439,434). }
   } ELSE IF rm = 435 {
     // tweak orbital period to match required period closely
     tweakPeriod(RDZ_PHASE_PERIOD).
