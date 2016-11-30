@@ -142,7 +142,7 @@ FUNCTION updateBest
 FUNCTION newNodeByDiff
 {
   PARAMETER n, eta_diff, rad_diff, nrm_diff, pro_diff.
-  RETURN NODE(n:ETA+eta_diff, n:RADIALOUT+rad_diff, n:NORMAL+nrm_diff, n:PROGRADE+pro_diff).
+  RETURN NODE(TIME:SECONDS+n:ETA+eta_diff, n:RADIALOUT+rad_diff, n:NORMAL+nrm_diff, n:PROGRADE+pro_diff).
 }
 
 FUNCTION improveNode
@@ -198,7 +198,7 @@ FUNCTION nodeBodyToMoon
 {
   PARAMETER u_time, dest, dest_pe, i IS -1, lan IS -1.
 
-  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MIN(i,0))).
+  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MIN(i,0)).
 
   LOCAL hnode IS nodeHohmann(dest, u_time, t_pe).
   improveNode(hnode,scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan)).
