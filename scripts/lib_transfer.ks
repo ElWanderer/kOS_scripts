@@ -150,7 +150,7 @@ FUNCTION improveNode
   PARAMETER n, score_func.
   LOCAL ubn IS updateBest@:BIND(score_func).
 
-  LOCAL best_node IS newNodeByDiff(0,0,0,0).
+  LOCAL best_node IS newNodeByDiff(n,0,0,0,0).
   LOCAL best_score IS score_func(best_node).
   LOCAL orig_score IS best_score.
 
