@@ -4,7 +4,7 @@ pOut("lib_ca.ks v1.0.0 20161130").
 FUNCTION targetDist
 {
   PARAMETER t, u_time.
-  RETURN (POSITIONAT(SHIP,u_time)-POSITIONAT(t,u_time)):MAG
+  RETURN (POSITIONAT(SHIP,u_time)-POSITIONAT(t,u_time)):MAG.
 }
 
 FUNCTION targetCA
