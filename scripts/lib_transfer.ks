@@ -122,7 +122,7 @@ FUNCTION scoreNodeDestOrbit
     IF orb_count >= 0 {
       LOCAL u_time1 IS futureOrbitETATime(orb,orb_count).
       LOCAL u_time2 IS futureOrbitETATime(orb,orb_count+1).
-      SET score TO -targetDist(dest,targetCA(dest,u_time1,u_time2)) / 1000.
+      SET score TO -targetDist(dest,targetCA(dest,u_time1,u_time2,5,10)) / 1000.
     } ELSE { SET score TO MIN_SCORE. }
 
   } ELSE { SET score TO MIN_SCORE. }
