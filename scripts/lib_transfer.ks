@@ -1,16 +1,18 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.2.6 20161129").
+pOut("lib_transfer.ks v1.3.0 20161130").
 
 FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
   "lib_orbit_match.ks",
   "lib_runmode.ks",
-  "lib_hoh.ks"
+  "lib_hoh.ks",
+  "lib_ca.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL CURRENT_BODY IS BODY.
 GLOBAL MAX_SCORE IS 99999.
+GLOBAL MIN_SCORE IS -999999999.
 GLOBAL TIME_TO_NODE IS 900.
 
 FUNCTION bodyChange
@@ -33,20 +35,39 @@ FUNCTION futureOrbit
   PARAMETER init_orb, count.
 
   LOCAL orb IS init_orb.
-  LOCAL i IS 1.
-  UNTIL i > count {
-    SET i TO i + 1.
+  LOCAL i IS 0.
+  UNTIL i >= count {
     IF orb:HASNEXTPATCH { SET orb TO orb:NEXTPATCH. }
-    ELSE { pOut("WARNING: futureOrbit("+count+") called but patch "+(i-2)+" is the last."). }
+    ELSE { pOut("WARNING: futureOrbit("+count+") called but patch "+i+" is the last."). SET i TO count. }
+    SET i TO i + 1.
   }
   
   RETURN orb.
 }
 
+FUNCTION futureOrbitETATime
+{
+  PARAMETER init_orb, count.
+
+  LOCAL eta_time IS TIME:SECONDS.
+  LOCAL orb IS init_orb.
+  LOCAL i IS 0.
+  UNTIL i >= count {
+    IF orb:HASNEXTPATCH {
+      SET eta_time TO eta_time + orb:NEXTPATCHETA.
+      SET orb TO orb:NEXTPATCH.
+    } ELSE {
+      SET eta_time TO eta_time + orb:PERIOD.
+      SET i TO count.
+    }
+    SET i TO i + 1.
+  }
+  RETURN eta_time.
+}
+
 FUNCTION orbitReachesBody
 {
-  PARAMETER orb, dest.
-  PARAMETER count IS 0.
+  PARAMETER orb, dest, count IS 0.
 
   IF orb:BODY = dest { RETURN count. }
   ELSE IF orb:HASNEXTPATCH { RETURN orbitReachesBody(orb:NEXTPATCH,dest,count+1). }
@@ -55,8 +76,7 @@ FUNCTION orbitReachesBody
 
 FUNCTION scoreNodeDestOrbit
 {
-  PARAMETER dest, pe, i, lan.
-  PARAMETER n.
+  PARAMETER dest, pe, i, lan, n.
   LOCAL score IS 0.
 
   ADD n. WAIT 0.
@@ -87,20 +107,23 @@ FUNCTION scoreNodeDestOrbit
       SET score TO score - dv_inc.
     }
 
-  } ELSE {
-    // assume we're trying to meet destination at apsis of our transfer orbit
-    SET orb_count TO orbitReachesBody(orb,dest:BODY).
-    IF orb_count > 0 { SET orb TO futureOrbit(orb,orb_count). }
-    LOCAL apsis_secs IS orb:PERIOD / 2.
-    LOCAL pe_secs IS secondsToTA(SHIP, TIME:SECONDS + n:ETA + 1, 0) + 1.
-    IF orb:ECCENTRICITY > 1 { IF pe_secs > 0 { SET apsis_secs TO pe_secs. } }
-    ELSE { SET apsis_secs TO MIN(pe_secs,secondsToTA(SHIP, TIME:SECONDS + n:ETA + 1, 180) + 1). }
-    LOCAL apsis_time IS TIME:SECONDS + n:ETA + apsis_secs.
-    LOCAL s_pos IS posAt(SHIP,apsis_time).
-    LOCAL d_pos IS posAt(dest,apsis_time).
-    LOCAL sep_dist IS ABS((s_pos - d_pos):MAG).
-    SET score TO -sep_dist.
-  }
+  } ELSE IF dest:HASBODY {
+    // base score on how close we get to destination within orbit of its parent body
+    // if we don't reach the parent, try its parent and so on...
+    LOCAL pb IS dest:BODY.
+    SET orb_count TO orbitReachesBody(orb,pb).
+    UNTIL orb_count >= 0 OR NOT pb:HASBODY {
+      SET dest TO pb.
+      SET pb TO pb:BODY.
+      SET orb_count TO orbitReachesBody(orb,pb).
+    }
+    IF orb_count >= 0 {
+      LOCAL u_time1 IS futureOrbitETATime(orb,orb_count).
+      LOCAL u_time2 IS futureOrbitETATime(orb,orb_count+1).
+      SET score TO -targetDist(dest,targetCA(dest,u_time1,u_time2)) / 1000.
+    } ELSE { SET score TO MIN_SCORE. }
+
+  } ELSE { SET score TO MIN_SCORE. }
   REMOVE n.
 
   RETURN score.
@@ -190,7 +213,6 @@ FUNCTION nodeBodyToMoon
   RETURN hnode.
 }
 
-
 FUNCTION nodeMoonToBody
 {
   PARAMETER u_time.
@@ -247,7 +269,6 @@ FUNCTION nodeMoonToBody
 
   RETURN man_node.
 }
-
 
 FUNCTION doTransfer
 {
