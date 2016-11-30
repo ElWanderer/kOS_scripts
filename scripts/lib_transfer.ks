@@ -198,26 +198,19 @@ FUNCTION improveNode
 
 FUNCTION nodeBodyToMoon
 {
-  PARAMETER u_time, dest, dest_pe.
-  PARAMETER i IS -1, lan IS -1.
+  PARAMETER u_time, dest, dest_pe, i IS -1, lan IS -1.
 
-  LOCAL t_pe IS 0.
-  IF i < 45 { SET t_pe TO dest:RADIUS + dest_pe. }
-  ELSE IF i > 135 { SET t_pe TO -dest:RADIUS - dest_pe. }
+  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MIN(i,0))).
 
   LOCAL hnode IS nodeHohmann(dest, u_time, t_pe).
-
-  LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan).
-  improveNode(hnode,score_func).
+  improveNode(hnode,scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan)).
 
   RETURN hnode.
 }
 
 FUNCTION nodeMoonToBody
 {
-  PARAMETER u_time.
-  PARAMETER moon.
-  PARAMETER dest_pe.
+  PARAMETER u_time, moon, dest_pe, i IS -1, lan IS -1.
 
   LOCAL dest IS moon:OBT:BODY.
 
@@ -239,9 +232,10 @@ FUNCTION nodeMoonToBody
   LOCAL e IS 0.
   IF energy >= 0 { SET e TO SQRT(1 + (2 * energy * h^2 / mu^2)). }
   ELSE { SET e TO (r_ap - r_pe) / (r_ap + r_pe). }
+
   LOCAL theta_eject IS 100.
   IF e > 1 { SET theta_eject TO ARCCOS(-1/e). }
-  ELSE { pOut("Cannot calculate ejection angle as required orbit is not a hyperbola."). }
+  ELSE { pOut("WARNING: Cannot calculate ejection angle as required orbit is not a hyperbola."). }
 
   LOCAL man_node IS NODE(u_time, 0, 0, ABS(dv)).
 
@@ -261,7 +255,7 @@ FUNCTION nodeMoonToBody
     IF ABS(s_ang - theta_eject) < 0.5 AND eff_i < 25 {
       SET done TO TRUE.
       SET man_node:ETA TO c_time - TIME:SECONDS.
-      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,-1,-1).
+      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan).
       improveNode(man_node,score_func).
     }
     SET c_time TO c_time + 15.
@@ -272,10 +266,7 @@ FUNCTION nodeMoonToBody
 
 FUNCTION doTransfer
 {
-  PARAMETER exit_mode, can_stage.
-  PARAMETER dest, dest_pe.
-  PARAMETER dest_i IS -1.
-  PARAMETER dest_lan IS -1.
+  PARAMETER exit_mode, can_stage, dest, dest_pe, dest_i IS -1, dest_lan IS -1.
 
   LOCAL LOCK rm TO runMode().
 
@@ -295,7 +286,7 @@ UNTIL rm = exit_mode
       SET n1 TO nodeBodyToMoon(t_time,dest,dest_pe,dest_i,dest_lan).
     } ELSE IF dest = BODY:OBT:BODY {
       // moon to planet (or planet to sun)
-      SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe).
+      SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe,dest_i,dest_lan).
     } ELSE {
       // other transfers not supported yet - TBD
     }
@@ -323,11 +314,9 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 111 {
     // check if we've appeared in the orbit of the destination beyond the periapsis
-    LOCAL secs_to_pe IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
-    IF BODY = dest AND 
-      (secs_to_pe < 0 OR (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < secs_to_pe)) {
-      runMode(131).
-    } ELSE { runMode(112). }
+    LOCAL pe_eta IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
+    IF BODY = dest AND (pe_eta < 0 OR (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < pe_eta)) { runMode(131). }
+    ELSE { runMode(112). }
   } ELSE IF rm = 112 {
     SET TIME_TO_NODE TO 900.
     runMode(113).
@@ -396,12 +385,9 @@ UNTIL rm = exit_mode
     IF BODY:ATM:EXISTS AND PERIAPSIS < BODY:ATM:HEIGHT { runMode(133). }
     ELSE {
       // enter orbit, but first check in case we're beyond the periapsis
-      LOCAL secs_to_pe IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
-      IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < secs_to_pe) OR secs_to_pe < 0 {
-        SET secs_to_pe TO 60.
-      }
-
-      LOCAL oi IS nodeAlterOrbit(TIME:SECONDS+secs_to_pe,dest_pe).
+      LOCAL pe_eta IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
+      IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < pe_eta) OR pe_eta < 0 { SET pe_eta TO 60. }
+      LOCAL oi IS nodeAlterOrbit(TIME:SECONDS+pe_eta,dest_pe).
       addNode(oi).
       pOut(dest:NAME + " Orbit Insertion node added.").
       runMode(132).
