@@ -271,6 +271,9 @@ FUNCTION orbitNeedsCorrection
 {
   PARAMETER curr_orb,dest,pe,i,lan.
 
+  IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < (TIME_TO_NODE + 900)) OR
+      ETA:PERIAPSIS < (TIME_TO_NODE + 900) { RETURN FALSE. }
+
   LOCAL orb_count IS orbitReachesBody(curr_orb,dest).
   IF orb_count < 0 { RETURN TRUE. }
   LOCAL orb IS futureOrbit(curr_orb,orb_count).
@@ -286,13 +289,16 @@ FUNCTION orbitNeedsCorrection
   ELSE { SET min_diff TO min_diff * 25. }
   IF pe_diff > min_diff { RETURN TRUE. }
 
-  IF orb_count = 0 {
-    // check inclination
-    LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,orb:INCLINATION,orb:LAN)).
-    IF ang > 0.05 {
-      // if we can find a suitable place to perform an inclination change, we can set
-      // TIME_TO_NODE to put the correction there
-      RETURN TRUE.
+  // check if/when we can change inclination
+  IF orb_count = 0 AND i >= 0 {
+    IF lan < 0 { IF ABS(i - orb:INCLINATION) > 0.05 { RETURN TRUE. } }
+    ELSE IF VANG(orbitNormal(dest,i,lan),orbitNormal(dest,orb:INCLINATION,orb:LAN)) > 0.05 {
+      LOCAL u_time IS TIME:SECONDS + 1.
+      LOCAL n_ta1 IS taAN(u_time,orbitNormal(dest,i,lan)).
+      LOCAL eta1 IS secondsToTA(SHIP,u_time,n_ta1) + 1.
+      LOCAL eta2 IS secondsToTA(SHIP,u_time,mAngle(n_ta1 + 180)) + 1.
+      IF eta1 > 900 AND eta1 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta1. RETURN TRUE. }
+      IF eta2 > 900 AND eta2 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta2. RETURN TRUE. }
     }
   }
 
@@ -360,20 +366,15 @@ UNTIL rm = exit_mode
       steerSun().
       WAIT UNTIL steerOk().
     }
-    // check node would not be too close to SoI transition / periapsis before continuing
-    IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < (TIME_TO_NODE + 900)) OR
-        ETA:PERIAPSIS < (TIME_TO_NODE + 900) { runMode(115). }
-    ELSE {
-      // check accuracy of orbit
-      IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
-        LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
-        LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
-        improveNode(mcc,score_func).
-        addNode(mcc).
-        pOut("Mid-course correction node added.").
-        runMode(114).
-      } ELSE { runMode(115). }
-    }
+    // check accuracy of orbit
+    IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
+      LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
+      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
+      improveNode(mcc,score_func).
+      addNode(mcc).
+      pOut("Mid-course correction node added.").
+      runMode(114).
+    } ELSE { runMode(115). }
   } ELSE IF rm = 114 {
     IF HASNODE {
       IF execNode(can_stage) { runMode(112). } ELSE { runMode(119,114). }
