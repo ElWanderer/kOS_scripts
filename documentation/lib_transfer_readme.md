@@ -24,19 +24,21 @@ The initial value is the current `BODY` when the library is run.
 
 #### `MAX_SCORE`
 
-This is a large value, used by the node scoring functions as an initial value.
+This is a large value, used by the node scoring functions as an initial value. Due to the availability of "bonus" points, it's possible for a manoeuvre node to score higher than this value.
 
 The initial value is `99999`.
 
 #### `MIN_SCORE`
 
-This is a large, negative value, used by the node scoring functions when the solution is as bad as possible.
+This is a large, negative value, used by the node scoring functions when the solution is deemed to be so bad, it's not possible to work out *how* bad it is!
 
 The initial value is `-999999999`.
 
 #### `TIME_TO_NODE`
 
-TBD - how is this actually used?
+This is the number of seconds in the future that a mid-course correction node will be plotted.
+
+Previously, this was incremented after each correction node, so that corrections got further apart during a transfer. That functionality was removed and so this value is currently left unchanged. Future updates may reimplement the node increments or use it to specify precise times for certain nodes e.g. to apply a correction in the best position to perform an inclination change.
 
 The initial value is `900` seconds.
 
@@ -106,6 +108,7 @@ Of the input parameters, `destination` and `periapsis` must have sensible values
 If the orbit does reach the `destination`, the details of the orbit patch are compared to the input parameters. How this works:
 * The score is initialised as `MAX_SCORE`.
 * The score is reduced by the amount of delta-v (in m/s) required to burn the input `node`.
+* Points are added to the score if the estimated periapsis is close to target periapsis. These bonus points are small and vary depending on the difference (`3` for perfection, dropping to `1` at `2500`m difference, then dropping to `0` at `50000`m difference). The purpose of this is to encourage the function to find the perfect periapsis, particularly for small nodes.
 * The score is reduced by the estimated additional delta-v required to correct the periapsis after orbit insertion, assuming it is different from the target periapsis.
 * If `inclination` is not negative, the score is reduced by the estimated additional delta-v required to correct the orbit plane (`inclination` and `longitude_of_ascending_node`) following circularisation. If the input `longitude_of_ascending_node` is negative, the plane change is estimated assuming only the inclination needs correcting.
 
