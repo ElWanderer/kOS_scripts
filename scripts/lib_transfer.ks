@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.0 20161130").
+pOut("lib_transfer.ks v1.3.0 20161201").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -94,18 +94,18 @@ FUNCTION scoreNodeDestOrbit
 
     // bonus points for being close to target periapsis
     LOCAL pe_diff IS ABS(next_pe - pe).
-    IF pe_diff < 1000 { SET score TO score + 15. }
-    ELSE IF pe_diff < 25000 { SET score TO score + 5. }
+    IF pe_diff < 2500 { SET score TO score + 1 + (2 * ((2500-pe_diff)/2500)^2). }
+    ELSE IF pe_diff < 50000 { SET score TO score + ((50000-pe_diff)/50000)^2. }
 
-    // calculate additional delta-v required to correct periapsis after circularisation
+    // calculate additional delta-v required to correct periapsis after insertion burn
     LOCAL a0 IS dest:RADIUS + ((next_pe + pe) / 2).
     LOCAL v0 IS SQRT(dest:MU * ((2/r)-(1/a0))).
     LOCAL v1 IS SQRT(dest:MU/r).
     LOCAL dv_pe IS ABS(v1 - v0).
     SET score TO score - dv_pe.
 
-    // calculate additional delta-v required to correct orbit plane after circularisation
-    // and after correction of periapsis
+    // calculate additional delta-v required to correct orbit plane after insertion
+    // and correction of periapsis
     IF i >= 0 {
       IF lan < 0 { SET lan TO next_lan. }
       LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
@@ -267,6 +267,38 @@ FUNCTION nodeMoonToBody
   RETURN man_node.
 }
 
+FUNCTION orbitNeedsCorrection
+{
+  PARAMETER curr_orb,dest,pe,i,lan.
+
+  LOCAL orb_count IS orbitReachesBody(curr_orb,dest).
+  IF orb_count < 0 { RETURN TRUE. }
+  LOCAL orb IS futureOrbit(curr_orb,orb_count).
+
+  LOCAL orb_pe IS orb:PERIAPSIS.
+  LOCAL pe_diff IS ABS(orb_pe - pe).
+  LOCAL min_diff IS 1000 * 10^orb_count.
+  LOCAL min_pe IS 20000.
+  IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT + 15000. }
+
+  IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
+  ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
+  ELSE { SET min_diff TO min_diff * 25. }
+  IF pe_diff > min_diff { RETURN TRUE. }
+
+  IF orb_count = 0 {
+    // check inclination
+    LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,orb:INCLINATION,orb:LAN)).
+    IF ang > 0.05 {
+      // if we can find a suitable place to perform an inclination change, we can set
+      // TIME_TO_NODE to put the correction there
+      RETURN TRUE.
+    }
+  }
+
+  RETURN FALSE.
+}
+
 FUNCTION doTransfer
 {
   PARAMETER exit_mode, can_stage, dest, dest_pe, dest_i IS -1, dest_lan IS -1.
@@ -333,15 +365,8 @@ UNTIL rm = exit_mode
         ETA:PERIAPSIS < (TIME_TO_NODE + 900) { runMode(115). }
     ELSE {
       // check accuracy of orbit
-      // TBD - work out when we can sensibly try to change the inclination
-      LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
-      ADD mcc.
-      WAIT 0.
-      LOCAL orb_pe IS 0.
-      LOCAL orb_count IS orbitReachesBody(mcc:ORBIT,dest).
-      IF orb_count >= 0 { SET orb_pe TO futureOrbit(mcc:ORBIT,orb_count):PERIAPSIS. }
-      REMOVE mcc.
-      IF orb_count < 0 OR ABS(orb_pe - dest_pe) > (1000 * 25^orb_count) {
+      IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
+        LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
         LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
         improveNode(mcc,score_func).
         addNode(mcc).
@@ -351,10 +376,10 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 114 {
     IF HASNODE {
-      IF execNode(can_stage) { runMode(113). } ELSE { runMode(119,114). }
+      IF execNode(can_stage) { runMode(112). } ELSE { runMode(119,114). }
     } ELSE {
       IF BODY = dest { runMode(131). }
-      ELSE IF orbitReachesBody(SHIP:OBT,dest) > 0 { runMode(113). }
+      ELSE IF orbitReachesBody(SHIP:OBT,dest) > 0 { runMode(112). }
       ELSE { runMode(119,112). }
     }
   } ELSE IF rm = 115 {
