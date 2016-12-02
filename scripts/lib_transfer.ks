@@ -300,6 +300,14 @@ FUNCTION nodeMoonToBody
   RETURN man_node.
 }
 
+FUNCTION taEccOk
+{
+  PARAMETER orb, ta.
+  LOCAL e IS orb:ECCENTRICITY.
+  LOCAL x IS (e+COS(ta)) / (1 + (e * COS(ta))).
+  RETURN (x + SQRT(x^2 - 1)) >= 0
+}
+
 FUNCTION orbitNeedsCorrection
 {
   PARAMETER curr_orb,dest,pe,i,lan.
@@ -328,10 +336,15 @@ FUNCTION orbitNeedsCorrection
     ELSE IF VANG(orbitNormal(dest,i,lan),orbitNormal(dest,orb:INCLINATION,orb:LAN)) > 0.05 {
       LOCAL u_time IS TIME:SECONDS + 1.
       LOCAL n_ta1 IS taAN(u_time,orbitNormal(dest,i,lan)).
-      LOCAL eta1 IS secondsToTA(SHIP,u_time,n_ta1) + 1.
-      LOCAL eta2 IS secondsToTA(SHIP,u_time,mAngle(n_ta1 + 180)) + 1.
-      IF eta1 > 900 AND eta1 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta1. RETURN TRUE. }
-      IF eta2 > 900 AND eta2 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta2. RETURN TRUE. }
+      IF taEccOk(orb,n_ta1) { 
+        LOCAL eta1 IS secondsToTA(SHIP,u_time,n_ta1) + 1.
+        IF eta1 > 900 AND eta1 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta1. RETURN TRUE. }
+      }
+      LOCAL n_ta2 IS mAngle(n_ta1 + 180).
+      IF taEccOk(orb, n_ta2) {
+        LOCAL eta2 IS secondsToTA(SHIP,u_time,mAngle(n_ta1 + 180)) + 1.
+        IF eta2 > 900 AND eta2 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta2. RETURN TRUE. }
+      }
     }
   }
 
