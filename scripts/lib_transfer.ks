@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.0 20161201").
+pOut("lib_transfer.ks v1.3.0 20161202").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -78,45 +78,78 @@ FUNCTION orbitReachesBody
 
 FUNCTION scoreNodeDestOrbit
 {
-  PARAMETER dest, pe, i, lan, n.
+  PARAMETER dest, pe, i, lan, n, bs.
   LOCAL score IS 0.
 
   ADD n. WAIT 0.
   LOCAL orb IS n:ORBIT.
   LOCAL orb_count IS orbitReachesBody(orb,dest).
   IF orb_count >= 0 {
+    LOCAL min_pe IS 20000.
+    IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
+
     SET score TO MAX_SCORE - nodeDV(n).
-    LOCAL r IS dest:RADIUS + pe.
+
     LOCAL next_orb IS futureOrbit(orb,orb_count).
     LOCAL next_pe IS next_orb:PERIAPSIS.
     LOCAL next_i IS next_orb:INCLINATION.
     LOCAL next_lan IS next_orb:LAN.
 
-    // bonus points for being close to target periapsis
-    LOCAL pe_diff IS ABS(next_pe - pe).
-    IF pe_diff < 2500 { SET score TO score + 1 + (2 * ((2500-pe_diff)/2500)^2). }
-    ELSE IF pe_diff < 50000 { SET score TO score + ((50000-pe_diff)/50000)^2. }
+    IF pe < min_pe {
 
-    // calculate additional delta-v required to correct periapsis after insertion burn
-    LOCAL a0 IS dest:RADIUS + ((next_pe + pe) / 2).
-    LOCAL v0 IS SQRT(dest:MU * ((2/r)-(1/a0))).
-    LOCAL v1 IS SQRT(dest:MU/r).
-    LOCAL dv_pe IS ABS(v1 - v0).
-    SET score TO score - dv_pe.
+      // target periapsis is below minimum or inside atmosphere
+      // assume we are landing/re-entering, so forget everything else and
+      // add large bonus points if close to target periapsis, otherwise
+      // apply a penalty
+      LOCAL pe_diff IS ABS(next_pe - pe).
+      IF pe_diff < 2500 { SET score TO score + (10 * SQRT(2500-pe_diff)). }
+      ELSE { SET score TO score - SQRT(pe_diff / 10). }
 
-    // calculate additional delta-v required to correct orbit plane after insertion
-    // and correction of periapsis
-    IF i >= 0 {
-      IF lan < 0 { SET lan TO next_lan. }
-      LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
-      LOCAL v_circ IS SQRT(dest:MU/r).
-      LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
-      SET score TO score - dv_inc.
+    } ELSE {
+
+      // target periapsis is above minimum so assume we are inserting into orbit
+
+      IF next_pe < min_pe {
+        // predicted periapsis is below minimum or inside atmosphere (but 
+        // target is not) - subtract large penalty points
+        SET score TO score - SQRT((min_pe - next_pe) / 10).
+      }
+
+      LOCAL r0 IS dest:RADIUS + next_pe.
+      LOCAL r1 IS dest:RADIUS + pe.
+
+      // calculate delta-v required for insertion burn at periapsis
+      LOCAL a0 IS dest:RADIUS + ((next_pe + next_orb:APOAPSIS) / 2).
+      LOCAL v0 IS SQRT(dest:MU * ((2/r0)-(1/a0))).
+      LOCAL a1 IS dest:RADIUS + ((next_pe + pe) / 2).
+      LOCAL v1 IS SQRT(dest:MU * ((2/r0)-(1/a1))).
+      LOCAL dv_oi IS ABS(v1 - v0).
+      SET score TO score - dv_oi.
+
+      // calculate additional delta-v required to correct periapsis after insertion burn
+      LOCAL v2 IS SQRT(dest:MU * ((2/r1)-(1/a1))).
+      LOCAL v3 IS SQRT(dest:MU/r1).
+      LOCAL dv_pe IS ABS(v3 - v2).
+      SET score TO score - dv_pe.
+
+      // calculate additional delta-v required to correct orbit plane after insertion
+      // and correction of periapsis
+      IF i >= 0 {
+        IF lan < 0 { SET lan TO next_lan. }
+        LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
+        LOCAL v_circ IS SQRT(dest:MU/r).
+        LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
+        SET score TO score - dv_inc.
+      }
+
+      // TBD - check for other safety issues (e.g. orbit ranges of satellites)
     }
 
-  } ELSE IF dest:HASBODY {
-    // base score on how close we get to destination within orbit of its parent body
-    // if we don't reach the parent, try its parent and so on...
+  } ELSE IF bs < 0 AND dest:HASBODY {
+
+    // If we haven't yet got a node that reaches the desination's sphere of influence,
+    // base score on how close we get to destination within orbit of its parent body.
+    // If we don't reach the parent, try its parent and so on...
     LOCAL pb IS dest:BODY.
     SET orb_count TO orbitReachesBody(orb,pb).
     UNTIL orb_count >= 0 OR NOT pb:HASBODY {
@@ -139,7 +172,7 @@ FUNCTION scoreNodeDestOrbit
 FUNCTION updateBest
 {
   PARAMETER score_func, nn, bn, bs.
-  LOCAL ns IS score_func(nn).
+  LOCAL ns IS score_func(nn, bs).
   IF ns > bs { nodeCopy(nn, bn). }
   RETURN MAX(ns, bs).
 }
@@ -156,7 +189,7 @@ FUNCTION improveNode
   LOCAL ubn IS updateBest@:BIND(score_func).
 
   LOCAL best_node IS newNodeByDiff(n,0,0,0,0).
-  LOCAL best_score IS score_func(best_node).
+  LOCAL best_score IS score_func(best_node,MIN_SCORE).
   LOCAL orig_score IS best_score.
 
   // start by trying a set of adjustments to just one node element at a time
@@ -193,8 +226,8 @@ FUNCTION improveNode
       SET best_score TO ubn(newNodeByDiff(n,0,r_diff,n_diff,p_diff), best_node, best_score).
     } } }
 
-    IF best_score > curr_score { nodeCopy(best_node, n). }
-    ELSE IF dv_delta < 0.01 { SET done TO TRUE. }
+    IF ROUND(best_score,3) > ROUND(curr_score,3) { nodeCopy(best_node, n). }
+    ELSE IF dv_delta < 0.02 { SET done TO TRUE. }
     ELSE { SET dv_delta TO dv_delta / 2. }
   }
 }
@@ -282,7 +315,7 @@ FUNCTION orbitNeedsCorrection
   LOCAL pe_diff IS ABS(orb_pe - pe).
   LOCAL min_diff IS 1000 * 10^orb_count.
   LOCAL min_pe IS 20000.
-  IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT + 15000. }
+  IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
 
   IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
   ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
@@ -371,9 +404,11 @@ UNTIL rm = exit_mode
       LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
       LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
       improveNode(mcc,score_func).
-      addNode(mcc).
-      pOut("Mid-course correction node added.").
-      runMode(114).
+      IF nodeDV(mcc) >= 0.2 {
+        addNode(mcc).
+        pOut("Mid-course correction node added.").
+        runMode(114).
+      } ELSE { runMode(115). }
     } ELSE { runMode(115). }
   } ELSE IF rm = 114 {
     IF HASNODE {
