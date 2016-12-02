@@ -97,7 +97,7 @@ The optional parameter `count` is an internal counter. It is defaulted to `0` if
 
 Note - the return value `count` can be used to look-up the orbit patch via the `futureOrbit()` function.
 
-#### `scoreNodeDestOrbit(destination, periapsis, inclination, longitude_of_ascending_node, node)`
+#### `scoreNodeDestOrbit(destination, periapsis, inclination, longitude_of_ascending_node, node, best_score)`
 
 This function returns a score for the input `node` based on how closely the resultant orbit from executing the node perfectly will resemble the target parameters.
 
@@ -107,12 +107,20 @@ Of the input parameters, `destination` and `periapsis` must have sensible values
 
 If the orbit does reach the `destination`, the details of the orbit patch are compared to the input parameters. How this works:
 * The score is initialised as `MAX_SCORE`.
-* The score is reduced by the amount of delta-v (in m/s) required to burn the input `node`.
-* Points are added to the score if the estimated periapsis is close to target periapsis. These bonus points are small and vary depending on the difference (`3` for perfection, dropping to `1` at `2500`m difference, then dropping to `0` at `50000`m difference). The purpose of this is to encourage the function to find the perfect periapsis, particularly for small nodes.
-* The score is reduced by the estimated additional delta-v required to correct the periapsis after orbit insertion, assuming it is different from the target periapsis.
-* If `inclination` is not negative, the score is reduced by the estimated additional delta-v required to correct the orbit plane (`inclination` and `longitude_of_ascending_node`) following circularisation. If the input `longitude_of_ascending_node` is negative, the plane change is estimated assuming only the inclination needs correcting.
+* The trajectory is then scored, depending on whether the target periapsis is below the 'minimum altitude' (120% of the atmosphere height, or `20`km for airless bodies). If the target periapsis is below the minimum, we assume we are landing/re-entering and try to encourage high accuracy:
+  * we add large bonus points if the predicted periapsis is within `2500`m of the target periapsis, with the bonus rising to a maximum of `500` if the two are aligned.
+  * otherwise a penalty is subtracted from the score, based on the discrepancy between the two values.
+  * In both cases, square root functions are used to try to smooth the points curves - in particular the penalty grows slowly as the discrepancy increases so that the overall score shouldn't become negative (and therefore should always score higher than a trajectory that misses the target altogether).
+* If the target periapsis is above the minimum, we assume that we will be entering orbit. The exact periapsis is not so important, compared to making sure that the trajectory is not sub-orbital and minimising delta-v expenditure:
+  * If the predicted periapsis is below the minimum, a penalty is subtracted from the score, based on the discrepancy between the two values.
+  * The score is reduced by the amount of delta-v (in m/s) required to burn the input `node`.
+  * The score is reduced by the amount of delta-v (in m/s) required to make an orbital insertion at the estimated periapsis, with the other side of the orbit being set to the target periapsis (these two values can/will usually be different).
+  * The score is reduced by the estimated additional delta-v (in m/s) required to correct the periapsis after orbit insertion, assuming it is different from the target periapsis.
+  * If `inclination` is not negative, the score is reduced by the estimated additional delta-v required to correct the orbit plane (`inclination` and `longitude_of_ascending_node`) following circularisation. If the input `longitude_of_ascending_node` is negative, the plane change is estimated assuming only the inclination needs correcting.
 
-If the orbit does not reach the `destination`, the function returns a negative score based on the closest approach between the craft and the destination, in the sphere of influence of the destination's parent body, in km. If the trajectory does not reach the destination's parent body, it will consider the parent bodies, and will continue up the hierarchy of bodies until either an orbit in the correct sphere of influence is found or we run out of bodies. 
+If the orbit does not reach the `destination`, the function checks the value of `best_score`. If we have a `best_score` with a positive value, we already have another node that reaches the destination, therefore we can assign this one `MIN_SCORE` and move on.
+
+If we have not yet found a trajectory that reaches the target, the function assigns a negative score based on the closest approach between the craft and the destination, in the sphere of influence of the destination's parent body, in km. If the trajectory does not reach the destination's parent body, it will consider the parent bodies, and will continue up the hierarchy of bodies until either an orbit in the correct sphere of influence is found or we run out of bodies. 
 
 For example, if a transfer is being made to Ike from Kerbin, but does not reach Ike itself:
 * The function will first check to see if the trajectory enters Duna's sphere of influence. If it does, the score will be based on the closest approach between the craft's trajectory within Duna's sphere of influence and Ike.
