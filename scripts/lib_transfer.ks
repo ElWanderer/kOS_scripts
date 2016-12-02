@@ -137,7 +137,7 @@ FUNCTION scoreNodeDestOrbit
       IF i >= 0 {
         IF lan < 0 { SET lan TO next_lan. }
         LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
-        LOCAL v_circ IS SQRT(dest:MU/r).
+        LOCAL v_circ IS SQRT(dest:MU/r1).
         LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
         SET score TO score - dv_inc.
       }
