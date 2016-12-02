@@ -304,6 +304,7 @@ FUNCTION taEccOk
 {
   PARAMETER orb, ta.
   LOCAL e IS orb:ECCENTRICITY.
+  IF e < 1 { RETURN TRUE. }
   LOCAL x IS (e+COS(ta)) / (1 + (e * COS(ta))).
   RETURN (x + SQRT(x^2 - 1)) >= 0
 }
