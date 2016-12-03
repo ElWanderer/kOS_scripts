@@ -1,31 +1,25 @@
 @LAZYGLOBAL OFF.
-
-
-pOut("lib_hoh.ks v1.0 20160714").
+pOut("lib_hoh.ks v1.0.1 20161130").
 
 RUNONCEPATH(loadScript("lib_orbit.ks")).
 
 FUNCTION nodeHohmann
 {
-  PARAMETER t, u_time.
-  PARAMETER t_pe IS 0.
+  PARAMETER t, u_time, t_pe IS 0.
 
   LOCAL o1 IS ORBITAT(SHIP,u_time).
   LOCAL o2 IS ORBITAT(t,u_time).
   LOCAL b IS o1:BODY.
-  LOCAL mu IS b:MU.
   LOCAL r1 IS o1:SEMIMAJORAXIS.
   LOCAL r2 IS o2:SEMIMAJORAXIS + t_pe.
 
-  LOCAL dv IS SQRT(mu/r1) * (SQRT((2*r2)/(r1+r2)) -1).
+  LOCAL dv IS SQRT(b:MU/r1) * (SQRT((2*r2)/(r1+r2)) -1).
   IF r2 < r1 { SET dv TO -dv. }
 
-  LOCAL transfer_t IS CONSTANT:PI * SQRT( ((r1+r2)^3) / (8 * mu) ).
-  LOCAL desired_phi IS 180 - (360 * transfer_t / o2:PERIOD).
+  LOCAL transfer_t IS CONSTANT:PI * SQRT( ((r1+r2)^3) / (8 * b:MU) ).
+  LOCAL desired_phi IS 180 - (transfer_t * 360 / o2:PERIOD).
 
-  LOCAL angv1 IS 360 / o1:PERIOD.
-  LOCAL angv2 IS 360 / o2:PERIOD.
-  LOCAL rel_angv IS angv1 - angv2.
+  LOCAL rel_angv IS (360 / o1:PERIOD) - (360 / o2:PERIOD).
 
   LOCAL s_pos IS posAt(SHIP, u_time).
   LOCAL t_pos IS posAt(t, u_time).
