@@ -1,16 +1,18 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_transfer.ks v1.2.5 20161104").
+pOut("lib_transfer.ks v1.3.0 20161202").
 
 FOR f IN LIST(
   "lib_orbit.ks",
   "lib_burn.ks",
+  "lib_orbit_match.ks",
   "lib_runmode.ks",
-  "lib_hoh.ks"
+  "lib_hoh.ks",
+  "lib_ca.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL CURRENT_BODY IS BODY.
 GLOBAL MAX_SCORE IS 99999.
+GLOBAL MIN_SCORE IS -999999999.
 GLOBAL TIME_TO_NODE IS 900.
 
 FUNCTION bodyChange
@@ -33,20 +35,41 @@ FUNCTION futureOrbit
   PARAMETER init_orb, count.
 
   LOCAL orb IS init_orb.
-  LOCAL i IS 1.
-  UNTIL i > count {
+  LOCAL i IS 0.
+  UNTIL i >= count {
+    IF NOT orb:HASNEXTPATCH {
+      pOut("WARNING: futureOrbit("+count+") called but patch "+i+" is the last.").
+      SET i TO count.
+    } ELSE { SET orb TO orb:NEXTPATCH. }
     SET i TO i + 1.
-    IF orb:HASNEXTPATCH { SET orb TO orb:NEXTPATCH. }
-    ELSE { pOut("WARNING: futureOrbit("+count+") called but patch "+(i-2)+" is the last."). }
   }
   
   RETURN orb.
 }
 
+FUNCTION futureOrbitETATime
+{
+  PARAMETER init_orb, count.
+
+  LOCAL eta_time IS TIME:SECONDS.
+  LOCAL orb IS init_orb.
+  LOCAL i IS 0.
+  UNTIL i >= count {
+    IF orb:HASNEXTPATCH {
+      SET eta_time TO eta_time + orb:NEXTPATCHETA.
+      SET orb TO orb:NEXTPATCH.
+    } ELSE {
+      SET eta_time TO eta_time + orb:PERIOD.
+      SET i TO count.
+    }
+    SET i TO i + 1.
+  }
+  RETURN eta_time.
+}
+
 FUNCTION orbitReachesBody
 {
-  PARAMETER orb, dest.
-  PARAMETER count IS 0.
+  PARAMETER orb, dest, count IS 0.
 
   IF orb:BODY = dest { RETURN count. }
   ELSE IF orb:HASNEXTPATCH { RETURN orbitReachesBody(orb:NEXTPATCH,dest,count+1). }
@@ -55,48 +78,92 @@ FUNCTION orbitReachesBody
 
 FUNCTION scoreNodeDestOrbit
 {
-  PARAMETER dest, pe, i, lan.
-  PARAMETER n.
+  PARAMETER dest, pe, i, lan, n, bs.
   LOCAL score IS 0.
 
   ADD n. WAIT 0.
   LOCAL orb IS n:ORBIT.
   LOCAL orb_count IS orbitReachesBody(orb,dest).
   IF orb_count >= 0 {
+    LOCAL min_pe IS 20000.
+    IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
+
     SET score TO MAX_SCORE - nodeDV(n).
+
     LOCAL next_orb IS futureOrbit(orb,orb_count).
     LOCAL next_pe IS next_orb:PERIAPSIS.
     LOCAL next_i IS next_orb:INCLINATION.
     LOCAL next_lan IS next_orb:LAN.
 
-    IF i >= 0 {
-      LOCAL i_diff IS ABS(next_i - i).
-      LOCAL lan_diff IS ABS(next_lan - lan).
-      IF lan >=0 AND lan_diff > 90 AND lan_diff < 270 AND i > 0 AND i < 180 {
-        SET i_diff TO next_i + i.
+    IF pe < min_pe {
+
+      // target periapsis is below minimum or inside atmosphere
+      // assume we are landing/re-entering, so forget everything else and
+      // add large bonus points if close to target periapsis, otherwise
+      // apply a penalty
+      LOCAL pe_diff IS ABS(next_pe - pe).
+      IF pe_diff < 2500 { SET score TO score + (10 * SQRT(2500-pe_diff)). }
+      ELSE { SET score TO score - SQRT(pe_diff / 10). }
+
+    } ELSE {
+
+      // target periapsis is above minimum so assume we are inserting into orbit
+
+      IF next_pe < min_pe {
+        // predicted periapsis is below minimum or inside atmosphere (but 
+        // target is not) - subtract large penalty points
+        SET score TO score - SQRT((min_pe - next_pe) / 10).
       }
-      SET score TO score - (i_diff * 100).
+
+      LOCAL r0 IS dest:RADIUS + next_pe.
+      LOCAL r1 IS dest:RADIUS + pe.
+
+      // calculate delta-v required for insertion burn at periapsis
+      LOCAL a0 IS dest:RADIUS + ((next_pe + next_orb:APOAPSIS) / 2).
+      LOCAL v0 IS SQRT(dest:MU * ((2/r0)-(1/a0))).
+      LOCAL a1 IS dest:RADIUS + ((next_pe + pe) / 2).
+      LOCAL v1 IS SQRT(dest:MU * ((2/r0)-(1/a1))).
+      LOCAL dv_oi IS ABS(v1 - v0).
+      SET score TO score - dv_oi.
+
+      // calculate additional delta-v required to correct periapsis after insertion burn
+      LOCAL v2 IS SQRT(dest:MU * ((2/r1)-(1/a1))).
+      LOCAL v3 IS SQRT(dest:MU/r1).
+      LOCAL dv_pe IS ABS(v3 - v2).
+      SET score TO score - dv_pe.
+
+      // calculate additional delta-v required to correct orbit plane after insertion
+      // and correction of periapsis
+      IF i >= 0 {
+        IF lan < 0 { SET lan TO next_lan. }
+        LOCAL ang IS VANG(orbitNormal(dest,i,lan),orbitNormal(dest,next_i,next_lan)).
+        LOCAL v_circ IS SQRT(dest:MU/r1).
+        LOCAL dv_inc IS 2 * v_circ * SIN(ang/2).
+        SET score TO score - dv_inc.
+      }
+
+      // TBD - check for other safety issues (e.g. orbit ranges of satellites)
     }
 
-    SET score TO score - (ABS(next_pe - pe) / 10).
-    
-    LOCAL min_pe IS 20000.
-    IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT + 15000. }
-    IF next_pe < min_pe AND pe > min_pe { SET score TO score - ((5000 + min_pe - next_pe) / 250). }
+  } ELSE IF bs < 0 AND dest:HASBODY {
 
-  } ELSE {
-    // assume we're trying to meet destination at apsis of our transfer orbit
-    // TBD - work out which orbit we should look at
-    LOCAL apsis_secs IS orb:PERIOD / 2.
-    LOCAL pe_secs IS secondsToTA(SHIP, TIME:SECONDS + n:ETA + 1, 0) + 1.
-    IF orb:ECCENTRICITY > 1 { IF pe_secs > 0 { SET apsis_secs TO pe_secs. } }
-    ELSE { SET apsis_secs TO MIN(pe_secs,secondsToTA(SHIP, TIME:SECONDS + n:ETA + 1, 180) + 1). }
-    LOCAL apsis_time IS TIME:SECONDS + n:ETA + apsis_secs.
-    LOCAL s_pos IS posAt(SHIP,apsis_time).
-    LOCAL d_pos IS posAt(dest,apsis_time).
-    LOCAL sep_dist IS ABS((s_pos - d_pos):MAG).
-    SET score TO -sep_dist.
-  }
+    // If we haven't yet got a node that reaches the desination's sphere of influence,
+    // base score on how close we get to destination within orbit of its parent body.
+    // If we don't reach the parent, try its parent and so on...
+    LOCAL pb IS dest:BODY.
+    SET orb_count TO orbitReachesBody(orb,pb).
+    UNTIL orb_count >= 0 OR NOT pb:HASBODY {
+      SET dest TO pb.
+      SET pb TO pb:BODY.
+      SET orb_count TO orbitReachesBody(orb,pb).
+    }
+    IF orb_count >= 0 {
+      LOCAL u_time1 IS futureOrbitETATime(orb,orb_count).
+      LOCAL u_time2 IS futureOrbitETATime(orb,orb_count+1).
+      SET score TO -targetDist(dest,targetCA(dest,u_time1,u_time2,5,10)) / 1000.
+    } ELSE { SET score TO MIN_SCORE. }
+
+  } ELSE { SET score TO MIN_SCORE. }
   REMOVE n.
 
   RETURN score.
@@ -105,9 +172,15 @@ FUNCTION scoreNodeDestOrbit
 FUNCTION updateBest
 {
   PARAMETER score_func, nn, bn, bs.
-  LOCAL ns IS score_func(nn).
+  LOCAL ns IS score_func(nn, bs).
   IF ns > bs { nodeCopy(nn, bn). }
   RETURN MAX(ns, bs).
+}
+
+FUNCTION newNodeByDiff
+{
+  PARAMETER n, eta_diff, rad_diff, nrm_diff, pro_diff.
+  RETURN NODE(TIME:SECONDS+n:ETA+eta_diff, n:RADIALOUT+rad_diff, n:NORMAL+nrm_diff, n:PROGRADE+pro_diff).
 }
 
 FUNCTION improveNode
@@ -115,9 +188,8 @@ FUNCTION improveNode
   PARAMETER n, score_func.
   LOCAL ubn IS updateBest@:BIND(score_func).
 
-  LOCAL man_time IS TIME:SECONDS + n:ETA.
-  LOCAL best_node IS NODE(man_time,n:RADIALOUT,n:NORMAL,n:PROGRADE).
-  LOCAL best_score IS score_func(best_node).
+  LOCAL best_node IS newNodeByDiff(n,0,0,0,0).
+  LOCAL best_score IS score_func(best_node,MIN_SCORE).
   LOCAL orig_score IS best_score.
 
   // start by trying a set of adjustments to just one node element at a time
@@ -129,14 +201,9 @@ FUNCTION improveNode
       LOCAL curr_score IS best_score.
       LOCAL dv_delta IS mult * 2^dv_power.
 
-      LOCAL new_node IS NODE(man_time,n:RADIALOUT,n:NORMAL,n:PROGRADE + dv_delta).
-      SET best_score TO ubn(new_node, best_node, best_score).
-
-      SET new_node TO NODE(man_time,n:RADIALOUT,n:NORMAL + dv_delta,n:PROGRADE).
-      SET best_score TO ubn(new_node, best_node, best_score).
-
-      SET new_node TO NODE(man_time,n:RADIALOUT + dv_delta,n:NORMAL,n:PROGRADE).
-      SET best_score TO ubn(new_node, best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,0,0,dv_delta), best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,0,dv_delta,0), best_node, best_score).
+      SET best_score TO ubn(newNodeByDiff(n,0,dv_delta,0,0), best_node, best_score).
 
       IF best_score > curr_score { SET dv_delta_power TO dv_power. }
     }
@@ -152,46 +219,34 @@ FUNCTION improveNode
   UNTIL done {
     LOCAL curr_score IS best_score.
 
-    FOR p_loop IN RANGE(-1,2,1) {
-      LOCAL new_pro IS n:PROGRADE + (dv_delta * p_loop).
-      FOR n_loop IN RANGE(-1,2,1) {
-        LOCAL new_norm IS n:NORMAL + (dv_delta * n_loop).
-        FOR r_loop IN RANGE(-1,2,1) {
-          LOCAL new_rad IS n:RADIALOUT + (dv_delta * r_loop).
-          SET best_score TO ubn(NODE(man_time,new_rad,new_norm,new_pro), best_node, best_score).
-        }
-      }
-    }
+    FOR p_loop IN RANGE(-1,2,1) { FOR n_loop IN RANGE(-1,2,1) { FOR r_loop IN RANGE(-1,2,1) {
+      LOCAL p_diff IS dv_delta * p_loop.
+      LOCAL n_diff IS dv_delta * n_loop.
+      LOCAL r_diff IS dv_delta * r_loop.
+      SET best_score TO ubn(newNodeByDiff(n,0,r_diff,n_diff,p_diff), best_node, best_score).
+    } } }
 
-    IF best_score > curr_score { nodeCopy(best_node, n). }
-    ELSE IF dv_delta < 0.01 { SET done TO TRUE. }
+    IF ROUND(best_score,3) > ROUND(curr_score,3) { nodeCopy(best_node, n). }
+    ELSE IF dv_delta < 0.02 { SET done TO TRUE. }
     ELSE { SET dv_delta TO dv_delta / 2. }
   }
 }
 
 FUNCTION nodeBodyToMoon
 {
-  PARAMETER u_time, dest, dest_pe.
-  PARAMETER i IS -1, lan IS -1.
+  PARAMETER u_time, dest, dest_pe, i IS -1, lan IS -1.
 
-  LOCAL t_pe IS 0.
-  IF i < 45 { SET t_pe TO dest:RADIUS + dest_pe. }
-  ELSE IF i > 135 { SET t_pe TO -dest:RADIUS - dest_pe. }
+  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MIN(i,0)).
 
   LOCAL hnode IS nodeHohmann(dest, u_time, t_pe).
-
-  LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan).
-  improveNode(hnode,score_func).
+  improveNode(hnode,scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan)).
 
   RETURN hnode.
 }
 
-
 FUNCTION nodeMoonToBody
 {
-  PARAMETER u_time.
-  PARAMETER moon.
-  PARAMETER dest_pe.
+  PARAMETER u_time, moon, dest_pe, i IS -1, lan IS -1.
 
   LOCAL dest IS moon:OBT:BODY.
 
@@ -213,9 +268,10 @@ FUNCTION nodeMoonToBody
   LOCAL e IS 0.
   IF energy >= 0 { SET e TO SQRT(1 + (2 * energy * h^2 / mu^2)). }
   ELSE { SET e TO (r_ap - r_pe) / (r_ap + r_pe). }
+
   LOCAL theta_eject IS 100.
   IF e > 1 { SET theta_eject TO ARCCOS(-1/e). }
-  ELSE { pOut("Cannot calculate ejection angle as required orbit is not a hyperbola."). }
+  ELSE { pOut("WARNING: Cannot calculate ejection angle as required orbit is not a hyperbola."). }
 
   LOCAL man_node IS NODE(u_time, 0, 0, ABS(dv)).
 
@@ -235,7 +291,7 @@ FUNCTION nodeMoonToBody
     IF ABS(s_ang - theta_eject) < 0.5 AND eff_i < 25 {
       SET done TO TRUE.
       SET man_node:ETA TO c_time - TIME:SECONDS.
-      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,-1,-1).
+      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan).
       improveNode(man_node,score_func).
     }
     SET c_time TO c_time + 15.
@@ -244,13 +300,61 @@ FUNCTION nodeMoonToBody
   RETURN man_node.
 }
 
+FUNCTION taEccOk
+{
+  PARAMETER orb, ta.
+  LOCAL e IS orb:ECCENTRICITY.
+  IF e < 1 { RETURN TRUE. }
+  LOCAL x IS (e+COS(ta)) / (1 + (e * COS(ta))).
+  RETURN (x + SQRT(x^2 - 1)) >= 0.
+}
+
+FUNCTION orbitNeedsCorrection
+{
+  PARAMETER curr_orb,dest,pe,i,lan.
+
+  IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < (TIME_TO_NODE + 900)) OR
+      ETA:PERIAPSIS < (TIME_TO_NODE + 900) { RETURN FALSE. }
+
+  LOCAL orb_count IS orbitReachesBody(curr_orb,dest).
+  IF orb_count < 0 { RETURN TRUE. }
+  LOCAL orb IS futureOrbit(curr_orb,orb_count).
+
+  LOCAL orb_pe IS orb:PERIAPSIS.
+  LOCAL pe_diff IS ABS(orb_pe - pe).
+  LOCAL min_diff IS 1000 * 10^orb_count.
+  LOCAL min_pe IS 20000.
+  IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
+
+  IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
+  ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
+  ELSE { SET min_diff TO min_diff * 25. }
+  IF pe_diff > min_diff { RETURN TRUE. }
+
+  // check if/when we can change inclination
+  IF orb_count = 0 AND i >= 0 {
+    IF lan < 0 { IF ABS(i - orb:INCLINATION) > 0.05 { RETURN TRUE. } }
+    ELSE IF VANG(orbitNormal(dest,i,lan),orbitNormal(dest,orb:INCLINATION,orb:LAN)) > 0.05 {
+      LOCAL u_time IS TIME:SECONDS + 1.
+      LOCAL n_ta1 IS taAN(u_time,orbitNormal(dest,i,lan)).
+      IF taEccOk(orb,n_ta1) { 
+        LOCAL eta1 IS secondsToTA(SHIP,u_time,n_ta1) + 1.
+        IF eta1 > 900 AND eta1 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta1. RETURN TRUE. }
+      }
+      LOCAL n_ta2 IS mAngle(n_ta1 + 180).
+      IF taEccOk(orb, n_ta2) {
+        LOCAL eta2 IS secondsToTA(SHIP,u_time,mAngle(n_ta1 + 180)) + 1.
+        IF eta2 > 900 AND eta2 < (ETA:PERIAPSIS - 900) { SET TIME_TO_NODE TO eta2. RETURN TRUE. }
+      }
+    }
+  }
+
+  RETURN FALSE.
+}
 
 FUNCTION doTransfer
 {
-  PARAMETER exit_mode, can_stage.
-  PARAMETER dest, dest_pe.
-  PARAMETER dest_i IS -1.
-  PARAMETER dest_lan IS -1.
+  PARAMETER exit_mode, can_stage, dest, dest_pe, dest_i IS -1, dest_lan IS -1.
 
   LOCAL LOCK rm TO runMode().
 
@@ -270,7 +374,7 @@ UNTIL rm = exit_mode
       SET n1 TO nodeBodyToMoon(t_time,dest,dest_pe,dest_i,dest_lan).
     } ELSE IF dest = BODY:OBT:BODY {
       // moon to planet (or planet to sun)
-      SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe).
+      SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe,dest_i,dest_lan).
     } ELSE {
       // other transfers not supported yet - TBD
     }
@@ -298,11 +402,9 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 111 {
     // check if we've appeared in the orbit of the destination beyond the periapsis
-    LOCAL secs_to_pe IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
-    IF BODY = dest AND 
-      (secs_to_pe < 0 OR (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < secs_to_pe)) {
-      runMode(131).
-    } ELSE { runMode(112). }
+    LOCAL pe_eta IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
+    IF BODY = dest AND (pe_eta < 0 OR (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < pe_eta)) { runMode(131). }
+    ELSE { runMode(112). }
   } ELSE IF rm = 112 {
     SET TIME_TO_NODE TO 900.
     runMode(113).
@@ -311,33 +413,23 @@ UNTIL rm = exit_mode
       steerSun().
       WAIT UNTIL steerOk().
     }
-    // check node would not be too close to SoI transition / periapsis before continuing
-    IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < (TIME_TO_NODE + 900)) OR
-        ETA:PERIAPSIS < (TIME_TO_NODE + 900) { runMode(115). }
-    ELSE {
-      // check accuracy of orbit
-      // TBD - work out when we can sensibly try to change the inclination
+    // check accuracy of orbit
+    IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
       LOCAL mcc IS NODE(TIME:SECONDS+TIME_TO_NODE,0,0,0).
-      ADD mcc.
-      WAIT 0.
-      LOCAL orb_pe IS 0.
-      LOCAL orb_count IS orbitReachesBody(mcc:ORBIT,dest).
-      IF orb_count >= 0 { SET orb_pe TO futureOrbit(mcc:ORBIT,orb_count):PERIAPSIS. }
-      REMOVE mcc.
-      IF orb_count < 0 OR ABS(orb_pe - dest_pe) > (1000 * 25^orb_count) {
-        LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
-        improveNode(mcc,score_func).
+      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
+      improveNode(mcc,score_func).
+      IF nodeDV(mcc) >= 0.2 {
         addNode(mcc).
         pOut("Mid-course correction node added.").
         runMode(114).
       } ELSE { runMode(115). }
-    }
+    } ELSE { runMode(115). }
   } ELSE IF rm = 114 {
     IF HASNODE {
-      IF execNode(can_stage) { runMode(113). } ELSE { runMode(119,114). }
+      IF execNode(can_stage) { runMode(112). } ELSE { runMode(119,114). }
     } ELSE {
       IF BODY = dest { runMode(131). }
-      ELSE IF orbitReachesBody(SHIP:OBT,dest) > 0 { runMode(113). }
+      ELSE IF orbitReachesBody(SHIP:OBT,dest) > 0 { runMode(112). }
       ELSE { runMode(119,112). }
     }
   } ELSE IF rm = 115 {
@@ -371,12 +463,9 @@ UNTIL rm = exit_mode
     IF BODY:ATM:EXISTS AND PERIAPSIS < BODY:ATM:HEIGHT { runMode(133). }
     ELSE {
       // enter orbit, but first check in case we're beyond the periapsis
-      LOCAL secs_to_pe IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
-      IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < secs_to_pe) OR secs_to_pe < 0 {
-        SET secs_to_pe TO 60.
-      }
-
-      LOCAL oi IS nodeAlterOrbit(TIME:SECONDS+secs_to_pe,dest_pe).
+      LOCAL pe_eta IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
+      IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < pe_eta) OR pe_eta < 0 { SET pe_eta TO 60. }
+      LOCAL oi IS nodeAlterOrbit(TIME:SECONDS+pe_eta,dest_pe).
       addNode(oi).
       pOut(dest:NAME + " Orbit Insertion node added.").
       runMode(132).

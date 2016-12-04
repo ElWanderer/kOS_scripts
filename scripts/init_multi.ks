@@ -5,7 +5,7 @@ GLOBAL VOLUME_NAMES IS LIST().
 listVolumes().
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
-pOut("init_multi.ks v1.1.1 20160902").
+pOut("init_multi.ks v1.1.1 20161130").
 pVolumes().
 
 FUNCTION setVolumeList
