@@ -270,6 +270,8 @@ The processing has several considerations that it goes through in turn until it 
 * if the current orbit has a periapsis at the destination that is below the 'safe minimum' (`20`km above sea-level or `15`km above the atmosphere height, if there is one), but the desired periapsis is above that minimum, `TRUE` is returned immediately.
 * the following table gives the maximum differences allowed between the target periapsis and the predicted periapsis. If the actual difference is greater than this, `TRUE` is returned immediately:
 
+Table of maximum allowed differences between currently-predicted periapsis and the target `periapsis` (more orbit patches than shown are considered, with the allowed difference being multiplied by `10` for each extra patch):
+
     // -----------------------+------+-------+--------+
     // Number of orbit patches|  0   |   1   |    2   |
     // until destination      |      |       |        |
