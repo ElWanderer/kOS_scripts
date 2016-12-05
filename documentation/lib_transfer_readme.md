@@ -222,10 +222,10 @@ Now the function will try adjusting all three delta-v elements of the manoeuvre 
         LOCAL p_diff IS dv_delta * p_loop.
         LOCAL n_diff IS dv_delta * n_loop.
         LOCAL r_diff IS dv_delta * r_loop.
-        SET best_score TO ubn(newNodeByDiff(n,0,r_diff,n_diff,p_diff), best_node, best_score).
+        SET best_score TO ubn(newNodeByDiff(node,0,r_diff,n_diff,p_diff), best_node, best_score).
       } } }
 
-      IF ROUND(best_score,3) > ROUND(curr_score,3) { nodeCopy(best_node, n). }
+      IF ROUND(best_score,3) > ROUND(curr_score,3) { nodeCopy(best_node, node). }
       ELSE IF dv_delta < 0.02 { SET done TO TRUE. }
       ELSE { SET dv_delta TO dv_delta / 2. }
     }
@@ -244,7 +244,12 @@ Note - the elements are adjusted together in order to try to find solutions that
 
 This function generates and returns a manoeuvre node that will transfer to the `destination` from its parent body, targeting an orbit that matches the input `periapsis`, `inclination` and `longitude_of_ascending_node` as best as possible.
 
-This calls `nodeHohmann()` from `lib_hoh.ks` to calculate a node for the required transfer orbit, then passes the node into `improveNode()`.
+This calls `nodeHohmann()` from `lib_hoh.ks` to calculate a node for the required transfer orbit, then passes the node into `improveNode()`. This is documented in the `lib_hoh_readme.md` file.
+
+The `target_periapsis` (reminder from `lib_hoh.ks`: if `target_periapsis` is specified, the transfer orbit's apsis will be that many metres further out than the centre of the target) passed in to `nodeHohmann()` is calculated via this line:
+
+    LOCAL target_periapsis IS (destination:RADIUS + periapsis) * COS(MIN(inclination,0)).
+The `MIN(inclination,1)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
 
 #### `nodeMoonToBody(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
 
