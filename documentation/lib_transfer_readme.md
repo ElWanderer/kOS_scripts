@@ -36,9 +36,11 @@ The initial value is `-999999999`.
 
 #### `TIME_TO_NODE`
 
-This is the number of seconds in the future that a mid-course correction node will be plotted.
+This is the number of seconds in the future that a mid-course correction node will be plotted. This is not used as a setting, it was always intended to be changed as necessary during a transfer.
 
-Previously, this was incremented after each correction node, so that corrections got further apart during a transfer. That functionality was removed and so this value is currently left unchanged. Future updates may reimplement the node increments or use it to specify precise times for certain nodes e.g. to apply a correction in the best position to perform an inclination change.
+Previously, this was incremented or doubled after each correction node, so that corrections got further apart during a single orbit patch, to avoid trying to perform too many during a transfer. That functionality has been removed.
+
+Currently, it is used to specify precise times for certain nodes e.g. to apply a correction in the best position to perform an inclination change.
 
 The initial value is `900` seconds.
 
@@ -101,7 +103,9 @@ Note - the return value `count` can be used to look-up the orbit patch via the `
 
 This function returns a score for the input `node` based on how closely the resultant orbit from executing the node perfectly will resemble the target parameters.
 
-Of the input parameters, `destination` and `periapsis` must have sensible values. The input `inclination` and `longitude_of_ascending_node` can be passed in as `-1` to tell the score function to ignore those orbital parameters.
+The input `inclination` and `longitude_of_ascending_node` can be passed in as `-1` to tell the score function to ignore those orbital parameters.
+
+The function `ADD`s the input `node` to the ship's flightpath, scores the orbit that results, then `REMOVE`s the `node` from the flightpath. To ensure that the `node`'s effect on the flightpath is definitely being calculated correctly, there is a `WAIT 0` after the addition. This means that the number of nodes that can be scored each second is limited by the number of physics ticks.
 
 `orbitReachesBody()` is called to see if the orbit resulting from the input `node` will actually reach the `destination`. Typically, orbits that do not reach the `destination` will have a negative score, whereas orbits that do will have a positive score.
 
@@ -131,19 +135,165 @@ If we could not determine a closest approach distance, `MIN_SCORE` is used inste
 
 The calculated score is returned.
 
-#### `TBD(TBD)`
+##### Notes
+
+Previously, the scoring function used to score based on how close the predicted periapsis, inclination and LAN values were to the desired values. This suffered because it was hard to work out how to score differences in metres and degrees together. The new scoring based almost entirely on delta-v is much better in this regard, though it does have some interesting foibles:
+
+* it can be cheaper in terms of delta-v (and therefore scores higher) to make no burn whatsoever and correct the difference in trajectory once arrived in orbit, than to make a correction burn 'now'. It was the realisation that this was actually a valid approach quite a lot of the time that led to the introduction of totalling all the delta-v requirements, then moderating them with bonus and penalty points under certain circumstances. The penalties are used to try to avoid trajectories that can't be corrected once arrived in orbit e.g. because you'll have crashed into the planet first. The bonuses are there to encourage accurate orbits when trying to re-enter.
+  * the corollary of this is that whatever is calling the scoring function has to be able to take into account that the 'best' manoeuvre node may be zero or very close to zero. Where this occurs, the resultant trajectory will not match the desired one.
+* missing the target altogether is still considered to be very bad. Because of this, the scoring function is still at the mercy of KSP's orbit transition detection.
+
+Currently, the only safety considerations relate to how close the trajectory comes to the destination body and/or its atmosphere. The orbit ranges of satellites of the destination are not considered. So far that has not been needed, but it would be important to implement this for some inter-planetary transfers e.g. if transferring to Duna, we do not want to end up in an orbit that shares the same inclination and altitude as Ike.
+
+#### `updateBest(score_function, new_node, best_node, best_score)`
+
+This function is used during manoeuvre node improvement. The input `new_node` is scored by calling the input `score_function`, and this new score is compared to the input `best_score`. If the `new_node` scores higher, `nodeCopy()` is called to overwrite the details of `best_node` with those of `new_node`.
+
+The new best score (which will be the same as the input `best_score` if the `new_node` did not score higher) is returned.
+
+#### `newNodeByDiff(node, eta_diff, radialout_diff, normal_diff, prograde_diff)`
+
+This function is used during manoeuvre node improvement. A new manoevure node is returned, one that is based on the details of the input `node` offset by the input differences.
+
+e.g. calling `newNodeByDiff(some_node, -15, 0, 0, 100)` will return a new node that is identical to `some_node`, except that it occurs `15` seconds earlier and the prograde element of the node is `100`m/s greater.
+
+#### `improveNode(node, score_function)`
+
+This is the manoeuvre node improvement function. It uses a hill-climbing algorithm. It is generic in that it can be used for any kind of node (transfers, corrections, rendezvous etc.) as the logic of determining whether a change to the node is an improvement or not has been separated out into separate scoring functions. One scoring function must be passed in to the `score_function` input parameter.
+
+Note - the function does not return a value. It works directly on the input `node`, manipulating it to match the details of the 'best' node found.
+
+Note - the function does not change the timing of a manoeuvre node. In the past, this was done, but it was found to cause problems. This does potentially limit the kind of improvement that can be done to a node e.g. you can't start with a node at a random time and expect the improvement function to turn into an efficient transfer to Duna unless you happened to pick a good time. It is assumed that the `node` being passed in has been calculated to some extent, and that this function is for refining it.
+
+The function follows a three-step process:
+
+##### 1. Initialisation
+
+    LOCAL ubn IS updateBest@:BIND(score_function).
+
+This line sets up a delegate of the `updateBest()` function with the `score_function` bound (using what was passed into `improveNode()`). This can then be called repeatedly later on.
+
+    LOCAL best_node IS newNodeByDiff(node,0,0,0,0).
+    LOCAL best_score IS score_function(best_node,MIN_SCORE).
+    LOCAL orig_score IS best_score.
+
+These lines initialise `best_node` as a copy of the input `node` and assign it an initial score by calling `score_function()` on it. This score is saved in `orig_score` for later comparison.
+
+##### 2. Set adjustments
+
+The initial node improvements that are tried are a small set of adjustments, changing just one node element at a time. The ETA element is not changed, but the `RADIALOUT`, `NORMAL` and `PROGRADE` elements are altered in turn. The aim of this step is to get an idea of where a potential solution may lie.
+
+The magnitude of the adjustments is in ascending powers of `2`, starting off small: `2^-2`(`0.25`)m/s and ending up fairly large `2^4`(`16`)m/s.
+
+Note - the kOS `IN RANGE(-2,5,1)` command returns a list of the values `-2, -1, 0, 1, 2, 3, 4`. The end parameter value of `5` is not included. This is just the way it works (starts at the first parameter then stops at the value before the end parameter).
+
+For each power of `2`, we make six adjustments. Three where the adjustment is a negative value and three where it is positive. This is the purpose of the `FOR mult IN LIST(-1,1)` line. Altogether, that means that 42 different manoeuvre nodes are created and scored. This step only occurs once, so the number of nodes considered could be increased without affecting the processing time too much.
+
+    LOCAL dv_delta_power IS 4.
+    FOR dv_power IN RANGE(-2,5,1) {
+      FOR mult IN LIST(-1,1) {
+        LOCAL curr_score IS best_score.
+        LOCAL dv_delta IS mult * 2^dv_power.
+
+        SET best_score TO ubn(newNodeByDiff(node,0,0,0,dv_delta), best_node, best_score).
+        SET best_score TO ubn(newNodeByDiff(node,0,0,dv_delta,0), best_node, best_score).
+        SET best_score TO ubn(newNodeByDiff(node,0,dv_delta,0,0), best_node, best_score).
+
+        IF best_score > curr_score { SET dv_delta_power TO dv_power. }
+      }
+    }
+
+    IF best_score > orig_score { nodeCopy(best_node, node). }
+    LOCAL dv_delta IS 2^dv_delta_power.
+
+If any of the nodes have improved the score, the `best_node` found is copied over the input `node`. The next step will use this as the basis for its iteration.
+
+The power of `2` that results in the best score is used to initialise `dv_delta`. This will be used as a starting point for the magnitude of adjustments in the next step. If no improvement was found, the maximum of 16m/s is used.
+
+##### 3. Iterative checking
+
+Now the function will try adjusting all three delta-v elements of the manoeuvre node together. There are 27 nodes per loop, as each element is in turn decremented by `dv_delta`, left the same or incremented by `dv_delta`, meaning there are `3^3` combinations.
+
+    LOCAL done IS FALSE.
+    UNTIL done {
+      LOCAL curr_score IS best_score.
+
+      FOR p_loop IN RANGE(-1,2,1) { FOR n_loop IN RANGE(-1,2,1) { FOR r_loop IN RANGE(-1,2,1) {
+        LOCAL p_diff IS dv_delta * p_loop.
+        LOCAL n_diff IS dv_delta * n_loop.
+        LOCAL r_diff IS dv_delta * r_loop.
+        SET best_score TO ubn(newNodeByDiff(n,0,r_diff,n_diff,p_diff), best_node, best_score).
+      } } }
+
+      IF ROUND(best_score,3) > ROUND(curr_score,3) { nodeCopy(best_node, n). }
+      ELSE IF dv_delta < 0.02 { SET done TO TRUE. }
+      ELSE { SET dv_delta TO dv_delta / 2. }
+    }
+
+After each set of adjustments there are three outcomes:
+* We found a node with a better score. In this case we copy the new `best_node` over the original `node` and repeat the loop.
+* We did not find an improvement:
+  * if `dv_delta` is less than `0.02`m/s, we break out of the loop. We have found our 'best' node. It is assumed that corrections smaller than this will not have enough of an effect on the trajectory to matter and that processing them would be a waste of time. This may not be true for trajectories where the end point is a long time in the future e.g. a transfer to Jool. There's no technical reason for breaking the loop at this particular value; it can be changed if necessary.
+  * otherwise we halve the value of `dv_delta` and repeat the loop.
+
+Note - to avoid infinite or apparently-infinite loops, we round the old and new best scores to three decimal places before comparing them.
+
+Note - the elements are adjusted together in order to try to find solutions that might be missed if we can only change one element at a time. This does mean checking 27 nodes per loop instead of 6, however.
+
+#### `nodeBodyToMoon(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
+
+This function generates and returns a manoeuvre node that will transfer to the `destination` from its parent body, targeting an orbit that matches the input `periapsis`, `inclination` and `longitude_of_ascending_node` as best as possible.
+
+This calls `nodeHohmann()` from `lib_hoh.ks` to calculate a node for the required transfer orbit, then passes the node into `improveNode()`.
+
+#### `nodeMoonToBody(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
 
 TBD
 
-#### `TBD(TBD)`
+#### `taEccOk(orbit, true_anomaly)`
 
-TBD
+When dealing with a hyperbolic orbit, the `secondsToTA()` function performs `LN(x + SQRT(x^2 - 1))` where x is calculated as `(e+COS(ta)) / (1 + (e * COS(ta)))`. If we try to calculate the time until a true anomaly that does not exist, we can end up trying to calculate the natural log of a negative number. This is impossible and will crash the script. To protect against that, this function exists to check whether that would occur before making a call to `secondsToTA()`.
 
-#### `TBD(TBD)`
+There may be a better way of working out the range of valid true anomaly values for a hyperbolic orbit.
 
-TBD
+#### `orbitNeedsCorrection(current_orbit, destination, periapsis, inclination, longitude_of_ascending_node)`
 
-#### `TBD(TBD)`
+The purpose of this function is to determine whether the current orbit needs a correction burn to bring it in line with the desired orbital parameters at the destination.
+
+It returns `TRUE` if a correction is needed and possible, `FALSE` otherwise.
+
+Note that the part of `doTransfer()` that calls this can effectively disregard the result of this if the node improvement function returns a very small node (less than `0.2`m/s) when asked to generate a correction.
+
+The processing has several considerations that it goes through in turn until it hits one that forces a return:
+* if there is not enough time for a node prior to reaching a spehere of influence change or the periapsis at the `destination`, `FALSE` is returned immediately.
+* if the current orbit does not reach the destination, `TRUE` is returned immediately.
+* if the current orbit has a periapsis at the destination that is below the 'safe minimum' (`20`km above sea-level or `15`km above the atmosphere height, if there is one), but the desired periapsis is above that minimum, `TRUE` is returned immediately.
+* the following table gives the maximum differences allowed between the target periapsis and the predicted periapsis. If the actual difference is greater than this, `TRUE` is returned immediately:
+
+    // -----------------------+------+-------+--------+
+    // Number of orbit patches|  0   |   1   |    2   |
+    // until destination      |      |       |        |
+    // -----------------------+------+-------+--------|
+    // -----------------------+------+-------+--------|
+    // If periapsis below safe|  1km |  10km |  100km |
+    // minimum                |      |       |        |
+    // -----------------------+------+-------+--------|
+    // If periapsis above safe| 10km | 100km | 1000km |
+    // minimum but below twice|      |       |        |
+    // safe minimum or 250km, |      |       |        |
+    // whichever is larger    |      |       |        |
+    // -----------------------+------+-------+--------|
+    // If periapsis is above  | 25km | 250km | 2500km |
+    // the above thresholds   |      |       |        |
+    // -----------------------+------+-------+--------+
+
+* if the input `inclination` is not negative (as `-1` indicates no preference), and the current orbit's central body is the `destination`, a node to correct the inclination may be considered: 
+  * if the input `longitude_of_ascending_node` is negative (as `-1` indicates no preference), then if the predicted inclination is more than `0.05` degrees different to the target `inclination`, `TRUE` is returned immediately.
+  * if the input `longitude_of_ascending_node` is not negative, then if the angle between the orbital plane defined by the input `inclination` and `longitude_of_ascending_node` is more than `0.05` degrees from the predicted plane, further checking is performed to see if a inclination change at the intersection of the two orbits is possible:
+    * the true anomalies of the ascending and descending nodes are calculated by vector crossing the normal vectors of the two orbits. If the true anomalies are valid for the current orbit's eccentricity (checked by calling `taEccOk()`), each is considered in turn. If one of the nodes is more than `15` minutes in the future and more than `15` minutes prior to reaching periapsis, `TIME_TO_NODE` is set to the ETA to the node and `TRUE` is returned immediately.
+* if we have reached this point, `FALSE` is returned to indicate that we don't need a correction.
+
+#### `doTransfer(exit_mode, can_stage, periapsis, inclination, longitude_of_ascending_node)`
 
 TBD
 
