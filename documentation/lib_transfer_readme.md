@@ -248,8 +248,8 @@ This calls `nodeHohmann()` from `lib_hoh.ks` to calculate a node for the require
 
 The `target_periapsis` (reminder from `lib_hoh.ks`: if `target_periapsis` is specified, the transfer orbit's apsis will be that many metres further out than the centre of the target) passed in to `nodeHohmann()` is calculated via this line:
 
-    LOCAL target_periapsis IS (destination:RADIUS + periapsis) * COS(MIN(inclination,0)).
-The `MIN(inclination,1)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
+    LOCAL target_periapsis IS (destination:RADIUS + periapsis) * COS(MAX(inclination,0)).
+The `MAX(inclination,1)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
 
 #### `nodeMoonToBody(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
 
