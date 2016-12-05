@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.0 20161202").
+pOut("lib_transfer.ks v1.3.0 20161205").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -236,7 +236,7 @@ FUNCTION nodeBodyToMoon
 {
   PARAMETER u_time, dest, dest_pe, i IS -1, lan IS -1.
 
-  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MIN(i,0)).
+  LOCAL t_pe IS (dest:RADIUS + dest_pe) * COS(MAX(i,0)).
 
   LOCAL hnode IS nodeHohmann(dest, u_time, t_pe).
   improveNode(hnode,scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan)).
