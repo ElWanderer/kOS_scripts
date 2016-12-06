@@ -249,9 +249,50 @@ This calls `nodeHohmann()` from `lib_hoh.ks` to calculate a node for the require
 The `target_periapsis` (reminder from `lib_hoh.ks`: if `target_periapsis` is specified, the transfer orbit's apsis will be that many metres further out than the centre of the target) passed in to `nodeHohmann()` is calculated via this line:
 
     LOCAL target_periapsis IS (destination:RADIUS + periapsis) * COS(MAX(inclination,0)).
-The `MAX(inclination,1)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
+The `MAX(inclination,0)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
 
-#### `nodeMoonToBody(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
+#### `nodeMoonToBody(u_time, moon, periapsis, inclination, longitude_of_ascending_node)`
+
+This function generates and returns a manoeuvre node that will transfer from `moon` to its parent body, targeting an orbit that matches the input `periapsis`, `inclination` and `longitude_of_ascending_node` as best as possible.
+
+This function uses a lot of complicated maths to calculate the size of the ejection burn and the angle at which this burn needs to take place. It then uses a dumb iteration to walk forwards in time at short intervals until it finds a position on the orbit where the ejection angle is correct. This last part could be improved by adding in more maths to calculate where the burn should take place.
+
+It should be noted that the function works on the basis that orbits are circular or circular enough not to make any difference.
+
+Firstly, the function sets up some useful values relating to the `moon` we're leaving and the destination we will be arriving around. Calculations need to take place within both spheres of influence.
+
+    LOCAL dest IS moon:OBT:BODY.
+    LOCAL mu IS moon:MU.
+    LOCAL hoh_mu IS dest:MU.
+    LOCAL r_soi IS moon:SOIRADIUS.
+    LOCAL r_pe IS ORBITAT(SHIP,u_time):SEMIMAJORAXIS.
+
+Secondly, the function calculates the velocity required in terms of the destination for a Hohmann transfer orbit from the radius of the `moon`'s orbit (assuming we have just left the sphere of influence of the `moon` at that radius) to the desired `periapsis`.
+
+    LOCAL r1 IS ORBITAT(moon,u_time):SEMIMAJORAXIS.
+    LOCAL r2 IS dest_pe + dest:RADIUS.
+    LOCAL v_soi IS SQRT(hoh_mu/r1) * (SQRT((2*r2)/(r1+r2)) -1).
+
+This velocity at the sphere of influence transition can be converted back to the velocity at the (new) periapsis of the ejection orbit around the `moon`:
+
+    // hyperbolic excess velocity
+    // v_inf = SQRT(v^2 - (2 * mu / r)), for any combination of v and r
+    //
+    // v1 is velocity at periapsis, r1 is radius at periapsis
+    // v2 is velocity at sphere of influence boundary, r2 is radius of sphere of influence
+    //
+    // v_inf = SQRT(v1^2 - (2 * mu / r1)) = SQRT(v2^2 - (2 * mu / r2))
+    // v1^2 - (2 * mu / r1) = v2^2 - (2 * mu / r2)
+    // v1^2 = v2^2 - (2 * mu / r2) + (2 * mu / r1)
+    // v1 = SQRT (v2^2 - (2 * mu / r2) + (2 * mu / r1))
+    LOCAL v_pe IS SQRT(v_soi^2 + (2 * mu/r_pe) - (2 * mu/r_soi)).
+
+Comparing this velocity to that we would have in a circular orbit gives us the magnitude of the ejection burn:
+
+    LOCAL v_orbit IS SQRT(mu/r_pe).
+    LOCAL dv IS ABS(v_pe) - v_orbit.
+
+Thirdly, the function calculates the ejection angle, that is the angle around the orbit that the burn should be placed so that the hyperbolic escape orbit tends to being parallel with the orbit path of `moon`. This requires finding out the eccentricity, which in turns means calculating the specific orbital energy of the orbit.
 
 TBD
 
