@@ -414,6 +414,6 @@ Note - if the craft appears in orbit of the `destination` and is already beyond 
 
 Once any necessary final corrections have been made, there are two possibilities:
  * The current periapsis is above the atmosphere. In this case we are assumed to be entering orbit. To achieve this an orbital insertion node is placed at the periapsis that will put the craft in a stable orbit. One apsis will be the current periapsis. The other apsis will have the input `periapsis` altitude. Ideally, these altitudes will be virtually identical, but that may not be the case.
-  * The current periapsis is below the atmosphere height. In this case we are assumed to be aerobraking or re-entering. The script cannot tell the difference between the two, so it will take no further action and exit. Re-entry or aerobraking is assumed to be handled separately. Currently, `lib_reentry.ks` provides an interface for re-entry, but we don't have any libraries for aerobraking.
+ * The current periapsis is below the atmosphere height. In this case we are assumed to be aerobraking or re-entering. The script cannot tell the difference between the two, so it will take no further action and exit. Re-entry or aerobraking is assumed to be handled separately. Currently, `lib_reentry.ks` provides an interface for re-entry, but we don't have any libraries for aerobraking.
 
 Geoff Banks / ElWanderer
