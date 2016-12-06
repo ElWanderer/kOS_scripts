@@ -240,7 +240,7 @@ Note - to avoid infinite or apparently-infinite loops, we round the old and new 
 
 Note - the elements are adjusted together in order to try to find solutions that might be missed if we can only change one element at a time. This does mean checking 27 nodes per loop instead of 6, however.
 
-#### `nodeBodyToMoon(u_time, destination, periapsis, inclination, longitude_of_ascending_node)`
+#### `nodeBodyToMoon(universal_timestamp, destination, periapsis, inclination, longitude_of_ascending_node)`
 
 This function generates and returns a manoeuvre node that will transfer to the `destination` from its parent body, targeting an orbit that matches the input `periapsis`, `inclination` and `longitude_of_ascending_node` as best as possible.
 
@@ -251,7 +251,7 @@ The `target_periapsis` (reminder from `lib_hoh.ks`: if `target_periapsis` is spe
     LOCAL target_periapsis IS (destination:RADIUS + periapsis) * COS(MAX(inclination,0)).
 The `MAX(inclination,0)` is there because while the actual target inclination should be in the range `0`-`180`, it's possible to pass in `-1` if no preference is specified. In those cases, `0` (equatorial prograde orbit) will be used instead in this calculation.
 
-#### `nodeMoonToBody(u_time, moon, periapsis, inclination, longitude_of_ascending_node)`
+#### `nodeMoonToBody(universal_timestamp, moon, periapsis, inclination, longitude_of_ascending_node)`
 
 This function generates and returns a manoeuvre node that will transfer from `moon` to its parent body, targeting an orbit that matches the input `periapsis`, `inclination` and `longitude_of_ascending_node` as best as possible.
 
@@ -287,20 +287,55 @@ This velocity at the sphere of influence transition can be converted back to the
     // v1 = SQRT (v2^2 - (2 * mu / r2) + (2 * mu / r1))
     LOCAL v_pe IS SQRT(v_soi^2 + (2 * mu/r_pe) - (2 * mu/r_soi)).
 
-Comparing this velocity to that we would have in a circular orbit gives us the magnitude of the ejection burn:
+Comparing this velocity to that we would have in a circular orbit gives us the (purely prograde) magnitude of the ejection burn:
 
     LOCAL v_orbit IS SQRT(mu/r_pe).
     LOCAL dv IS ABS(v_pe) - v_orbit.
 
+A node of this magnitude is created at the `universal_timestamp`. This will be updated later to an appropriate timestamp if this can be calculated.
+
 Thirdly, the function calculates the ejection angle, that is the angle around the orbit that the burn should be placed so that the hyperbolic escape orbit tends to being parallel with the orbit path of `moon`. This requires finding out the eccentricity, which in turns means calculating the specific orbital energy of the orbit.
 
-TBD
+    // ejection angle = ARCCOS(-1/e)
+    // eccentricity e = SQRT(1 + (2 * E * h^2) / mu^2)
+    // specific orbital energy E = (v^2/2) - (mu/r)
+    // e = SQRT((v_inf^2 * h^2 / mu^2) + 1)
+    // where h is the magnitude of the cross product of the position and velocity vectors (r x v)
+    LOCAL a IS 1/((2/r_pe)-(v_pe^2 / mu)).
+    LOCAL r_ap IS (2 * a) - r_pe.
+    LOCAL energy IS (v_pe^2 / 2)-(mu / r_pe).
+    LOCAL h IS r_pe * v_pe.
+
+    // if energy is negative, we are in an elliptical orbit and so the eccentricity can be calculated
+    // from periapsis and apoapsis instead
+    LOCAL e IS 0.
+    IF energy >= 0 { SET e TO SQRT(1 + (2 * energy * h^2 / mu^2)). }
+    ELSE { SET e TO (r_ap - r_pe) / (r_ap + r_pe). }
+    
+    // We can only calculate the ejection angle if the orbit is a hyperbola, i.e. if it has an eccentricity
+    // greater than 1. If the orbit is elliptical, then it is not  expected to escape the current body. 
+    // Non-escape orbits can occur on valid transfer trajectories in KSP because some of the bodies
+    // have much smaller spheres of influence than their mass would suggest.
+    // In cases where we cannot calculate, we start with an estimate of 100 degrees.
+    LOCAL theta_eject IS 100.
+    IF e > 1 { SET theta_eject TO ARCCOS(-1/e). }
+    ELSE { pOut("WARNING: Cannot calculate ejection angle as required orbit is not a hyperbola."). }
+
+Lastly, having gone to the trouble of sifting through all these formula, we revert back to advancing the clock in `15` second intervals, each time checking to see if the ejection angle would be correct (within `0.5` degrees) if the burn took place there. 
+
+Also considered is the effect of the inclination. If we are in a perfect, `90` degree inclination polar orbit, the plane of our orbit is only rarely aligned with the direction of travel of the `moon` we are orbiting. At a worst case, it will be at a `90` degree angle. Ejecting when that is the case will be possible, but more expensive. To save delta-v, the burn positions are rejected until the effective angle between the plane and the velocity of the `moon` is below `25` degrees. This value was selected somewhat arbitrarily.
+
+Note - the "speed" at which the alignment between the orbit plane and the velocity of the `moon` depends on how quickly the `moon` goes around its parent body.
+
+Once the angles are within the tolerances, the node that was plotted based on the details of the second step above is adjusted so that its time matches that found by the iteration. This is then fed into the node improvement function.
+
+The node that has been generated is then returned.
 
 #### `taEccOk(orbit, true_anomaly)`
 
 When dealing with a hyperbolic orbit, the `secondsToTA()` function performs `LN(x + SQRT(x^2 - 1))` where x is calculated as `(e+COS(ta)) / (1 + (e * COS(ta)))`. If we try to calculate the time until a true anomaly that does not exist, we can end up trying to calculate the natural log of a negative number. This is impossible and will crash the script. To protect against that, this function exists to check whether that would occur before making a call to `secondsToTA()`.
 
-There may be a better way of working out the range of valid true anomaly values for a hyperbolic orbit.
+There may be a better way of working out the range of valid true anomaly values for a hyperbolic orbit, as we know that `ARCCOS(-1/e))` gives the true anomaly at which the trajectory tends to infinity - anything beyond that is invalid.
 
 #### `orbitNeedsCorrection(current_orbit, destination, periapsis, inclination, longitude_of_ascending_node)`
 
