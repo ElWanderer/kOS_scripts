@@ -376,8 +376,44 @@ Table of maximum allowed differences between currently-predicted periapsis and t
     * the true anomalies of the ascending and descending nodes are calculated by vector crossing the normal vectors of the two orbits. If the true anomalies are valid for the current orbit's eccentricity (checked by calling `taEccOk()`), each is considered in turn. If one of the nodes is more than `15` minutes in the future and more than `15` minutes prior to reaching periapsis, `TIME_TO_NODE` is set to the ETA to the node and `TRUE` is returned immediately.
 * if we have reached this point, `FALSE` is returned to indicate that we don't need a correction.
 
-#### `doTransfer(exit_mode, can_stage, periapsis, inclination, longitude_of_ascending_node)`
+#### `doTransfer(exit_mode, can_stage, destination, periapsis, inclination, longitude_of_ascending_node)`
 
-TBD
+This function provides the main interface for controlling a craft during a transfer from one body to another.
+
+`exit_mode`: This is the runmode that the script will switch back to following a successful transfer. The function itself has its own set of runmodes in the range `101`-`149`.
+
+`can_stage`: `TRUE`/`FALSE`. This is passed into each call to `execNode()` (`lib_burn.ks`).
+
+`destination`: The target body. Currently, transfers are supported between bodies that are above or below each other in the hierarchy i.e. a planet to its moon, or back from a moon to its parent planet. These should also allow transfers between Solar orbits and planets (and vice versa) though this has not been tested.
+
+`periapsis`: Defines the desired target orbit altitude around the `destination`. 
+  * If this altitude is above the atmosphere of the `destination`, the script will aim for a target orbit thas this altitude as both periapsis and apoapsis. The script does not guarantee that this orbit will be achieved perfectly, though it will try to minimise the cost to get into such an orbit. It is recommended to follow up with corrections if the target orbit needs to be accurate.
+  * If this altitude is within the atmosphere of the `destination`, the script will try to hit the periapsis accurately (within `1`km) on the grounds that you are trying to re-enter.
+
+`inclination`: Defines the desired inclination of the orbit around the `destination`. `-1` can be used to indicate no preference. The script does not guarantee that this will be the final inclination (see below).
+
+`longitude_of_ascending_node`: Defines the desired LAN of the orbit around the `destination`. `-1` can be used to indicate no preference. Note that no attempt is (currently) made to time a transfer such that the `destination` will be optimally aligned. The script does not guarantee that this will be the final LAN (see below).
+
+On orbital planes: the script cannot guarantee that a particular orbital plane (defined by `inclination` and `longitude_of_ascending_node`) will result after a transfer, especially as changing inclination may not be possible. A lot depends on whether the eventual transfer orbit has an ascending or descending node with the target orbit plane in the right place. It has to occur within the sphere of influence of the `destination`, before the periapsis has been reached. The node improvement functions will try to reduce the delta-v requirement to match the orbit after circularisation. It is recommended to follow up with corrections if the target orbit needs to be accurate.
+
+##### Steps
+
+The `doTransfer()` function initially calculates a transfer node from the current body to the `destination`. As orbits are not usually perfectly circular, this may not even intercept the target body let alone match the desired orbital parameters. The node is passed into the `improveNode()` function which should ensure a fairly accurate trajectory.
+
+The initial node is executed if it is predicted to result in a trajacetory that (eventually) meets the `destination`. Otherwise, it'll drop into a pending failed state (which waits for the player to hit `ABORT` before trying again from the beginning).
+
+Unless the node was executed perfectly, chances are that the trajectory will be quite different to that intended. The function will loop through a set of runmodes whereby mid-course correction nodes are generated and burnt as necessary, until the trajectory has the desired accuracy (see the `orbitNeedsCorrection()` function description for details).
+
+Once the trajectory is considered good enough, the script will time-warp forwards until the next sphere of influence transition.
+
+Once in the next sphere of influence, the script will loop, and consider making mid-course corrections again. Being closer to the `destination`, the required accuracy will be higher than the previous set of corrections, but if the initial set of burns was good enough, no further changes will be needed.
+
+Once in the sphere of influence of the `destination`, a further set of corrections is possible. In particular, it is here that any required inclination changes are most likely to occur. 
+
+Note - if the craft appears in orbit of the `destination` and is already beyond the periapsis, a node to put the craft into orbit is plotted and burned. This is done because KSP's intercept predictions can prove to be incorrect, and it's possible to warp through the sphere of influence transition at a high warp rate. Though the warp will be killed on detecting the change of body, this may not be fast enough. This occurred regularly in KSP v1.0.5, but hasn't been so much of a problem in KSP v1.1.3. It is something that may prove to be even better in KSP v1.2.*.
+
+Once any necessary final corrections have been made, there are two possibilities:
+ * The current periapsis is above the atmosphere. In this case we are assumed to be entering orbit. To achieve this an orbital insertion node is placed at the periapsis that will put the craft in a stable orbit. One apsis will be the current periapsis. The other apsis will have the input `periapsis` altitude. Ideally, these altitudes will be virtually identical, but that may not be the case.
+  * The current periapsis is below the atmosphere height. In this case we are assumed to be aerobraking or re-entering. The script cannot tell the difference between the two, so it will take no further action and exit. Re-entry or aerobraking is assumed to be handled separately. Currently, `lib_reentry.ks` provides an interface for re-entry, but we don't have any libraries for aerobraking.
 
 Geoff Banks / ElWanderer
