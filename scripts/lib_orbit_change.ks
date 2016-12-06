@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_change.ks v1.0.1 20161110").
+pOut("lib_orbit_change.ks v1.0.2 20161206").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -37,7 +37,7 @@ FUNCTION changeOrbit
     SET o TO ORBITAT(SHIP,u_time).
   }
 
-  IF w_diff > 0.05 OR ABS(pe_diff) > (pe / 50) {
+  IF ok AND (w_diff > 0.05 OR ABS(pe_diff) > (pe / 50)) {
     LOCAL ap_ta IS 180.
     IF double_pe_burn { SET ap_ta TO 0. }
     LOCAL n3 IS nodeAlterOrbit(u_time + secondsToTA(SHIP,u_time,ap_ta), pe).
