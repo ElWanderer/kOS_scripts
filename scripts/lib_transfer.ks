@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.0 20161206").
+pOut("lib_transfer.ks v1.3.1 20161207").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -19,6 +19,12 @@ FUNCTION bodyChange
 {
   PARAMETER cb.
   RETURN BODY <> cb.
+}
+
+FUNCTION minAltForBody
+{
+  PARAMETER b.
+  RETURN MAX(25000, b:RADIUS / 4).
 }
 
 FUNCTION nodeCopy
@@ -80,14 +86,11 @@ FUNCTION scoreNodeDestOrbit
 {
   PARAMETER dest, pe, i, lan, n, bs.
   LOCAL score IS 0.
-
+  LOCAL min_pe IS minAltForBody(dest).
   ADD n. WAIT 0.
   LOCAL orb IS n:ORBIT.
   LOCAL orb_count IS orbitReachesBody(orb,dest).
   IF orb_count >= 0 {
-    LOCAL min_pe IS 20000.
-    IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
-
     SET score TO MAX_SCORE - nodeDV(n).
 
     LOCAL next_orb IS futureOrbit(orb,orb_count).
@@ -283,8 +286,7 @@ FUNCTION taEccOk
   PARAMETER orb, ta.
   LOCAL e IS orb:ECCENTRICITY.
   IF e < 1 { RETURN TRUE. }
-  LOCAL x IS (e+COS(ta)) / (1 + (e * COS(ta))).
-  RETURN (x + SQRT(x^2 - 1)) >= 0.
+  RETURN (MIN(ta,360-ta) < ARCCOS(-1/e)).
 }
 
 FUNCTION orbitNeedsCorrection
@@ -301,8 +303,7 @@ FUNCTION orbitNeedsCorrection
   LOCAL orb_pe IS orb:PERIAPSIS.
   LOCAL pe_diff IS ABS(orb_pe - pe).
   LOCAL min_diff IS 1000 * 10^orb_count.
-  LOCAL min_pe IS 20000.
-  IF dest:ATM:EXISTS { SET min_pe TO dest:ATM:HEIGHT * 1.2. }
+  LOCAL min_pe IS minAltForBody(dest) * 0.8.
 
   IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
   ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
