@@ -50,6 +50,12 @@ The initial value is `900` seconds.
 
 This returns `TRUE` if the current `BODY` is the same as the input `prev_body`, and `FALSE` if they are different.
 
+#### `minAltForBody(body)`
+
+This returns the 'minimum safe periapsis' for the input 'body'. Above this value, the node improvement algorithm prioritises delta-v economy over accuracy. Below this value, accuracy scores very highly.
+
+The function returns `25`km or `25%` of the radius of `body`, whichever is higher.
+
 #### `nodeCopy(node1, node2)`
 
 This function copies all of the manoeuvre node details (`ETA`, `PROGRADE`, `RADIALOUT` and `NORMAL`) from `node1` to `node2`. In doing so, `node2` becomes a copy of `node1`.
@@ -111,11 +117,11 @@ The function `ADD`s the input `node` to the ship's flightpath, scores the orbit 
 
 If the orbit does reach the `destination`, the details of the orbit patch are compared to the input parameters. How this works:
 * The score is initialised as `MAX_SCORE`.
-* The trajectory is then scored, depending on whether the target periapsis is below the 'minimum altitude' (120% of the atmosphere height, or `20`km for airless bodies). If the target periapsis is below the minimum, we assume we are landing/re-entering and try to encourage high accuracy:
+* The trajectory is then scored, depending on whether the target periapsis is below the 'minimum altitude' (as returned by `minAltForBody()`). If the target periapsis is below the minimum, we prioritise high accuracy:
   * we add large bonus points if the predicted periapsis is within `2500`m of the target periapsis, with the bonus rising to a maximum of `500` if the two are aligned.
   * otherwise a penalty is subtracted from the score, based on the discrepancy between the two values.
   * In both cases, square root functions are used to try to smooth the points curves - in particular the penalty grows slowly as the discrepancy increases so that the overall score shouldn't become negative (and therefore should always score higher than a trajectory that misses the target altogether).
-* If the target periapsis is above the minimum, we assume that we will be entering orbit. The exact periapsis is not so important, compared to making sure that the trajectory is not sub-orbital and minimising delta-v expenditure:
+* If the target periapsis is above the minimum, the exact periapsis is not so important, compared to making sure that the trajectory is not sub-orbital and minimising delta-v expenditure:
   * If the predicted periapsis is below the minimum, a penalty is subtracted from the score, based on the discrepancy between the two values.
   * The score is reduced by the amount of delta-v (in m/s) required to burn the input `node`.
   * The score is reduced by the amount of delta-v (in m/s) required to make an orbital insertion at the estimated periapsis, with the other side of the orbit being set to the target periapsis (these two values can/will usually be different).
@@ -335,7 +341,7 @@ The node that has been generated is then returned.
 
 When dealing with a hyperbolic orbit, the `secondsToTA()` function performs `LN(x + SQRT(x^2 - 1))` where x is calculated as `(e+COS(ta)) / (1 + (e * COS(ta)))`. If we try to calculate the time until a true anomaly that does not exist, we can end up trying to calculate the natural log of a negative number. This is impossible and will crash the script. To protect against that, this function exists to check whether that would occur before making a call to `secondsToTA()`.
 
-There may be a better way of working out the range of valid true anomaly values for a hyperbolic orbit, as we know that `ARCCOS(-1/e))` gives the true anomaly at which the trajectory tends to infinity - anything beyond that is invalid.
+This function uses `ARCCOS(-1/e))` as this gives the true anomaly at which the trajectory tends to infinity - anything beyond that is invalid and should not be used.
 
 #### `orbitNeedsCorrection(current_orbit, destination, periapsis, inclination, longitude_of_ascending_node)`
 
@@ -348,7 +354,8 @@ Note that the part of `doTransfer()` that calls this can effectively disregard t
 The processing has several considerations that it goes through in turn until it hits one that forces a return:
 * if there is not enough time for a node prior to reaching a spehere of influence change or the periapsis at the `destination`, `FALSE` is returned immediately.
 * if the current orbit does not reach the destination, `TRUE` is returned immediately.
-* if the current orbit has a periapsis at the destination that is below the 'safe minimum' (`20`km above sea-level or `15`km above the atmosphere height, if there is one), but the desired periapsis is above that minimum, `TRUE` is returned immediately.
+* if the current orbit has a periapsis at the destination that is below the 'safe minimum' (as returned by `minAltForBody()` multiplied by a factor of 0.8), but the desired periapsis is above that minimum, `TRUE` is returned immediately.
+  * The factor of 0.8 in the 'safe minimum' check is there to avoid situations where the 'best' trajectory was just above the 'safe minimum' but the execution of the burn resulted in a periapsis just below it, thus requiring a correction. The correction function gives more leeway to account for the natural inaccuracy of burns. It should also be noted this was added because the node improvement function tended towards trajectories that used the minimum periapsis, perhaps because the Oberth effect made these the most efficient of all the options in terms of delta-v usage.
 * the following table gives the maximum differences allowed between the target periapsis and the predicted periapsis. If the actual difference is greater than this, `TRUE` is returned immediately:
 
 Table of maximum allowed differences between currently-predicted periapsis and the target `periapsis` (more orbit patches than shown are considered, with the allowed difference being multiplied by `10` for each extra patch):
