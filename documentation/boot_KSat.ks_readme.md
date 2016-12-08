@@ -4,6 +4,10 @@
 
 The purpose of this boot script is to launch a satellite into a specific orbit of Kerbin. Typically, this would be to fulfil a contract, though it could be used for launching a ScanSat, relay satellite etc.
 
+### Disk space requirement
+
+This script and the libraries it calls are meant to remain with the `20000` byte limit of the small, inline kOS processor. To an extent this achieved by deleting certain libraries once they are no longer needed, e.g. the launch files are removed following insertion into orbit. Also, as part of this space-saving effort, the script does not use the `lib_orbit_match.ks` functions to perfect the orbit plane. The final inclination that is achieved depends on the accuracy of the launch.
+
 ### Script Parameters
 
 The parameters of the target orbit can be specified by changing the global variables near the top of the file:
@@ -44,13 +48,13 @@ For non-equatorial orbits, there will be a wait of up to three hours before laun
 
 #### Launch
 
-Launch is to a standard 85km by 85km Low Kerbin Orbit, with the inclination matching (as near as possible) that of the target orbit.
+Launch is to a standard `85`km by `85`km Low Kerbin Orbit, with the inclination matching (as near as possible) that of the target orbit.
 
 #### Match orbit shape
 
 The script will plot and execute burns to put the periapsis and apoapsis in the target locations and altitudes.
 
-Note - in order to keep down the required disk space below 20000 bytes, this script does not have any way of matching inclination. The inclination is determined by the accuracy of the launch and can't be corrected later.
+Note - in order to keep down the required disk space below `20000` bytes, this script does not have any way of matching inclination. The inclination is determined by the accuracy of the launch and can't be corrected later.
 
 #### Sleep
 
