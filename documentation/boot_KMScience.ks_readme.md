@@ -4,6 +4,10 @@
 
 The purpose of this boot script is to launch a crewed, science-gathering craft into a specific low orbit of Mun or Minmus, gather science from the space above each waypoint, then return to Kerbin. The script has been written for Apollo-style craft i.e. a command module with a heat shield (I tend to set the ablator to about 50%), plus a service module consisting of fuel tanks and engines. Unlike the Kerbin Tourist script, no effort is currently made to target a specific landing area on return to Kerbin.
 
+### Disk space requirement
+
+Unknown, but assumed to be moderately high (may fit inside `40000` bytes, but probably won't).
+
 ### Script Parameters
 
 The parameters of the target orbit can be specified by changing the global variables near the top of the file:
@@ -66,13 +70,15 @@ The script will plot and execute a burn to reduce the relative inclination betwe
 
 #### Transfer
 
-The script will calculate a Hohmann transfer to the target body. Chances are that when plotted as a manoeuvre node, this will not actually reach the target, but the node improvement code will take over and adjust the node until the predicted periapsis matches the initial target apoapsis as best as possible.
+The script will calculate a Hohmann transfer to the target body. Chances are that when plotted as a manoeuvre node, this will not actually reach the target, but the node improvement code will take over and adjust the node until the predicted periapsis matches the target apoapsis as best as possible.
 
-This node will then be executed, and followed up (if necessary) with correction burns until the craft's trajectory reaches the target body, with a periapsis within `25`km of the initial target apoapsis.
+This node will then be executed, and followed up (if necessary) with correction burns until the craft's trajectory reaches the target body, with a periapsis within a reasonable distance of the target apoapsis. What is considered 'reasonable' varies depending on whether the target apoapsis is close to the surface or not.
 
 The script will then time warp to the sphere of influence transition with the target body, with the aim of passing through the transition at 50x warp.
 
-Once in the sphere of influence of the target body, another correction burn will be plotted and executed. This time the aim is to get the periapsis within `1`km of the initial target apoapsis after the burn. When this is achieved, a node will be plotted at the periapsis to circularise the orbit.
+Once in the sphere of influence of the target body, further correction burns can be plotted and executed if they improve the final orbit towards the target parameters. Finally, a node will be plotted at the periapsis and executed to insert into orbit.
+
+Note - the target inclination and longitude of the ascending node are taken into account during the node improvement process that is run on each manoeuvre node. Recent changes have improved the node improvement process, but there is still no guarantee that it will get close to the target values. The final inclination at the target is hard to adjust unless close to the plane of the equator of the body (which may not happen until close to the periapsis when trying to get to Minmus) and the longtiude of the ascending node is largely determined by the launch time and travel time. As such, it's best to assume that the craft will need to perform an inclination burn from an equatorial orbit to the target incilnation and budget delta-v accordingly (worst cases are about 700m/s for a 90 degree change around the Mun, or 150m/s if around Minmus). Further changes are needed to be able to time a transfer to arrive (cheaply) aligned with the target inclination and longitude of the ascending node.
 
 #### Match initial orbit inclination and shape
 
@@ -102,17 +108,17 @@ Note 3 - the limits are not controlled by `GLOBAL` settings at the moment, but c
 
 The script will calculate a Hohmann transfer back to Kerbin, targetting a periapsis of `30`km. The node improvement code will take over and adjust the node so that the periapsis is as close as possible to this value.
 
-This node will then be executed, and followed up (if necessary) with correction burns until the craft's trajectory has a periapsis within `25`km of the target (i.e. `5`km-`55`km).
+This node will then be executed, and followed up (if necessary) with correction burns until the craft's trajectory has a periapsis that is close to the target.
 
 The script will then time warp to the sphere of influence transition back to Kerbin, with the aim of passing through the transition at 50x warp.
 
-Once in the sphere of influence of the target body, another correction burn will be plotted and executed. This time the aim is to get the periapsis within 1km of the target (i.e. `29`-`31`km).
+Once in the sphere of influence of the target body, further correction burns can be plotted and executed to try to get the periapsis as accurate as possible.
 
 Once this has been achieved, the script will time warp until the craft is close to re-entry.
 
 #### Re-entry and landing
 
-The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged `"FINAL"`, further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
+The script is programmed to perform one staging action following the re-entry burn, to detach the service module (i.e. the fuel tank and engine). If any parts are tagged `FINAL`, further staging actions will take place until these have been detached. The craft will hold retrograde during initial re-entry, then disengage steering to conserve battery power. It is assumed that the re-entry craft will be aerodynamically stable and maintain a retrograde orientation naturally. The parachutes will be triggered once safe.
 
 Note - with the changes expected in v1.2 (such as the changes to the atmosphere and the ability to stage parachutes with an automatic delay in opening them until they are safe) some of the re-entry procedure may want/need changing. 
 
