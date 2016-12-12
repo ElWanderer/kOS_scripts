@@ -20,35 +20,61 @@ A lot of this is either very complicated, or hard to express in short code block
 
 ### Global variable reference
 
+#### `RDZ_FN`
+
+The filename of the rendezvous-specific resume file. The default filename is `rdz.ks`.
+
+This is used to store commands to be run to recover a previous state following a reboot. This avoids the `doRendezvous()` function having to recalculate various details of the rendezvous.
+
+#### `RDZ_VEC`
+
+The vector to steer to when performing the final stages of a rendezvous.
+
+This is used during final approach as a vector to steer towards. Burning in the direction of this vector will reduce the relative velocity between the active vessel and the rendezvous target and/or reduce the expected closest approach between the two.
+
+This is initialised as `SHIP:VELOCITY:ORBIT` so as not to be empty, but will be set to a more useful value before being used.
+
+#### `RDZ_DIST`
+
+The distance in metres at which the active vessel should take station from the rendezvous target. This affects the final approach, as the active vessel will effectively target a point `RDZ_DIST` away from the target rather than the target itself, to avoid collisions and hitting the target with rocket exhaust.
+
+The default value is `75`m.
+
+This has its own function for changing the value: `changeRDZ_DIST()`. It is recommended to set a value based on the sizes of the two craft taking part in the rendezvous. The Rescue boot scripts assume small vessels are involved and reset the value to be `25`m. 
+
+#### `RDZ_MAX_ORBITS`
+
+This is used when calculating a phasing orbit. A high maximum number of orbits will potential allow a small delta-v correction that results in an intercept several orbits later. A low maximum will encourage a high delta-v correction that results in an intercept much sooner.
+
+The default value is `5`.
+
+This has its own function for changing the value: `changeRDZ_MAX_ORBITS()`. It is recommended that the value is set based on the individual reuirements of the mission, typically fuel versus time.
+
+#### `RDZ_PHASE_PERIOD`
+
+This is used to store the period of the phasing orbit that has been determined. It is one of three global variables that are stored and so recovered on a reboot, to avoid needing to recalculate it.
+
+The initial value is `0`.
+
+#### `RDZ_CA_DIST`
+
+This is used to store the expected closest approach between the active vessel and the rendezvous target. It is one of three global variables that are stored and so recovered on a reboot, to avoid needing to recalculate it.
+
+The initial value is `5000`m.
+
+#### `RDZ_CA`
+
+This is a string that is used as the key name in the `TIMES` lexicon. On initialisation, the current time is pushed into `TIMES[RDZ_CA]` by calling `setTime(RDZ_CA)`, but this is replaced with the expected *future* time of closest approach later on. This closest approach time is one of three global variables that are stored and so recovered on a reboot, to avoid needing to recalculate it.
+
+The value is itself the string `RDZ_CA`. This is used in place of string literals because it makes the store command easier to write: `append("setTime(RDZ_CA," + TIMES[RDZ_CA] + ").", RDZ_FN).` instead of `append("setTime("+CHAR(34)+RDZ_CA+CHAR(34)+",TIMES["+CHAR(34)+"RDZ_CA"+CHAR(34)+"]).", RDZ_FN).` where `CHAR(34)` is the `"` character.
+
+#### `RDZ_THROTTLE`
+
+This is used during final approach to control the throttle. The main `THROTTLE` is locked to this value, which is then varied by the script as necessary.
+
+The initial value is `0`.
+
 *EVERYTHING BELOW THIS LINE IS A COPY OF THE lib_transfer README THAT HASN'T BEEN REPLACED YET!*
-
-#### `CURRENT_BODY`
-
-This is used during sphere of influence transitions to store the body we are expecting to transfer from. When this no longer holds the same value as `BODY`, we know we have transitioned to a new sphere of influence.
-
-The initial value is the current `BODY` when the library is run.
-
-#### `MAX_SCORE`
-
-This is a large value, used by the node scoring functions as an initial value. Due to the availability of "bonus" points, it's possible for a manoeuvre node to score higher than this value.
-
-The initial value is `99999`.
-
-#### `MIN_SCORE`
-
-This is a large, negative value, used by the node scoring functions when the solution is deemed to be so bad, it's not possible to work out *how* bad it is!
-
-The initial value is `-999999999`.
-
-#### `TIME_TO_NODE`
-
-This is the number of seconds in the future that a mid-course correction node will be plotted. This is not used as a setting, it was always intended to be changed as necessary during a transfer.
-
-Previously, this was incremented or doubled after each correction node, so that corrections got further apart during a single orbit patch, to avoid trying to perform too many during a transfer. That functionality has been removed.
-
-Currently, it is used to specify precise times for certain nodes e.g. to apply a correction in the best position to perform an inclination change.
-
-The initial value is `900` seconds.
 
 ### Function reference
 
