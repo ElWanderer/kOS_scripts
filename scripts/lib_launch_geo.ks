@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_geo.ks v1.0.3 20161104").
+pOut("lib_launch_geo.ks v1.1.0 20161212").
 
 GLOBAL HALF_LAUNCH IS 145.
 
@@ -37,23 +37,12 @@ FUNCTION azimuth
   RETURN -1.
 }
 
-FUNCTION planetSurfaceSpeedAtLat
-{
-  PARAMETER planet, lat.
-
-  LOCAL v_rot IS 0.
-  LOCAL circum IS 2 * CONSTANT:PI * planet:RADIUS.
-  LOCAL period IS planet:ROTATIONPERIOD.
-  IF period > 0 { SET v_rot TO COS(lat) * circum / period. }
-  RETURN v_rot.
-}
-
 FUNCTION launchAzimuth
 {
   PARAMETER planet, az, ap.
 
   LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
-  LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
+  LOCAL v_rot IS SHIP:GEOPOSITION:ALTITUDEVELOCITY(ALTITUDE):ORBIT:MAG.
   LOCAL v_orbit_x IS v_orbit * SIN(az).
   LOCAL v_orbit_y IS v_orbit * COS(az).
   LOCAL raz IS mAngle(90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
@@ -104,15 +93,16 @@ FUNCTION calcLaunchDetails
 
   LOCAL az IS azimuth(i).
   IF az < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
-  ELSE { RETURN launchDetails(ap,i,lan,az). }
+  RETURN launchDetails(ap,i,lan,az).
 }
 
 FUNCTION warpToLaunch
 {
   PARAMETER launch_time.
-  IF launch_time - TIME:SECONDS > 5 {
-    pOut("Waiting for orbit plane to pass overhead.").
-    WAIT 5.
+  pOut("Waiting for orbit plane to pass overhead.").
+  IF launch_time - TIME:SECONDS > 10 {
+    pOut("Waiting 10s before engaging timewarp").
+    WAIT 10.
     doWarp(launch_time).
   }
 }
