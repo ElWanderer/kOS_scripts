@@ -12,6 +12,8 @@ Docking ports are assumed to face out into open space. Any that point back towar
 
 The state change on a docking port is assumed to herald a successful docking. In my testing so far, this has always been the case, but it is conceivable that two large vessels docking at an awkward angle may bounce off each other despite the magnets activating.
 
+At the time of writing, the docking waypoints that are created during docking are fixed. This has the advantage of reducing monopropellent expenditure, but has the disadvantage of not handling a target that is rotating. It is recommended that a docking target be controlled and pointed in a set direction, rather than being allowed to drift. [Issue #84](https://github.com/ElWanderer/kOS_scripts/issues/84) exists for making the waypoints rotate with the target, but the initial solution to this introduced other issues.
+
 ### Requirements
 
  * `lib_rcs.ks`
