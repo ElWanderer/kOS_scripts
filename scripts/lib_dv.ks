@@ -106,7 +106,7 @@ FUNCTION stageDV
 {
   setIspFuelRate().
   LOCAL rl IS STAGE:RESOURCESLEX.
-  LOCAL m1 IS MASS - (fuelMassInLex(r1, "LIQUIDFUEL") + fuelMassInLex(r1, "OXIDIZER")).
+  LOCAL m1 IS MASS - (fuelMassInLex(rl, "LIQUIDFUEL") + fuelMassInLex(rl, "OXIDIZER")).
   RETURN (g0 * DV_ISP * LN(MASS / m1)).
 }
 
