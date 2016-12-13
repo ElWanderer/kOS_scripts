@@ -98,7 +98,7 @@ FUNCTION setIspFuelRate
 FUNCTION fuelMassInLex
 {
   PARAMETER rl, f.
-  IF rl:HASKEY(f) { RETURN (rl[f]:AMOUNT * r1[f]:DENSITY). }
+  IF rl:HASKEY(f) { RETURN (rl[f]:AMOUNT * rl[f]:DENSITY). }
   RETURN 0.
 }
 
