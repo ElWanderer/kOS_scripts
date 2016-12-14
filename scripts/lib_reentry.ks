@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.1.1 20161104").
+pOut("lib_reentry.ks v1.2.0 20161214").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -32,7 +32,7 @@ FUNCTION pReentry
 FUNCTION deorbitNode
 {
   removeAllNodes().
-  LOCAL lng_diff IS mAngle(150 - SHIP:LONGITUDE).
+  LOCAL lng_diff IS mAngle(170 - SHIP:LONGITUDE).
   LOCAL lng_speed IS (360/OBT:PERIOD) - (360/BODY:ROTATIONPERIOD).
   LOCAL m_time IS TIME:SECONDS + (lng_diff / lng_speed).
   LOCAL n IS nodeAlterOrbit(m_time,29000).
@@ -40,7 +40,6 @@ FUNCTION deorbitNode
   RETURN TRUE.
 }
 
-// move these back to lib_orbit if anything else needs them
 FUNCTION firstTAAtRadius
 {
   PARAMETER orb, r.
