@@ -38,10 +38,7 @@ FUNCTION pOrbit
   pOut(" LAN: " + ROUND(o:LAN,1) + " deg").
   pOut(" Arg: " + ROUND(o:ARGUMENTOFPERIAPSIS,1) + " deg").
   IF o:ECCENTRICITY < 1 { pOut(" Prd: " + ROUND(o:PERIOD) + "s"). }
-  IF o:HASNEXTPATCH {
-    pOut(" Dur: " + ROUND(o:NEXTPATCHETA) + "s").
-    pOrbit(o:NEXTPATCH).
-  }
+  IF o:HASNEXTPATCH { pOrbit(o:NEXTPATCH). }
 }
 
 FUNCTION addNode
