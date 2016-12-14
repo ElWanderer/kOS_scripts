@@ -8,7 +8,7 @@ Rendezvous consists of multiple steps, from ensuring that the orbits of the two 
 
 A lot of this is either very complicated, or hard to express in short code blocks. It has been improved considerably over time, but is still a rather large library.
 
-#### Closest Approach v. Minimum Separation
+#### Terminology: Closest Approach v. Minimum Separation
 
 For two craft, the closest approach is the minimum distance between the two craft over a set period of time. During rendezvous, the aim is to get the closest approach between the active vessel and the rendezvous target as close to `0`km as possible.
 
@@ -16,7 +16,7 @@ Minimum separation is a similar concept, but relates to how close two *orbits* g
 
 Note - having two craft following two orbits that have a low minimum separation does not ensure that there will be a similarly low closest approach. If the two orbits have similar periods (or are synchronised), the two craft may never get close to each other (or at least not within a reasonable time frame).
 
-#### Intersection v. Intercept
+#### Terminology: Intersection v. Intercept
 
 Similar to the difference between closest approach and minimum separation, the difference in terminology here is down to whether we are talking about the positions of space craft or the orbits that they are following.
 
@@ -180,9 +180,33 @@ This offset is `RDZ_DIST` in magnitude. It is creating by adding together two no
 
 This function is used to perform the final approach section of a rendezvous, i.e. going from being within a few kilometres to taking station `RDZ_DIST` away from the target, with the velocities matched.
 
-This function has been rewritten a couple of times and is still far from perfect.
+This function has been rewritten a couple of times and is still far from perfect. It was written to account for early career rescue missions, and so does not use RCS to kill the relative velocity (yet). This can result in the craft performing `180` degree rotations in order to ensure the relative velocity is killed when it would be easier to trigger a short burst of RCS. That's covered by [issue #21](https://github.com/ElWanderer/kOS_scripts/issues/21)
 
-TBD - this may take some time to explain!
+The function works by trying to keep the relative velocity between the craft and `target` from pointing too far away from the target (to maintain the approach) and to keep its velocity from growing too large or small, in particular ramping down the magnitude as the `target` gets closer. This way, a series of correction burns should take place, until the vessel is about `RDZ_DIST` from the `target` with a relative velocity below `0.2`m/s.
+
+The function returns `TRUE` if the rendezvous was completed successfully, `FALSE` if the vessel ran out of fuel.
+
+##### In Detail
+
+This version consists of a loop. Each tick, the function calculates the target point (offset from the position of the `target` by `RDZ_DIST`m as determined by the `rdzOffsetVector()` function) and the relative velocity between the active vessel and the `target`. The function loops until either of two conditions are met:
+* The active vessel is within `25`m of the target point and the relative velocity is below `0.15`m/s. In this case, the function will return `TRUE`.
+* The active vessel has less delta-v remaining than the magnitude of the relative velocity. This is a somewhat extreme situation, but the check prevents the loop from continuing forever. In this case, the function will return `FALSE`.
+
+An 'ideal' relative velocity vector is calculated. This points towards the target point, with a magnitude determined by calling `rdzBestSpeed()`, which decreases the desired velocity as the distance to the target point decreases. `RDZ_VEC`, to which the craft's steering is locked, is then calculated as the vector that would change the current relative velocity to the ideal relative velocity.
+
+It currently draws a set of vectors on the screen to show its working (and that it's working!):
+* Target point position vector, "To target (offset)"
+* The relative velocity
+* The 'ideal' relative velocity
+* `RDZ_VEC`, labelled "Thrust vector" or "Steer vector" depending on whether the throttle is on or off.
+
+The magnitude of `RDZ_VEC` is 'allowed' to grow as high as one third of the 'ideal' relative velocity's magnitude. If the magnitude goes over that limit, the throttle is allowed to be engaged. This could be because the relative velocity vector and the target point position vector are not pointing in the same direction, because the desired velocity magnitude is different to the current relative velocity or a combination of the two. Note that this does not mean the engine will fire immediately - the craft has to be pointing towards the `RDZ_VEC` vector first, as determined by `VDOT()`ing the two vectors and checking if the value is greater than or equal to `0.995`.
+
+Once the throttle has been turned on, it is set to a value based on the estimated burn time to reduce the `RDZ_VEC` to `0`: `SET RDZ_THROTTLE TO burnThrottle(burnTime(RDZ_VEC:MAG, sdv))`. With the throttle engaged, the burn is ended (possibly temporarily) if the `VDOT()` between the facing and `RDZ_VEC` drops below `0.95`. This should react fairly quickly if the `RDZ_VEC` vector moves (e.g. due to pointing into the opposite direction).
+
+These steps are fairly useful for keeping the active vessel moving towards the `target` but there are two drawbacks:
+* The very end of final approach can be fairly clumsy due to not using RCS (see above), particularly for large, unwieldy vessels
+* If final approach is initiated too soon, when the `target` is still quite far away, the relative velocity is likely to point away from the `target`, but could be expected to close naturally due to the curvature of orbits. Instead the function will immediately trigger a burn. In turn, this will require a lot of corrections. In short, pointing and burning straight at the `target` is only effective when very close to it, due to orbital mechanics.
 
 #### `nodeRdzInclination(target, universal_timestamp)`
 
@@ -194,7 +218,7 @@ The function returns `TRUE` if a node was added, `FALSE` otherwise. This return 
 
 This function generates a manoeuvre node to perform a Hohmann transfer from the current orbit to that of the `target`, in such a way as to intercept the target.
 
-While this function was written to transfer between two non-intersecting, roughly-circular orbits, it has never actually been used. That's because the node improvement function that would be needed to refine the intercept hasn't been written. Nothing currently calls this function.
+While this function was written to transfer between two non-intersecting, roughly-circular orbits, it has never actually been used. That's because the node improvement function that would be needed to refine the intercept hasn't been written. Nothing currently calls this function. [issue #19](https://github.com/ElWanderer/kOS_scripts/issues/19) exists to implement this fully.
 
 The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not. Currently, a node is always added.
 
