@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.1 20161207").
+pOut("lib_transfer.ks v1.3.2 20161214").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -62,10 +62,10 @@ FUNCTION futureOrbitETATime
   LOCAL i IS 0.
   UNTIL i >= count {
     IF orb:HASNEXTPATCH {
-      SET eta_time TO eta_time + orb:NEXTPATCHETA.
+      SET eta_time TO TIME:SECONDS + orb:NEXTPATCHETA.
       SET orb TO orb:NEXTPATCH.
-    } ELSE {
-      SET eta_time TO eta_time + orb:PERIOD.
+    } ELSE { 
+      IF orb:ECCENTRICITY < 1 { SET eta_time TO eta_time + orb:PERIOD. }
       SET i TO count.
     }
     SET i TO i + 1.
