@@ -11,14 +11,14 @@ GLOBAL CRAFT_FILE IS "1:/craft.ks".
 
 killWarp().
 setTime("STAGE").
-IF NOT EXISTS (CRAFT_FILE) {
+IF NOT EXISTS (CRAFT_FILE) AND HOMECONNECTION:ISCONNECTED {
   LOCAL afp IS "0:/craft/" + padRep(0,"_",SHIP:NAME) + ".ks".
   IF EXISTS (afp) { COPYPATH(afp,CRAFT_FILE). }
 }
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.2.2 20161104").
+pOut("init_common.ks v1.3.0 20161214").
 
 FUNCTION padRep
 {
