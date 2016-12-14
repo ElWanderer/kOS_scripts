@@ -39,7 +39,7 @@ FUNCTION pOrbit
   pOut(" Arg: " + ROUND(o:ARGUMENTOFPERIAPSIS,1) + " deg").
   IF o:ECCENTRICITY < 1 { pOut(" Prd: " + ROUND(o:PERIOD) + "s"). }
   IF o:HASNEXTPATCH {
-    pOut(" Dur: " + ROUND(o:NEXTPATCHETA).
+    pOut(" Dur: " + ROUND(o:NEXTPATCHETA)).
     pOrbit(o:NEXTPATCH).
   }
 }
