@@ -8,6 +8,24 @@ Rendezvous consists of multiple steps, from ensuring that the orbits of the two 
 
 A lot of this is either very complicated, or hard to express in short code blocks. It has been improved considerably over time, but is still a rather large library.
 
+#### Closest Approach v. Minimum Separation
+
+For two craft, the closest approach is the minimum distance between the two craft over a set period of time. During rendezvous, the aim is to get the closest approach between the active vessel and the rendezvous target as close to `0`km as possible.
+
+Minimum separation is a similar concept, but relates to how close two *orbits* get. For two orbits that intersect (cross each other), the minimum separation is `0`. If the orbits do not cross, the minimum separation will be some positive value. During rendezvous, the aim is typically to change one of the orbits so that the two intersect, but due to burn inaccuracy, this may not happen. Still, if the orbit tracks pass very close to each other, it is possible to get the two craft equally close.
+
+Note - having two craft following two orbits that have a low minimum separation does not ensure that there will be a similarly low closest approach. If the two orbits have similar periods (or are synchronised), the two craft may never get close to each other (or at least not within a reasonable time frame).
+
+#### Intersection v. Intercept
+
+Similar to the difference between closest approach and minimum separation, the difference in terminology here is down to whether we are talking about the positions of space craft or the orbits that they are following.
+
+An intersection is where two orbits cross (or at least lie very close to each other).
+
+An intercept is where one craft times its approach to an intersection such that it will be there at the same time as the target craft following the other orbit.
+
+In order to achieve an intercept, we usually have to make sure there is an intersection first. For a phasing approach, we ensure an intersection and then calculate an appropriate orbital period to ensure that the target is intercepted at the intersection, potentially several orbits in the future. For a Hohmann transfer approach, the intercept is achieved by timing the creation of the intersection to meet the target at the first opportunity.
+
 ### Requirements
 
  * `lib_runmode.ks`
@@ -116,59 +134,105 @@ This is done by calling `orbitTAOffset()` and subtracting the result from `orbit
 
 #### `minSeparation(orbit1, orbit2, start_trueanomaly, end_trueanomaly, step_size)`
 
-TBD.
+This function will return the details of the minimum separation found between portions of `orbit1` and `orbit2`, assuming that the two orbits are co-planar (i.e. matching inclination and longitude of the ascending node).
+
+The function starts at `start_trueanomaly` (defined in terms of `orbit1`) and steps through to `end_trueanomaly` at intervals of `step_size`. It will increase one of the values if necessary so that the `end_trueanomaly` is higher than the `start_trueanomaly` e.g. if asked to start at `355` degrees and end at `5` degrees, it will iterate from `355` to `365`, but then convert these values back to the range `0`-`360` when passed into the calculations.
+
+For each `orbit1` true anomaly value, the equivalent true anomaly for `orbit2` is found by subtracting the `orbitTAOffset()`. The separation is calculated taking the difference in the `radiusAtTA()` values. It's important to re-iterate that this assumes the orbits are co-planar.
+
+The lowest value for the minimum separation (and the true anomaly values at which it occurs) is stored and returned.
+
+The return value is a list: `LIST(minimum_separation_distance, active_vessel_trueanomaly, target_trueanomaly)`.
 
 #### `findOrbitMinSeparation(orbit1, orbit2)`
 
-TBD.
+This function will return the details of the minimum separation found between `orbit1` and `orbit2`, assuming that the two orbits are co-planar.
+
+This is achieved by calling `minSeparation()` to step through the whole orbit (`360` degrees) in `10` degree steps. Then the function iterates through smaller and smaller steps (dividing by `10` each time), calling `minSeparation()` again around the minimum separation that was found, until the step size drops below a minimum. 
+
+The minimum step size is calculated as `36 / orbit:PERIOD` (equivalent to `0.1` degrees per second). As the step size is divided by `10` each time, this means that the final step value will be somewhere between `0.1` and `1` degrees per second. This means that while the value returned is a true anomaly, the final accuracy is effectively within a time range of `0.1` to `1`s.
+
+Note that there may be situations where this doesn't find the smallest separation. This is always the danger of calculating via sampling, if the values at the sample points are unrepresentative of those in between.
+
+The return value is a list: `LIST(minimum_separation_distance, active_vessel_trueanomaly, target_trueanomaly)`.
 
 #### `findTargetMinSeparation(target)`
 
-TBD.
+This function will return the details of the minimum separation found between the active vessel's orbit and the orbit of the `target`, assuming that the two orbits are co-planar.
+
+Note that this is achieved by calling `findOrbitMinSeparation()` which in turn iterates through the orbits finding the minimum separation. As described above, that may not find the lowest minimum separation in all cases.
+
+The return value is a list: `LIST(minimum_separation_distance, active_vessel_trueanomaly, target_trueanomaly)`.
 
 #### `rdzBestSpeed(distance, velocity_diff, stage_delta-v)`
 
-TBD.
+This function returns the desired current velocity difference between the active vessel and the target craft, based on the current `distance` between the two, the current `velocity_diff` and the time it would take to kill this current velocity with a burn (which requires knowing the delta-v available).
+
+This function is effectively a look-up table, with the desired velocity difference stepping down as the distance to the target decreases.
 
 #### `rdzOffsetVector(target)`
 
-TBD.
+This function returns an offset to be added to the current position vector to the target, in order to ensure that the active vessel will aim for a point `RDZ_DIST` from the target, reducing the risk of collision or thrusting directly at the target. 
+
+This offset is `RDZ_DIST` in magnitude. It is creating by adding together two normal vectors in the ratio `8:1`: the target's orbit normal and a vector cross between that normal and the target's current position vector. This is then normalised and multipled by `RDZ_DIST`. The vector will largely point normal to the target, with a smaller offset pointing at `90` degrees from the target's position vector. This is to ensure that the offset does not point directly towards (or away from) the active vessel.
 
 #### `rdzApproach(target)`
 
-TBD.
+This function is used to perform the final approach section of a rendezvous, i.e. going from being within a few kilometres to taking station `RDZ_DIST` away from the target, with the velocities matched.
 
-#### `rdzOffsetVector(target)`
+This function has been rewritten a couple of times and is still far from perfect.
 
-TBD.
+TBD - this may take some time to explain!
 
 #### `nodeRdzInclination(target, universal_timestamp)`
 
-TBD.
+This function generates and adds a manoeuvre node (if necessary) to align the inclination of the active vessel's orbit with that of the rendezvous `target`, using the `lib_orbit_match.ks` functions.
+
+The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not.
 
 #### `nodeRdzHohmann(target, universal_timestamp)`
 
-TBD.
+This function generates a manoeuvre node to perform a Hohmann transfer from the current orbit to that of the `target`, in such a way as to intercept the target.
+
+While this function was written to transfer between two non-intersecting, roughly-circular orbits, it has never actually been used. That's because the node improvement function that would be needed to refine the intercept hasn't been written. Nothing currently calls this function.
+
+The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not. Currently, a node is always added.
 
 #### `nodeForceIntersect(target, universal_timestamp)`
 
-TBD.
+This function generates a manoeuvre node (if necessary) that would bring the minimum separation between the active vessel's current orbit and that of the `target` below `2`km.
+
+Three nodes are considered, each opposite a point of interest on the orbit of the `target`.
+* opposite the point of minimum separation
+* opposite the target's apoapsis
+* opposite the target's periapsis
+In each case, the node will change the current orbit's radius at that point to match that of the `target`'s orbit.
+
+Whichever node costs the least delta-v is chosen.
+
+The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not.
 
 #### `nodePhasingOrbit(target, universal_timestamp)`
 
-TBD.
+TBD - another complicated one!
+
+The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not.
 
 #### `recalcCA(target)`
 
-TBD.
+This calls the `lib_ca.ks` function `targetCA()` to predict the precise time of the closest approach `target`, based on a small segment (one eighth) of the orbit, centred on the currently-predicted time of closest approach. The current prediction may have been made by `nodePhasingOrbit()`, in which case it was made based on a manoeuvre node that hadn't been executed yet. The burn was unlikely to be precisely accurate, so we re-evaluate the approach.
 
 #### `passingCA(target, min_distance)`
 
-TBD.
+This is a helper function used by `warpToCA()`. It is meant to be used to kill time warp if the active vessel finds itself passing within `min_distance` of the `target`, and with the distance increasing (relative velocity points away from the target).
+
+If not specified, the default value for `min_distance` is twice the predicted close approach distance (`RDZ_CA_DIST`).
 
 #### `warpToCA(target)`
 
-TBD.
+If the predicted closest approach is more than `99` seconds in the future, this function will time warp until `90` seconds prior to closest approach. Otherwise it does nothing.
+
+The warping functionality is handled by the `init_common.ks` function `doWarp()`, passing in `passingCA()` as a function delegate to kill warp if we seem to be overshooting the target.
 
 #### `doRendezvous(exit_mode, target, can_stage)`
 
@@ -179,6 +243,8 @@ This function provides the main interface for controlling a craft during a rende
 `can_stage`: `TRUE`/`FALSE`. This is passed into each call to `execNode()` (`lib_burn.ks`).
 
 *EVERYTHING BELOW THIS LINE IS A COPY OF THE lib_transfer README THAT HASN'T BEEN REPLACED YET!*
+
+TBD
 
 ##### Steps
 
