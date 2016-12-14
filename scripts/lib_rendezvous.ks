@@ -232,18 +232,15 @@ FUNCTION nodeForceIntersect
     LOCAL minsep_ta IS sepDetails[1].
     LOCAL minsep_t_ta IS sepDetails[2].
 
-    // either burn opposite closest approach
     LOCAL opp_ca_time IS u_time + secondsToTA(SHIP,u_time,mAngle(minsep_ta + 180)).
     LOCAL n1 IS nodeAlterOrbit(opp_ca_time, radiusAtTA(t_orbit,minsep_t_ta) - BODY:RADIUS).
     LOCAL n1_dv IS nodeDV(n1).
 
-    // or burn opposite target ap
     LOCAL s_ta_at_t_pe IS findOtherOrbitTA(t_orbit,s_orbit,0).
     LOCAL opp_ap_time IS u_time + secondsToTA(SHIP,u_time,s_ta_at_t_pe).
     LOCAL n2 IS nodeAlterOrbit(opp_ap_time, t_orbit:APOAPSIS).
     LOCAL n2_dv IS nodeDV(n2).
 
-    // or burn opposite target pe
     LOCAL s_ta_at_t_ap IS findOtherOrbitTA(t_orbit,s_orbit,180).
     LOCAL opp_pe_time IS u_time + secondsToTA(SHIP,u_time,s_ta_at_t_ap).
     LOCAL n3 IS nodeAlterOrbit(opp_pe_time, t_orbit:PERIAPSIS).
