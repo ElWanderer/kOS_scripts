@@ -79,10 +79,10 @@ This function returns the universal timestamp at which the orbit that is `count`
 
     // if count is 0, we will return TIME:SECONDS
     // if count is 1, we will return TIME:SECONDS + initial_orbit:NEXTPATCHETA
-    // if count is 2, we will return TIME:SECONDS + initial_orbit:NEXTPATCHETA + initial_orbit:NEXTPATCH:NEXTPATCHETA
+    // if count is 2, we will return TIME:SECONDS + initial_orbit:NEXTPATCH:NEXTPATCHETA
     // etc.
     
-If the `initial_orbit` does not have enough future patches, the universal timestamp returned is based on the beginning of the last available orbit patch, plus the period of that orbit patch.
+If the `initial_orbit` does not have enough future patches, the universal timestamp returned is based on the beginning of the last available orbit patch, plus the period of that patch if the orbit is elliptical.
 
 Note - the number of patches visible/available may vary depending on various game modes and settings.
 
