@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rendezvous.ks v1.3.0 20161130").
+pOut("lib_rendezvous.ks v1.3.1 20161214").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -57,17 +57,14 @@ FUNCTION orbitTAOffset
 
 FUNCTION findOtherOrbitTA
 {
-  // given a ship orbit true anomaly v, target orbit true anomaly is v - ta_offset
-  PARAMETER orb1, orb2.
-  PARAMETER orb1_ta.
+  PARAMETER orb1, orb2, orb1_ta.
   LOCAL ta_offset IS orbitTAOffset(orb1,orb2).
   RETURN mAngle(orb1_ta - ta_offset).
 }
 
 FUNCTION minSeparation
 {
-  PARAMETER orb1, orb2.
-  PARAMETER start_ta, end_ta, scale_ta.
+  PARAMETER orb1, orb2, start_ta, end_ta, scale_ta.
 
   LOCAL minsep IS 9999999.
   LOCAL s_ta IS 0.
@@ -79,8 +76,8 @@ FUNCTION minSeparation
   UNTIL ta > end_ta {
     LOCAL ta1 IS mAngle(ta).
     LOCAL ta2 IS mAngle(ta - ta_diff).
-    LOCAL sep IS radiusAtTA(orb1, ta1) - radiusAtTA(orb2, ta2).
-    IF ABS(sep) < ABS(minsep) {
+    LOCAL sep IS ABS(radiusAtTA(orb1, ta1) - radiusAtTA(orb2, ta2)).
+    IF sep < minsep {
       SET minsep TO sep.
       SET s_ta TO ta1.
       SET t_ta TO ta2.
@@ -95,7 +92,6 @@ FUNCTION findOrbitMinSeparation
   PARAMETER orb1,orb2.
 
   LOCAL sepDetails IS LIST(0,0,0).
-  // final accuracy between 0.1 and 1 second
   LOCAL min_step IS (36 / orb1:PERIOD).
   LOCAL start_ta IS 0.
   LOCAL end_ta IS 360.
@@ -230,24 +226,21 @@ FUNCTION nodeForceIntersect
   removeAllNodes().
   LOCAL sepDetails IS findTargetMinSeparation(t).
   LOCAL minsep IS sepDetails[0].
-  IF ABS(minsep) > 2000 {
+  IF minsep > 2000 {
     LOCAL s_orbit IS ORBITAT(SHIP,u_time).
     LOCAL t_orbit IS ORBITAT(t,u_time).
     LOCAL minsep_ta IS sepDetails[1].
     LOCAL minsep_t_ta IS sepDetails[2].
 
-    // either burn opposite closest approach
     LOCAL opp_ca_time IS u_time + secondsToTA(SHIP,u_time,mAngle(minsep_ta + 180)).
     LOCAL n1 IS nodeAlterOrbit(opp_ca_time, radiusAtTA(t_orbit,minsep_t_ta) - BODY:RADIUS).
     LOCAL n1_dv IS nodeDV(n1).
 
-    // or burn opposite target ap
     LOCAL s_ta_at_t_pe IS findOtherOrbitTA(t_orbit,s_orbit,0).
     LOCAL opp_ap_time IS u_time + secondsToTA(SHIP,u_time,s_ta_at_t_pe).
     LOCAL n2 IS nodeAlterOrbit(opp_ap_time, t_orbit:APOAPSIS).
     LOCAL n2_dv IS nodeDV(n2).
 
-    // or burn opposite target pe
     LOCAL s_ta_at_t_ap IS findOtherOrbitTA(t_orbit,s_orbit,180).
     LOCAL opp_pe_time IS u_time + secondsToTA(SHIP,u_time,s_ta_at_t_ap).
     LOCAL n3 IS nodeAlterOrbit(opp_pe_time, t_orbit:PERIAPSIS).
