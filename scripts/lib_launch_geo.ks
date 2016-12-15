@@ -99,7 +99,7 @@ FUNCTION calcLaunchDetails
 FUNCTION warpToLaunch
 {
   PARAMETER launch_time.
-  IF launch_time - TIME:SECONDS < 5 {
+  IF launch_time - TIME:SECONDS > 5 {
     pOut("Waiting for orbit plane to pass overhead.").
     UNTIL WARPMODE = "RAILS" { SET WARPMODE TO "RAILS". WAIT 0. }
     doWarp(launch_time).
