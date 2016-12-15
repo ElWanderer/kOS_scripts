@@ -238,9 +238,56 @@ The function returns `TRUE` if a node was added, `FALSE` otherwise. This return 
 
 #### `nodePhasingOrbit(target, universal_timestamp)`
 
-TBD - another complicated one!
+This function generates a manoeuvre node (if necessary) that will put the active vessel into a phasing orbit, such that the vessel will intercept the `target`.
+
+The two craft are assumed to be in co-planar orbits that either intersect or come very close to each other.
 
 The function returns `TRUE` if a node was added, `FALSE` otherwise. This return value explicitly says whether the next step should be to call `execNode()` or not.
+
+##### In Detail
+
+The function begins by calling `findTargetMinSeparation()` to find out where the orbits intersect, or at least come close together. It will then determine how long it will take each craft to reach that point on their current orbits. If the two craft will arrive at their respective positions within `10` seconds of each other, the function will store the details of that as the closest approach and exit by returning `FALSE`.
+
+A phasing orbit is one with a specific time period relative to that of the `target`'s orbit. For example, if we find that we are predicted to arrive at the intersection of two orbits `1000`s before the other craft, we could burn at the intersection to go into an orbit that is higher (and therefore has a longer period) than the `target`. We have several options:
+* an orbit `1000`s longer than that of the `target` will allow the `target` to catch up within a single orbit
+* an orbit `500`s longer than that of the `target` will allow the `target` to catch up after two orbits
+* an orbit `333.3`s longer than that of the `target` will allow the `target` to catch up after three orbits
+* and so on...
+Alternatively, we could look at things the other way around, and say that if the orbital period of the `target` is `4000`s, our vessel arrives at the intercept `3000`s *after* it. In such a case, we could burn at the intersection to go into an orbit that is lower (and therefore has a shorter period) than the `target`. Again, we have several options:
+* an orbit `3000`s shorter than that of the `target` will allow our vessel to catch up within a single orbit
+* an orbit `2000`s shorter than that of the `target` will allow our vessel to catch up after two orbits
+* an orbit `1000`s shorter than that of the `target` will allow our vessel to catch up after three orbits
+* and so on...
+
+As can be seen, the bigger the difference between the `target`'s orbit and the phasing orbit, the sooner the two will meet. But this is likely to be at the cost of more delta-v, both for setting up the orbit in the first place, and for matching velocities at the intercept.
+
+It's also possible that the 'ideal' phasing period won't be available e.g. if it results in an orbit that exits the current sphere of influence or crashes into a planet. To avoid this, the function calculates an upper and a lower bound. The upper bound is the period of an orbit that would have the intercept point as its periapsis and an apoapsis close to the sphere of influence radius (currently defined as `BODY:SOIRADIUS - (BODY:RADIUS * 5)`). The lower bound is the period of an orbit that would have the intercept point as its apoapsis, and a periapsis close to the body being orbited (currently defined as `15`km for airless bodies or `5`km above the atmosphere height for those with an atmosphere). This is done by passing these altitudes into the `lib_orbit_phase.ks` function `orbitPeriodForAlt()`.
+
+Then the function calculates the difference by which the `target`'s orbit period would need to be incremented or decremented to get an intercept within a single orbit:
+
+    // start by setting the increment and decrement periods as if the target will arrive first 
+    LOCAL inc_diff IS target_period - eta_diff.
+    LOCAL dec_diff IS eta_diff.
+    // if the active vessel (ship) will arrive first, swap the periods around.
+    IF target_intersect_eta > ship_intersect_eta {
+      SET inc_diff TO eta_diff.
+      SET dec_diff TO target_period - eta_diff.
+    }
+
+Typically, the most efficient phasing orbit (in terms of delta-v expenditure) will be one that is very similar to the `target`'s orbit. At the same time, this will take a large number of orbits (and therefore a long time) to bring about an intercept. If possible, it is preferable to have a period that is between the current period and that of the `target`, as this means the orbit is not being raised a great deal, only to be lowered again (or vice versa) - the phasing burn will make the active vessel's orbit closer to that of the target. As such, the next part of the calculation involves dividing the increment and decrement differences by larger and larger integers (representing the number of orbits required) until either the maximum number of orbits (`RDZ_MAX_ORBITS`) is reached, or the resulting period is between the vessel's current period and that of the `target`. This is the code that determines the 'best' incremented period:
+
+    LOCAL inc_period IS target_period + inc_diff.
+    LOCAL inc_orbit_num IS 1.
+    UNTIL inc_period <= ship_period OR inc_orbit_num >= RDZ_MAX_ORBITS {
+      SET inc_orbit_num TO inc_orbit_num + 1.
+      SET inc_period TO target_period + (inc_diff / inc_orbit_num).
+    }
+
+A similar, but slightly differently block is executed to calculate the decremented period. Both outputs are then checked to see that they are within the upper and lower bounds. If they are not, they are set to `-1`.
+
+Finally, if both periods are valid, the 'best' one is selected. This is done by choosing decremented period if the active vessel's period is smaller than that of the `target` i.e. the decremented period is likely to be between the two. Otherwise the incremented period is chosen.
+
+With a phase period (and therefore a number of orbits until intercept) selected, the expected rendezvous details are stored and a manoeuvre node is created that will change the orbit to have the phase period. Following this step, the function returns `TRUE`.
 
 #### `recalcCA(target)`
 
@@ -264,30 +311,16 @@ This function provides the main interface for controlling a craft during a rende
 
 `exit_mode`: This is the runmode that the script will switch back to following a successful rendezvous. The function itself has its own set of runmodes in the range `401`-`449`.
 
-`can_stage`: `TRUE`/`FALSE`. This is passed into each call to `execNode()` (`lib_burn.ks`).
-
-*EVERYTHING BELOW THIS LINE IS A COPY OF THE lib_transfer README THAT HASN'T BEEN REPLACED YET!*
-
-TBD
+`can_stage`: `TRUE`/`FALSE`. This is passed into each call to `execNode()` (`lib_burn.ks`). It should be noted that staging is not supported during final approach.
 
 ##### Steps
 
-The `doTransfer()` function initially calculates a transfer node from the current body to the `destination`. As orbits are not usually perfectly circular, this may not even intercept the target body let alone match the desired orbital parameters. The node is passed into the `improveNode()` function which should ensure a fairly accurate trajectory.
-
-The initial node is executed if it is predicted to result in a trajacetory that (eventually) meets the `destination`. Otherwise, it'll drop into a pending failed state (which waits for the player to hit `ABORT` before trying again from the beginning).
-
-Unless the node was executed perfectly, chances are that the trajectory will be quite different to that intended. The function will loop through a set of runmodes whereby mid-course correction nodes are generated and burnt as necessary, until the trajectory has the desired accuracy (see the `orbitNeedsCorrection()` function description for details).
-
-Once the trajectory is considered good enough, the script will time-warp forwards until the next sphere of influence transition.
-
-Once in the next sphere of influence, the script will loop, and consider making mid-course corrections again. Being closer to the `destination`, the required accuracy will be higher than the previous set of corrections, but if the initial set of burns was good enough, no further changes will be needed.
-
-Once in the sphere of influence of the `destination`, a further set of corrections is possible. In particular, it is here that any required inclination changes are most likely to occur. 
-
-Note - if the craft appears in orbit of the `destination` and is already beyond the periapsis, a node to put the craft into orbit is plotted and burned. This is done because KSP's intercept predictions can prove to be incorrect, and it's possible to warp through the sphere of influence transition at a high warp rate. Though the warp will be killed on detecting the change of body, this may not be fast enough. This occurred regularly in KSP v1.0.5, but hasn't been so much of a problem in KSP v1.1.3. It is something that may prove to be even better in KSP v1.2.*.
-
-Once any necessary final corrections have been made, there are two possibilities:
- * The current periapsis is above the atmosphere. In this case we are assumed to be entering orbit. To achieve this an orbital insertion node is placed at the periapsis that will put the craft in a stable orbit. One apsis will be the current periapsis. The other apsis will have the input `periapsis` altitude. Ideally, these altitudes will be virtually identical, but that may not be the case.
- * The current periapsis is below the atmosphere height. In this case we are assumed to be aerobraking or re-entering. The script cannot tell the difference between the two, so it will take no further action and exit. Re-entry or aerobraking is assumed to be handled separately. Currently, `lib_reentry.ks` provides an interface for re-entry, but we don't have any libraries for aerobraking.
+* Each time the function is called, `resume(RDZ_FN)` is called to recover stored rendezvous details such as the expected closest approach details, if they had already been calculated.
+* Match inclination. `nodeRdzInclination()` is called to place a manoeuvre node (if necessary) to match inclination with the `target`.
+* Force intersect. `nodeForceIntersect()` is called to place a manoeuvre node (if necessary) to make the orbits of the active vessel and the `target` cross.
+* Phasing orbit. `nodePhasingOrbit()` is called to place a manoeuvre node (if necessary) to put the active vessel into a phasing orbit that will intercept the target. The manoeuvre node burn is followed by calling `tweakPeriod()` to make the period as accurate as possible. That is done because the burn is unlikely to have been as accurate as required.
+* Closest approach recalculation. `recalcCA()` is called following the manoeuvres and period tweaks to find the resulting closest approach details.
+* Warp to closest approach. `warpToCA()` is called to timewarp until near the closest approach calculated above.
+* Final approach. `rdzApproach()` is called to control the craft during the final approach and matching of velocities.
 
 Geoff Banks / ElWanderer
