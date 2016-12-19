@@ -2,7 +2,7 @@
 
 ### Description
 
-Text giving general, useful description
+This library provides common functions for landing on and ascending from bodies without an atmosphere. Though ascent and descent involve going in opposite directions, there are several commonalities, mostly to do with controlling the pitch of the craft to avoid terrain, which in turn requires working out where terrain is. This library takes a sampling approach based on the currently-predicted flightpath of the active vessel, from which it determines the minimum vertical speed required to avoid terrain.
 
 ### Global variable reference
 
@@ -16,7 +16,7 @@ The initial value is `0`.
 
 This is used to store the current acceleration due to gravity.
 
-The initial value is `0`, but this is locked to the calculation `BODY:MU / (BODY:RADIUS+ALTITUDE)^2` on calling `initLanderValues()`.
+The initial value is `0`, but this is locked to the calculation `BODY:MU / (BODY:RADIUS+ALTITUDE)^2` on calling `initLanderValues()`. This will vary slightly with altitude.
 
 #### `LND_MIN_VS`
 
@@ -40,11 +40,11 @@ This function sets the value of `LND_MIN_VS` to be the input `vertical_speed`. I
 
 #### `landerMinVSpeed()`
 
-Returns `LND_MIN_VS`.
+Returns `LND_MIN_VS`. Expected to be called by other libraries to avoid directly referencing the global.
 
 #### `gravAcc()`
 
-Returns `LND_G_ACC`.
+Returns `LND_G_ACC`. Expected to be called by other libraries to avoid directly referencing the global.
 
 #### `landerPitch()`
 
@@ -74,26 +74,48 @@ If we burn retrograde, our orbital velocity will reduce and so the centripetal a
     // will return a negative desired acceleration. Rather than waste thrust pointing
     // downwards, this caps the lowest pitch angle at `0`.
     IF acc_ratio < 0 { SET p_ang TO 0. }
-    // 
+    // Taking the inverse SIN() will convert the ratio to a pitch angle
+    // e.g. if we need half our thrust (0.5) to be pointing downwards, this converts to
+    //      a pitch angle of 30 degrees.
     ELSE IF acc_ratio < 1 { SET p_ang TO ARCSIN(acc_ratio). }
 
 The function returns `90` (straight up) in the event of being unable to perform the calculation e.g. because the available thrust is `0` or if the required upwards thrust is greater than the craft can provide.
 
 #### `terrainAltAtTime(universal_timestamp)`
 
-Description.
+This uses the orbital prediction (i.e. `POSITIONAT()`) to calculate where the active vessel will be at the `universal_timestamp`, corrects the longitude to account for the rotation of the planet, then finds the terrainheight of that location.
 
-#### `stepTerrainVS(init_min_vs, start_time, look_ahead, step)`
+Returns the terrain height.
 
-Description.
+Note - this calculation assumes that the active vessel will continue on its current orbital path i.e. that it does not make any burns. This assumption will often be incorrect, e.g. if the function is called during the middle of a burn, but it is still useful (and avoids complicated calculations).
 
-#### `findMinVSpeed(init_min_vs, look_ahead, step)`
+#### `stepTerrainVS(initial_min_verticalspeed, start_time, look_ahead, step)`
 
-Description.
+This function calculates the minimum vertical speed required to avoid terrain found by looking ahead `look_ahead` seconds past the `start_time`, in steps of `step` seconds. The minimum vertical speed is initialised as `initial_min_verticalspeed` and will always be equal or greater to that value.
+
+For each timestamp checked, it calls `terrainAltTime()` to find the terrain height at that point. In turn, it then calculates the vertical speed at which the craft would need to travel to be at that altitude (plus an extra safety margin of `50`m) at that time. This vertical speed is called the 'impact velocity'.
+
+The minimum speed is then set to whichever is higher: the current minimum vertical speed, or the 'impact velocity' plus an extra safety margin of twice the local acceleration due to gravity. As with `landerPitch()`, this is confusing speeds and accelerations in the same calculation, but it is a useful way of adjusting the minimum velocity based on how 'hard' it is to counter the acceleration downwards due to gravity.
+
+Note - the extra safety margins are added because of the nature of sampling - widely spaced samples in may return terrain heights that don't fully represent the terrain ahead i.e. the samples might all happen to occur at low points and miss the high peaks in between them.
+
+Also - the stepping continues all the way through, even after finding terrain that causes the minimum vertical speed to be increased. This is because a nearby 'hill' may be less important than a 'cliff' further away; finding one should not stop the other from being detected.
+
+The minimum vertical speed as determined across all the steps is then returned.
+
+#### `findMinVSpeed(initial_min_verticalspeed, look_ahead, step)`
+
+This function is called to set `LND_MIN_VS` to an appropriate value to avoid terrain. This is done by calling `stepTerrainVS()` twice:
+
+The first call to `stepTerrainVS()` is always the same - it steps through `15` seconds into the future at `0.5` second intervals. This is for detecting terrain close to the craft.
+
+The second call to `stepTerrainVS()` uses the input `look_ahead` and `step` values. This is typically used to look further ahead, with a larger interval to avoid performing too many calculations.
+
+This function does not return a value, instead it updates `LND_MIN_VS` by calling `landerSetMinVSpeed()`.
 
 #### `initLanderValues()`
 
-This function sets-up `LND_G_ACC`, by calling `LOCK LND_G_ACC TO BODY:MU / (BODY:RADIUS+ALTITUDE)^2`. It also calls `landerResetTimer()` to reset the timer.
+This function sets-up `LND_G_ACC`, by calling `LOCK LND_G_ACC TO BODY:MU / (BODY:RADIUS+ALTITUDE)^2`. This will vary slightly with altitude. It also calls `landerResetTimer()` to reset the timer.
 
 `LND_G_ACC` is deliberately locked here and then unlocked in `stopLanderValues()` as it is only relevant during ascent and descent, and to avoid it being recalculated for other bodies. However, this may be an unecessary protection, as locked globals are only re-evaluated when they are used, not every tick (as is done for `STEERING` or `THROTTLE` locks).
 
