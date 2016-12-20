@@ -1,6 +1,6 @@
 # kOS_scripts
 
-Scripts and libraries for the fantastic kOS mod for the PC game Kerbal Space Program.
+Scripts and libraries for the kOS mod for the computer game Kerbal Space Program.
 
 ### Headline Items
 
@@ -24,12 +24,10 @@ I've been filling out the issues list. In brief, things I'd like to tackle are:
 
 ### Documentation
 
-To keep the file-sizes down, most of the code is uncommented and many function parameters have very short names. There is currently an open issue for filling out the documentation directory with detailed descriptions.
+To keep the file-sizes down, most of the code is uncommented and many function parameters have very short names. Everything is documented separately in the documentation directory.
 
 ### About
 
 Written for kOS v1.0.1 and KSP v1.1.3.
-
-Most of the code has been written in kOS v0.17-v0.19, but I've updated it to take advantage of new features each time that kOS has been upgraded.
 
 ElWanderer / Geoff Banks
