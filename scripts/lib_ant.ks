@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_ant.ks v1.0.0 20161110").
+pOut("lib_ant.ks v1.1.0 20170105").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -11,14 +11,9 @@ GLOBAL antAnimStatus IS partModField@:BIND("Status",ANT_ANIM_MOD).
 GLOBAL antExtend IS partEvent@:BIND("Extend",ANT_ANIM_MOD).
 GLOBAL antRetract IS partEvent@:BIND("Retract",ANT_ANIM_MOD).
 
-FUNCTION waitUntilIdle {
+FUNCTION antIdle {
   PARAMETER p.
   WAIT UNTIL antAnimStatus(p) <> "Moving..." AND antCommStatus(p) = "Idle".
-}
-
-FUNCTION antToggle {
-  PARAMETER p.
-  RETURN antExtend(p) OR antRetract(p).
 }
 
 FUNCTION doAllAnt {
@@ -27,5 +22,9 @@ FUNCTION doAllAnt {
 }
 
 FUNCTION extendAllAntennae {
-  doAllAnt(LIST(waitUntilIdle@,antExtend,waitUntilIdle@)).
+  doAllAnt(LIST(antIdle@,antExtend,antIdle@)).
+}
+
+FUNCTION retractAllAntennae {
+  doAllAnt(LIST(antIdle@,antRetract,antIdle@)).
 }
