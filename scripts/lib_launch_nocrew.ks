@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_nocrew.ks v1.2.0 20161101").
+pOut("lib_launch_nocrew.ks v1.2.1 20170106").
 
 RUNONCEPATH(loadScript("lib_launch_common.ks")).
 
@@ -37,7 +37,7 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 12 {
     IF ALTITUDE > BODY:ATM:HEIGHT {
       steerOff().
-      PANELS ON.
+      launchExtend().
       launchCirc().
       sepLauncher().
       pDV().
