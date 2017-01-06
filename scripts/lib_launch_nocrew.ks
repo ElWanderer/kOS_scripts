@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_launch_nocrew.ks v1.2.1 20170106").
+pOut("lib_launch_nocrew.ks v1.3.0 20170106").
 
 RUNONCEPATH(loadScript("lib_launch_common.ks")).
 
