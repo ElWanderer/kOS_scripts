@@ -5,8 +5,13 @@ GLOBAL VOLUME_NAMES IS LIST().
 listVolumes().
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
-pOut("init_multi.ks v1.2.0 20161214").
+pOut("init_multi.ks v1.2.0 20170106").
 pVolumes().
+
+FUNCTION cOk
+{
+  RETURN HOMECONNECTION:ISCONNECTED.
+}
 
 FUNCTION setVolumeList
 {
@@ -69,7 +74,7 @@ FUNCTION loadScript
   LOCAL afp IS "0:/" + fn.
   LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
   IF loud { pOut("Copying from: " + afp + " (" + afs + " bytes)"). }
-  WAIT UNTIL HOMECONNECTION:ISCONNECTED.
+  WAIT UNTIL cOk().
   SET lfp TO findSpace(fn, afs).
   COPYPATH(afp,lfp).
   IF loud { pOut("Copied to: " + lfp). }
