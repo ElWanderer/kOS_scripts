@@ -18,7 +18,7 @@ IF NOT EXISTS (CRAFT_FILE) AND cOk() {
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.3.0 20161214").
+pOut("init_common.ks v1.3.0 20170106").
 
 FUNCTION padRep
 {
