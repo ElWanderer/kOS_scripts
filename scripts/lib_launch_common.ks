@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.3.1 20170106").
+pOut("lib_launch_common.ks v1.4.0 20170106").
 
 FOR f IN LIST(
   "lib_burn.ks",
