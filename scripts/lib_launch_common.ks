@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.3.0 20161101").
+pOut("lib_launch_common.ks v1.3.1 20170106").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -106,6 +106,15 @@ FUNCTION launchFairing
       IF f:HASEVENT("deploy") { f:DOEVENT("deploy"). }
     }
     SET LCH_HAS_FAIRING TO FALSE.
+  }
+}
+
+FUNCTION launchExtend
+{
+  PANELS ON.
+  FOR a IN SHIP:MODULESNAMED("ModuleAnimateGeneric") {
+    IF a:PART:MODULES:CONTAINS("ModuleDataTransmitter") AND
+       a:HASEVENT("Extend") { a:DOEVENT("Extend"). }
   }
 }
 
