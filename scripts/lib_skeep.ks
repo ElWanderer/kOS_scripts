@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_skeep.ks v1.1.1 20170106").
+pOut("lib_skeep.ks v1.2.0 20170106").
 
 FOR f IN LIST(
   "lib_orbit.ks",
