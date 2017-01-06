@@ -2,7 +2,12 @@
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
 GLOBAL RESUME_FN IS "resume.ks".
-pOut("init.ks v1.3.0 20161214").
+pOut("init.ks v1.3.0 20170106").
+
+FUNCTION cOk
+{
+  RETURN HOMECONNECTION:ISCONNECTED.
+}
 
 FUNCTION loadScript
 {
@@ -12,7 +17,7 @@ FUNCTION loadScript
 
   LOCAL afp IS "0:/" + fn.
   IF loud { pOut("Copying: " + afp). }
-  WAIT UNTIL HOMECONNECTION:ISCONNECTED.
+  WAIT UNTIL cOk().
   COPYPATH(afp,lfp).
   IF loud { pOut("Copied to: " + lfp). }
   RETURN lfp.
