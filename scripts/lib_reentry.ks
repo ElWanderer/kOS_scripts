@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.2.0 20161214").
+pOut("lib_reentry.ks v1.2.0 20170106").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -22,11 +22,11 @@ FUNCTION pReentry
   LOCAL atm_lng IS mAngle(atm_spot:LNG - (atm_eta * 360 / BODY:ROTATIONPERIOD)).
 
   pOut("Re-entry orbit details:").
-  pOut("Inclination:  " + ROUND(SHIP:OBT:INCLINATION,1) + " degrees.").
-  pOut("Apoapsis:  " + ROUND(APOAPSIS) + "m.").
-  pOut("Periapsis: " + ROUND(PERIAPSIS) + "m.").
-  pOut("Longitude at atmospheric interface:  " + ROUND(atm_lng,1) + " degrees.").
-  pOut("Longitude at periapsis:              " + ROUND(pe_lng,1) + " degrees.").
+  pOut("Inc: " + ROUND(SHIP:OBT:INCLINATION,1) + " degrees.").
+  pOut("Ap:  " + ROUND(APOAPSIS) + "m.").
+  pOut("Pe:  " + ROUND(PERIAPSIS) + "m.").
+  pOut("Lng (atm): " + ROUND(atm_lng,1) + " degrees.").
+  pOut("Lng (pe):  " + ROUND(pe_lng,1) + " degrees.").
 }
 
 FUNCTION deorbitNode
@@ -59,8 +59,7 @@ FUNCTION secondTAAtRadius
 
 FUNCTION secondsToAlt
 {
-  PARAMETER craft, u_time, t_alt. // metres
-  PARAMETER ascending.
+  PARAMETER craft, u_time, t_alt, ascending.
 
   LOCAL secs IS -1.
   LOCAL orb IS ORBITAT(craft,u_time).
@@ -72,6 +71,22 @@ FUNCTION secondsToAlt
     SET secs TO secondsToTA(craft,u_time,t_ta).
   }
   RETURN secs.
+}
+
+FUNCTION reentryExtend
+{
+  PANELS ON.
+  FOR m IN SHIP:MODULESNAMED("ModuleDataTransmitter") {
+    partEvent("Extend","ModuleAnimateGeneric",m:PART).
+  }
+}
+
+FUNCTION reentryRetract
+{
+  PANELS OFF.
+  FOR m IN SHIP:MODULESNAMED("ModuleDataTransmitter") {
+    partEvent("Retract","ModuleAnimateGeneric",m:PART).
+  }
 }
 
 FUNCTION doReentry
@@ -153,7 +168,7 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 74 {
     IF ALTITUDE < alt_atm { runMode(76). }
   } ELSE IF rm = 76 {
-    PANELS OFF.
+    reentryRetract().
     steerSurf(FALSE).
     SET alt_atm TO BODY:ATM:HEIGHT.
     runMode(78).
@@ -173,7 +188,7 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 82 {
     pOut("Leaving atmosphere.").
-    PANELS ON.
+    reentryExtend().
     steerSun().
     LOCAL alt_atm_by_ecc IS BODY:ATM:HEIGHT + ROUND(SHIP:OBT:ECCENTRICITY,2) * 15000.
     SET alt_atm TO MIN(MAX(BODY:ATM:HEIGHT,APOAPSIS-500),alt_atm_by_ecc).
