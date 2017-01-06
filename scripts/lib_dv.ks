@@ -1,8 +1,9 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20161212").
+pOut("lib_dv.ks v1.1.0 20170106").
 
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
+GLOBAL DV_FUELS IS LIST("LIQUIDFUEL", "OXIDIZER").
 
 FUNCTION fuelRate
 {
@@ -97,17 +98,21 @@ FUNCTION setIspFuelRate
 
 FUNCTION fuelMassInLex
 {
-  PARAMETER rl, f.
-  IF rl:HASKEY(f) { RETURN (rl[f]:AMOUNT * rl[f]:DENSITY). }
-  RETURN 0.
+  PARAMETER rl, fl IS DV_FUELS.
+  LOCAL m IS 0.
+  FOR f IN fl { IF rl:HASKEY(f) { SET m TO m + (rl[f]:AMOUNT * rl[f]:DENSITY). } }
+  RETURN m.
 }
 
 FUNCTION stageDV
 {
   setIspFuelRate().
-  LOCAL rl IS STAGE:RESOURCESLEX.
-  LOCAL m1 IS MASS - (fuelMassInLex(rl, "LIQUIDFUEL") + fuelMassInLex(rl, "OXIDIZER")).
-  RETURN (g0 * DV_ISP * LN(MASS / m1)).
+  LOCAL fm IS fuelMassInLex(STAGE:RESOURCESLEX).
+  IF fm = 0 AND SHIP:AVAILABLETHRUST > 0 {
+    pOut("Using SHIP instead of STAGE for dv calc.").
+    SET fm TO fuelMassInLex(SHIP:RESOURCESLEX).
+  }
+  RETURN (g0 * DV_ISP * LN(MASS / (MASS-fm))).
 }
 
 FUNCTION pDV
