@@ -15,8 +15,8 @@ rcsSetISPAndThrust().
 FUNCTION rcsSetISPAndThrust
 {
   // how to find these?
-  SET RCS_BURN_ISP TO 250.
-  SET RCS_BURN_T TO 1.
+  SET RCS_BURN_ISP TO 240. // 4-way and 1-way thrusters have this ISP
+  SET RCS_BURN_T TO 8.     // 8 x 4-way thrusters or 4 x 1-way thrusters
 }
 
 FUNCTION rcsDV
