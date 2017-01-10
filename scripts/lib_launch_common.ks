@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_launch_common.ks v1.4.0 20170106").
+pOut("lib_launch_common.ks v1.4.0 20170110").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -112,9 +112,8 @@ FUNCTION launchFairing
 FUNCTION launchExtend
 {
   PANELS ON.
-  FOR a IN SHIP:MODULESNAMED("ModuleAnimateGeneric") {
-    IF a:PART:MODULES:CONTAINS("ModuleDataTransmitter") AND
-       a:HASEVENT("Extend") { a:DOEVENT("Extend"). }
+  FOR a IN SHIP:MODULESNAMED("ModuleDeployableAntenna") {
+    IF a:HASEVENT("Extend Antenna") { a:DOEVENT("Extend Antenna"). }
   }
 }
 
