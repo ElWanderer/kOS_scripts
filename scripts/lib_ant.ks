@@ -1,19 +1,19 @@
 @LAZYGLOBAL OFF.
-pOut("lib_ant.ks v1.1.0 20170105").
+pOut("lib_ant.ks v1.1.0 20170110").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
 GLOBAL ANT_TX_MOD IS "ModuleDataTransmitter".
-GLOBAL ANT_ANIM_MOD IS "ModuleAnimateGeneric".
+GLOBAL ANT_ANIM_MOD IS "ModuleDeployableAntenna".
 
-GLOBAL antCommStatus IS partModField@:BIND("Comm",ANT_TX_MOD).
+GLOBAL antCommStatus IS partModField@:BIND("Antenna State",ANT_TX_MOD).
 GLOBAL antAnimStatus IS partModField@:BIND("Status",ANT_ANIM_MOD).
-GLOBAL antExtend IS partEvent@:BIND("Extend",ANT_ANIM_MOD).
-GLOBAL antRetract IS partEvent@:BIND("Retract",ANT_ANIM_MOD).
+GLOBAL antExtend IS partEvent@:BIND("Extend Antenna",ANT_ANIM_MOD).
+GLOBAL antRetract IS partEvent@:BIND("Retract Antenna",ANT_ANIM_MOD).
 
 FUNCTION antIdle {
   PARAMETER p.
-  WAIT UNTIL antAnimStatus(p) <> "Moving..." AND antCommStatus(p) = "Idle".
+  WAIT UNTIL LIST("Extended","Retracted"):CONTAINS(antAnimStatus(p)) AND antCommStatus(p) = "Idle".
 }
 
 FUNCTION doAllAnt {
