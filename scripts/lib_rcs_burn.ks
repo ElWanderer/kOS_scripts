@@ -58,10 +58,10 @@ FUNCTION rcsBurnNode
   IF NOT RCS { toggleRCS(). }
 
   UNTIL done OR NOT ok {
-    doTranslation(n:DELTAV).
+    doTranslation(n:DELTAV, burnThrottle(rcsBurnTime(n:DELTAV:MAG))).
 
     IF VDOT(o_dv, n:DELTAV) < 0 { SET done TO TRUE. stopTranslation(). }
-    ELSE IF rcsDV() < nodeDV(n) { SET ok TO FALSE. stopTranslation(). }
+    ELSE IF rcsDV() < n:DELTAV:MAG { SET ok TO FALSE. stopTranslation(). }
 
     WAIT 0.
   }
