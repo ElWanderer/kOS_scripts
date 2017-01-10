@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.2.0 20170106").
+pOut("lib_reentry.ks v1.2.0 20170110").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -9,6 +9,8 @@ FOR f IN LIST(
   "lib_steer.ks",
   "lib_orbit.ks"
 ) { RUNONCEPATH(loadScript(f)). }
+
+GLOBAL REENT_ANT_MOD IS "ModuleDeployableAntenna".
 
 FUNCTION pReentry
 {
@@ -76,16 +78,16 @@ FUNCTION secondsToAlt
 FUNCTION reentryExtend
 {
   PANELS ON.
-  FOR m IN SHIP:MODULESNAMED("ModuleDataTransmitter") {
-    partEvent("Extend","ModuleAnimateGeneric",m:PART).
+  FOR m IN SHIP:MODULESNAMED(REENT_ANT_MOD) {
+    IF canEvent("Extend Antenna",REENT_ANT_MOD) { modEvent("Extend Antenna",REENT_ANT_MOD). } 
   }
 }
 
 FUNCTION reentryRetract
 {
   PANELS OFF.
-  FOR m IN SHIP:MODULESNAMED("ModuleDataTransmitter") {
-    partEvent("Retract","ModuleAnimateGeneric",m:PART).
+  FOR m IN SHIP:MODULESNAMED(REENT_ANT_MOD) {
+    IF canEvent("Retract Antenna",REENT_ANT_MOD) { modEvent("Retract Antenna",REENT_ANT_MOD). } 
   }
 }
 
