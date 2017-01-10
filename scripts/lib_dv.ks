@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170106").
+pOut("lib_dv.ks v1.1.0 20170110").
 
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
@@ -110,7 +110,9 @@ FUNCTION stageDV
   LOCAL fm IS fuelMassInLex(STAGE:RESOURCESLEX).
   IF fm = 0 AND SHIP:AVAILABLETHRUST > 0 {
     pOut("Using SHIP instead of STAGE for dv calc.").
-    SET fm TO fuelMassInLex(SHIP:RESOURCESLEX).
+    FOR r IN SHIP:RESOURCES {
+      IF LIST("LiquidFuel","Oxidizer"):CONTAINS(r:NAME) { SET fm TO r:AMOUNT * r:DENSITY. }
+    }
   }
   RETURN (g0 * DV_ISP * LN(MASS / (MASS-fm))).
 }
