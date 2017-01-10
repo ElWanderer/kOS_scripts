@@ -1,12 +1,12 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rcs_burn.ks v1.0.0 20170109").
+pOut("lib_rcs_burn.ks v1.0.0 20170110").
 
 FOR f IN LIST(
   "lib_rcs.ks",
   "lib_burn.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL RCS_BURN_FUELS IS LIST("MONOPROP"). // or is it "MONOPROPELLANT/ENT"?
+//GLOBAL RCS_BURN_FUELS IS LIST("MONOPROP").
 GLOBAL RCS_BURN_ISP IS 0.
 GLOBAL RCS_BURN_T IS 0.
 
@@ -21,7 +21,10 @@ FUNCTION rcsSetISPAndThrust
 
 FUNCTION rcsDV
 {
-  LOCAL fm IS fuelMassInLex(SHIP:RESOURCESLEX,RCS_BURN_FUELS). 
+  LOCAL fm IS 0.
+  FOR r IN SHIP:RESOURCES {
+    IF r:NAME = "MonoPropellant" { SET fm TO r:AMOUNT * r:DENSITY. }
+  }
   RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fm))).
 }
 
@@ -64,6 +67,7 @@ FUNCTION rcsBurnNode
   }
 
   SET RCS to rcs_o_state.
+  dampSteering().
   pOrbit(SHIP:OBT).
 
   IF n:DELTAV:MAG >= 1 { SET ok TO FALSE. }
@@ -97,7 +101,6 @@ FUNCTION rcsExecNode
     pOut("Burn time: " + ROUND(bt,1) + "s.").
     warpCloseToNode(n,bt).
     pointNode(n).
-    dampSteering().
     warpToNode(n,bt).
     SET ok TO rcsBurnNode(n,bt).
     IF ok { REMOVE n. }
