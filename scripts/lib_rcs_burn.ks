@@ -1,29 +1,52 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rcs_burn.ks v1.0.0 20170110").
+pOut("lib_rcs_burn.ks v1.0.0 20170111").
 
 FOR f IN LIST(
   "lib_rcs.ks",
   "lib_burn.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-//GLOBAL RCS_BURN_FUELS IS LIST("MONOPROP").
-GLOBAL RCS_BURN_ISP IS 0.
+GLOBAL RCS_BURN_FUELS IS LIST("MonoPropellant").
+GLOBAL RCS_BURN_ISP IS 240.
 GLOBAL RCS_BURN_T IS 0.
 
-rcsSetISPAndThrust().
+rcsSetThrust().
 
-FUNCTION rcsSetISPAndThrust
+FUNCTION rcsPartThrust
 {
-  // how to find these?
-  SET RCS_BURN_ISP TO 240. // 4-way and 1-way thrusters have this ISP
-  SET RCS_BURN_T TO 8.     // 8 x 4-way thrusters or 4 x 1-way thrusters
+  PARAMETER p.
+
+  LOCAL dot IS VDOT(p:FACING:VECTOR,FACING:FOREVECTOR).
+
+  IF p:NAME = "RCSBlock" {
+    // 4x 1kN at 90 degrees to facing
+    RETURN 1 - ABS(dot).
+  }
+
+  IF p:NAME = "linearRCS" {
+    // 2kN in-line with facing
+    RETURN 2 * MAX(0,-dot).
+  }
+
+  RETURN 0.
+}
+
+FUNCTION rcsSetThrust
+{
+  LOCAL t IS 0.
+
+  FOR m IN SHIP:MODULESNAMED("ModuleRCSFX") {
+    SET t TO t + rcsPartThrust(m:PART).
+  }
+
+  SET RCS_BURN_T TO t.
 }
 
 FUNCTION rcsDV
 {
   LOCAL fm IS 0.
   FOR r IN SHIP:RESOURCES {
-    IF r:NAME = "MonoPropellant" { SET fm TO r:AMOUNT * r:DENSITY. }
+    IF RCS_BURN_FUELS:CONTAINS(r:NAME) { SET fm TO fm + (r:AMOUNT * r:DENSITY). }
   }
   RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fm))).
 }
@@ -90,7 +113,7 @@ FUNCTION rcsExecNode
   LOCAL n IS NEXTNODE.
   LOCAL n_dv IS nodeDV(n).
 
-  rcsSetISPAndThrust().
+  rcsSetThrust().
   LOCAL s_dv IS rcsDV().
   pOut("Delta-v required: " + ROUND(n_dv,1) + "m/s.").
   rcsPDV().
