@@ -16,16 +16,14 @@ FUNCTION rcsPartThrust
 {
   PARAMETER p.
 
-  LOCAL dot IS VDOT(p:FACING:VECTOR,FACING:FOREVECTOR).
-
   IF p:NAME = "RCSBlock" {
-    // 4x 1kN at 90 degrees to facing
-    RETURN 1 - ABS(dot).
+    // 4x 1kN, starboard vector is normal to plane of the thrusters
+    RETURN 1 - ABS(VDOT(p:FACING:STARVECTOR,FACING:VECTOR)).
   }
 
   IF p:NAME = "linearRCS" {
     // 2kN in-line with facing
-    RETURN 2 * MAX(0,-dot).
+    RETURN 2 * MAX(0,VDOT(p:FACING:VECTOR,-FACING:VECTOR)).
   }
 
   RETURN 0.
