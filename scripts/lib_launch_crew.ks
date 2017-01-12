@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20170106").
+pOut("lib_launch_crew.ks v1.3.0 20170112").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -46,38 +46,14 @@ UNTIL rm = exit_mode
 {
   IF rm = 1 {
     killThrot().
-    WAIT 0.
-    LOCK THROTTLE TO 1.
-    steerLaunch().
+    launchPilot().
     runMode(2,21).
   } ELSE IF rm = 2 {
-    IF NOT isSteerOn() { steerLaunch(). }
-    IF modeTime() > 3 {
-      doStage().
-      hudMsg("Liftoff!").
-      runMode(11).
-    }
+    launchLiftOff(11).
   } ELSE IF rm = 11 {
-    IF NOT isSteerOn() { steerLaunch(). }
-    launchSteerUpdate().
-    launchStaging().
-    IF APOAPSIS > ap {
-      killThrot().
-      pDV().
-      steerSurf().
-      runMode(12).
-    }
+    launchFlight(12).
   } ELSE IF rm = 12 {
-    IF ALTITUDE > BODY:ATM:HEIGHT {
-      steerOff().
-      launchExtend().
-      launchCirc().
-      IF PERIAPSIS > BODY:ATM:HEIGHT {
-        sepLauncher().
-        pDV().
-        runMode(exit_mode,0).
-      } ELSE { runMode(21,0). }
-    }
+    launchCoast(exit_mode,11).
   } ELSE IF rm = 21 {
     killThrot().
     WAIT 0.
