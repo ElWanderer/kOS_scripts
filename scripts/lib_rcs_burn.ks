@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rcs_burn.ks v1.0.0 20170112").
+pOut("lib_rcs_burn.ks v1.1.0 20170112").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -30,11 +30,7 @@ FUNCTION rcsSetThrust
 
 FUNCTION rcsDV
 {
-  LOCAL fm IS 0.
-  FOR r IN SHIP:RESOURCES {
-    IF RCS_BURN_FUELS:CONTAINS(r:NAME) { SET fm TO fm + (r:AMOUNT * r:DENSITY). }
-  }
-  RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fm))).
+  RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fuelMass(SHIP:RESOURCES,RCS_BURN_FUELS)))).
 }
 
 FUNCTION rcsPDV
