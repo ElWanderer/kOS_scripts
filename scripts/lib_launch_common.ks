@@ -1,12 +1,12 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_launch_common.ks v1.4.0 20170110").
+pOut("lib_launch_common.ks v1.4.0 20170112").
 
 FOR f IN LIST(
   "lib_burn.ks",
   "lib_runmode.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
+GLOBAL LCH_AP IS 0.
 GLOBAL LCH_MAX_THRUST IS 0.
 GLOBAL LCH_ORBIT_VEL IS 0.
 GLOBAL LCH_VEC IS UP:VECTOR.
@@ -60,11 +60,17 @@ FUNCTION checkLES
   SET LCH_HAS_LES TO (SHIP:PARTSNAMED("LaunchEscapeSystem"):LENGTH > 0 AND CAREER():CANDOACTIONS).
 }
 
+FUNCTION launchAP
+{
+  parameter ap.
+  SET LCH_AP TO ap.
+  SET LCH_ORBIT_VEL TO SQRT(BODY:MU/(BODY:RADIUS + ap)).
+}
+
 FUNCTION launchInit
 {
   PARAMETER ap,az,i,pitch_alt.
-
-  SET LCH_ORBIT_VEL TO SQRT(BODY:MU/(BODY:RADIUS + ap)).
+  launchAP(ap).
   SET LCH_I TO i.
   SET LCH_AN TO (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)).
   SET LCH_PITCH_ALT TO pitch_alt.
@@ -141,7 +147,61 @@ FUNCTION launchCirc
     LOCAL n IS NODE(m_time, 0, 0, v1 - v0).
     addNode(n).
   }
-  execNode(TRUE).
+  LOCAL ok IS execNode(TRUE).
+  RETURN ok AND PERIAPSIS > BODY:ATM:HEIGHT.
+}
+
+FUNCTION launchCoast
+{
+  PARAMETER exit_mode, flight_mode, fail_mode IS abortMode().
+  IF ALTITUDE > BODY:ATM:HEIGHT {
+    steerOff().
+    launchExtend().
+    IF launchCirc() {
+      sepLauncher().
+      pDV().
+      runMode(exit_mode,0).
+    } ELSE {
+      launchAP(APOAPSIS + 10000).
+      launchPilot().
+      runMode(flight_mode).
+    }
+  } ELSE IF APOAPSIS < MAX(BODY:ATM:HEIGHT + 1000,LCH_AP - 10000) {
+    launchAP(LCH_AP + ROUND(ABS(BODY:ATM:HEIGHT-ALTITUDE)/3)).
+    launchPilot().
+    runMode(flight_mode).
+  }
+}
+
+FUNCTION launchFlight
+{
+  PARAMETER next_mode.
+  IF NOT isSteerOn() { steerLaunch(). }
+  launchSteerUpdate().
+  launchStaging().
+  IF APOAPSIS > LCH_AP {
+    killThrot().
+    pDV().
+    steerSurf().
+    runMode(next_mode).
+  }
+}
+
+FUNCTION launchLiftOff
+{
+  PARAMETER next_mode.
+  IF NOT isSteerOn() { steerLaunch(). }
+  IF modeTime() > 3 {
+    doStage().
+    hudMsg("Liftoff!").
+    runMode(next_mode).
+  }
+}
+
+FUNCTION launchPilot
+{
+  steerLaunch().
+  LOCK THROTTLE TO 1.
 }
 
 FUNCTION launchBearing
