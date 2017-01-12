@@ -77,7 +77,6 @@ FUNCTION launchInit
 
   checkFairing().
   checkLES().
-  mThrust(0).
 
   IF runMode() < 0 {
     hudMsg("Prepare for launch...").
@@ -163,12 +162,12 @@ FUNCTION launchCoast
       runMode(exit_mode,0).
     } ELSE {
       launchAP(APOAPSIS + 10000).
-      launchPilot().
+      launchLocks().
       runMode(flight_mode).
     }
   } ELSE IF APOAPSIS < MAX(BODY:ATM:HEIGHT + 1000,LCH_AP - 10000) {
     launchAP(LCH_AP + ROUND(ABS(BODY:ATM:HEIGHT-ALTITUDE)/3)).
-    launchPilot().
+    launchLocks().
     runMode(flight_mode).
   }
 }
@@ -198,9 +197,10 @@ FUNCTION launchLiftOff
   }
 }
 
-FUNCTION launchPilot
+FUNCTION launchLocks
 {
   steerLaunch().
+  mThrust(0).
   LOCK THROTTLE TO 1.
 }
 
