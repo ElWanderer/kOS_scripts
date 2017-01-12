@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rcs_burn.ks v1.0.0 20170111").
+pOut("lib_rcs_burn.ks v1.0.0 20170112").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -16,27 +16,15 @@ FUNCTION rcsPartThrust
 {
   PARAMETER p.
 
-  IF p:NAME = "RCSBlock" {
-    // 4x 1kN, starboard vector is normal to plane of the thrusters
-    RETURN 1 - ABS(VDOT(p:FACING:STARVECTOR,FACING:VECTOR)).
-  }
-
-  IF p:NAME = "linearRCS" {
-    // 2kN in-line with facing
-    RETURN 2 * MAX(0,VDOT(p:FACING:VECTOR,-FACING:VECTOR)).
-  }
-
+  IF p:NAME = "RCSBlock" { RETURN 1 - ABS(VDOT(p:FACING:STARVECTOR,FACING:VECTOR)). }
+  IF p:NAME = "linearRCS" { RETURN 2 * MAX(0,VDOT(p:FACING:VECTOR,-FACING:VECTOR)). }
   RETURN 0.
 }
 
 FUNCTION rcsSetThrust
 {
   LOCAL t IS 0.
-
-  FOR m IN SHIP:MODULESNAMED("ModuleRCSFX") {
-    SET t TO t + rcsPartThrust(m:PART).
-  }
-
+  FOR m IN SHIP:MODULESNAMED("ModuleRCSFX") { SET t TO t + rcsPartThrust(m:PART). }
   SET RCS_BURN_T TO t.
 }
 
@@ -56,8 +44,8 @@ FUNCTION rcsPDV
 
 FUNCTION rcsBurnTime
 {
-  PARAMETER dv, sdv IS rcsDV(), limiter IS 1.
-  RETURN btCalc(dv, MASS, RCS_BURN_ISP, fuelRate(RCS_BURN_T * limiter,RCS_BURN_ISP)).
+  PARAMETER dv.
+  RETURN btCalc(dv, MASS, RCS_BURN_ISP, fuelRate(RCS_BURN_T,RCS_BURN_ISP)).
 }
 
 FUNCTION rcsBurnNode
@@ -88,7 +76,6 @@ FUNCTION rcsBurnNode
   }
 
   SET RCS to rcs_o_state.
-  dampSteering().
   pOrbit(SHIP:OBT).
 
   IF n:DELTAV:MAG >= 1 { SET ok TO FALSE. }
@@ -125,6 +112,7 @@ FUNCTION rcsExecNode
     warpToNode(n,bt).
     SET ok TO rcsBurnNode(n,bt).
     IF ok { REMOVE n. }
+    dampSteering().
   } ELSE {
     SET ok TO FALSE.
     pOut("ERROR: not enough delta-v for node.").
