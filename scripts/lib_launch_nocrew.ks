@@ -15,7 +15,7 @@ UNTIL rm = exit_mode
 {
   IF rm = 1 {
     killThrot().
-    launchPilot().
+    launchLocks().
     runMode(2).
   } ELSE IF rm = 2 {
     launchLiftOff(11).
