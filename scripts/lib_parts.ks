@@ -1,5 +1,26 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.1.0 20161110").
+pOut("lib_parts.ks v1.2.0 20170113").
+
+GLOBAL PART_DECOUPLERS IS LEXICON(
+  "ModuleDockingNode", "decouple node",
+  "ModuleDecouple", "decouple",
+  "ModuleAnchoredDecoupler", "decouple").
+
+// test lines
+GLOBAL PART_HIGHLIGHTS IS LIST().
+
+FUNCTION clearHighlights
+{
+  FOR ph IN PART_HIGHLIGHTS { SET ph:ENABLED TO FALSE. }
+  PART_HIGHLIGHTS:CLEAR.
+}
+
+FUNCTION partHighlight
+{
+  PARAMETER p, c IS RGB(0,1,0).
+  PART_HIGHLIGHTS:ADD(HIGHLIGHT(p,c)).
+}
+// end of test lines
 
 FUNCTION canEvent
 {
@@ -38,14 +59,19 @@ FUNCTION partModField
   RETURN "-".
 }
 
-FUNCTION decouplePart
+FUNCTION isDecoupler
 {
   PARAMETER p.
+  FOR mn IN p:MODULES { IF PART_DECOUPLERS:HASKEY(mn) { RETURN TRUE. } }
+  RETURN FALSE.
+}
 
-  IF NOT (partEvent("decouple node","ModuleDockingNode",p)
-  OR partEvent("decouple","ModuleDecouple",p)
-  OR partEvent("decouple","ModuleAnchoredDecoupler",p))
-  AND p:HASPARENT { decouplePart(p:PARENT). }
+FUNCTION decouplePart
+{
+  PARAMETER p, tr IS TRUE.
+  IF isDecoupler(p) { FOR mn IN PART_DECOUPLERS:KEYS { partEvent(PART_DECOUPLERS[mn],mn,p). } }
+  ELSE IF tr { IF p:HASPARENT { decouplePart(p:PARENT). } ELSE { decouplePart(p, FALSE). } }
+  ELSE { FOR cp IN p:CHILDREN { decouplePart(cp,tr). } }
 }
 
 FUNCTION decoupleByTag
