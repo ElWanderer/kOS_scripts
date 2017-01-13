@@ -1,6 +1,9 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170110").
+pOut("lib_dv.ks v1.1.0 20170113").
 
+RUNONCEPATH(loadScript("lib_parts.ks")).
+GLOBAL DV_PL IS LIST().
+GLOBAL DV_FM IS 0.
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
 GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
@@ -41,6 +44,15 @@ FUNCTION moreEngines
   LIST ENGINES IN all_e.
   FOR e IN all_e { IF engCanFire(e) { RETURN TRUE. } }
   RETURN FALSE.
+}
+
+FUNCTION currentStageEngines
+{
+  LOCAL el IS LIST().
+  LOCAL all_e IS LIST().
+  LIST ENGINES IN all_e.
+  FOR e IN all_e { IF e:IGNITION AND NOT e:FLAMEOUT { el:ADD(e). } }
+  RETURN el.
 }
 
 FUNCTION nextStageBT
@@ -104,13 +116,56 @@ FUNCTION fuelMass
   RETURN m.
 }
 
+FUNCTION fuelMassChildren
+{
+  PARAMETER p.
+  IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
+    DV_PL:ADD(p:UID).
+    partHighlight(p). WAIT 0.2. // test line
+    SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
+    FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
+  }
+}
+
+FUNCTION fuelMassFamily
+{
+  PARAMETER p.
+  FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
+  IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
+    DV_PL:ADD(p:UID).
+    partHighlight(p). WAIT 0.2. // test line
+    SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
+    IF p:HASPARENT { fuelMassFamily(p). }
+  }
+}
+
+FUNCTION fuelMassCurrentStage
+{
+  DV_PL:CLEAR.
+  SET DV_FM TO 0.
+
+  FOR e IN currentStageEngines() { fuelMassFamily(e). }
+
+  WAIT 5. clearHighlights(). // test line
+
+  RETURN DV_FM.
+}
+
 FUNCTION stageDV
 {
   setIspFuelRate().
-  LOCAL fm IS fuelMass(STAGE:RESOURCES).
+  LOCAL fm IS fuelMassCurrentStage().
+  // test lines
+  LOCAL fm2 IS fuelMass(SHIP:RESOURCES).
+  pOut("Fuel mass reported by fuelMassCurrentStage(): " + ROUND(fm*1000) + "kg.").
+  pOut("Fuel mass reported by fuelMass(STAGE:RESOURCES): " + ROUND(fm2*1000) + "kg.").
+  // end of test lines
   IF fm = 0 AND SHIP:AVAILABLETHRUST > 0 {
-    pOut("Using SHIP instead of STAGE for dv calc.").
     SET fm TO fuelMass(SHIP:RESOURCES).
+    // test lines
+    pOut("Using SHIP instead of STAGE for dv calc.").
+    pOut("Fuel mass reported by fuelMass(SHIP:RESOURCES): " + ROUND(fm*1000) + "kg.").
+    // end of test lines
   }
   RETURN (g0 * DV_ISP * LN(MASS / (MASS-fm))).
 }
