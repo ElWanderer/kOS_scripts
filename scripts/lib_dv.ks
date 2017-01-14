@@ -135,7 +135,7 @@ FUNCTION fuelMassFamily
     DV_PL:ADD(p:UID).
     partHighlight(p). WAIT 0.2. // test line
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
-    IF p:HASPARENT { fuelMassFamily(p). }
+    IF p:HASPARENT { fuelMassFamily(p:PARENT). }
   }
 }
 
@@ -157,14 +157,14 @@ FUNCTION stageDV
   LOCAL fm IS fuelMassCurrentStage().
   // test lines
   LOCAL fm2 IS fuelMass(STAGE:RESOURCES).
-  pOut("Fuel mass reported by fuelMassCurrentStage(): " + ROUND(fm*1000) + "kg.").
-  pOut("Fuel mass reported by fuelMass(STAGE:RESOURCES): " + ROUND(fm2*1000) + "kg.").
+  pOut("fuelMassCurrentStage(): " + ROUND(fm*1000) + "kg.").
+  pOut("fuelMass(STAGE:RESOURCES): " + ROUND(fm2*1000) + "kg.").
   // end of test lines
   IF fm = 0 AND SHIP:AVAILABLETHRUST > 0 {
     SET fm TO fuelMass(SHIP:RESOURCES).
     // test lines
     pOut("Using SHIP instead of STAGE for dv calc.").
-    pOut("Fuel mass reported by fuelMass(SHIP:RESOURCES): " + ROUND(fm*1000) + "kg.").
+    pOut("fuelMass(SHIP:RESOURCES): " + ROUND(fm*1000) + "kg.").
     // end of test lines
   }
   RETURN (g0 * DV_ISP * LN(MASS / (MASS-fm))).
