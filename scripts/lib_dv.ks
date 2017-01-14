@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170113").
+pOut("lib_dv.ks v1.1.0 20170114").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -156,7 +156,7 @@ FUNCTION stageDV
   setIspFuelRate().
   LOCAL fm IS fuelMassCurrentStage().
   // test lines
-  LOCAL fm2 IS fuelMass(SHIP:RESOURCES).
+  LOCAL fm2 IS fuelMass(STAGE:RESOURCES).
   pOut("Fuel mass reported by fuelMassCurrentStage(): " + ROUND(fm*1000) + "kg.").
   pOut("Fuel mass reported by fuelMass(STAGE:RESOURCES): " + ROUND(fm2*1000) + "kg.").
   // end of test lines
