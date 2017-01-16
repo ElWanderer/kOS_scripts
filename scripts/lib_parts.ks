@@ -1,26 +1,10 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.2.0 20170113").
+pOut("lib_parts.ks v1.2.0 20170116").
 
 GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleDockingNode", "decouple node",
   "ModuleDecouple", "decouple",
   "ModuleAnchoredDecoupler", "decouple").
-
-// test lines
-GLOBAL PART_HIGHLIGHTS IS LIST().
-
-FUNCTION clearHighlights
-{
-  FOR ph IN PART_HIGHLIGHTS { SET ph:ENABLED TO FALSE. }
-  PART_HIGHLIGHTS:CLEAR.
-}
-
-FUNCTION partHighlight
-{
-  PARAMETER p, c IS RGB(0,1,0).
-  PART_HIGHLIGHTS:ADD(HIGHLIGHT(p,c)).
-}
-// end of test lines
 
 FUNCTION canEvent
 {
