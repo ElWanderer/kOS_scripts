@@ -11,8 +11,8 @@ FUNCTION countDisks
   LOCAL pl IS LIST().
   LIST PROCESSORS IN pl.
   FOR p IN pl {
-    IF p:MODE = "READY" AND p:BOOTFILENAME = "None"
-       AND NOT LIST("RESERVED", "SINGLE", "MULTI"):CONTAINS(p:TAG) {
+    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND p:UID <> CORE:UID AND
+       ((p:TAG = "" AND CORE:TAG = "MULTI") OR (p:TAG = CORE:TAG AND CORE:TAG <> "MULTI")) {
       SET disk_count TO disk_count + 1.
     }
   }
