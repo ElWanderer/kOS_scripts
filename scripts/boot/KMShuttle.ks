@@ -3,12 +3,20 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMShuttle.ks v1.2.1 20161107").
+pOut("KMShuttle.ks v1.3.0 20170116").
 
 FOR f IN LIST(
   "lib_runmode.ks",
   "lib_crew.ks",
-  "lib_burn.ks"
+  "lib_launch_crew.ks",
+  "lib_steer.ks",
+  "lib_orbit_change.ks",
+  "lib_orbit_match.ks",
+  "lib_transfer.ks",
+  "lib_rendezvous.ks",
+  "lib_skeep.ks",
+  "lib_reentry.ks",
+  "lib_dock.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL NEW_NAME IS "Rendezvous Test Docker".
@@ -30,7 +38,8 @@ IF rm < 0 {
   logOn().
   pCrew().
 
-  RUNONCEPATH(loadScript("lib_launch_geo.ks")).
+  WAIT UNTIL cOk().
+  RUNPATH("0:/lib_launch_geo.ks").
 
   hudMsg("Please select a target").
   pOut("Waiting.").
@@ -46,41 +55,30 @@ IF rm < 0 {
   LOCAL launch_time IS launch_details[1].
   warpToLaunch(launch_time).
 
-  delScript("lib_launch_geo.ks").
-  RUNONCEPATH(loadScript("lib_launch_crew.ks")).
-
   store("doLaunch(801," + ap + "," + az + "," + b_I + ").").
   doLaunch(801,ap,az,b_I).
 
 } ELSE IF rm < 50 {
-  RUNONCEPATH(loadScript("lib_launch_crew.ks")).
   resume().
 
 } ELSE IF rm > 50 AND rm < 99 {
-  RUNONCEPATH(loadScript("lib_reentry.ks")).
   resume().
 
 } ELSE IF rm > 100 AND rm < 150 {
-  RUNONCEPATH(loadScript("lib_transfer.ks")).
   resume().
 
 } ELSE IF rm > 400 AND rm < 450 {
-  RUNONCEPATH(loadScript("lib_rendezvous.ks")).
   resume().
 
 } ELSE IF MOD(rm,10) = 9 AND rm > 800 AND rm < 999 {
-  RUNONCEPATH(loadScript("lib_steer.ks")).
   hudMsg("Error state. Hit abort to switch to recovery mode: " + abortMode() + ".").
   steerSun().
   WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
   delResume().
-  delScript("lib_launch_crew.ks").
-  delScript("lib_launch_common.ks").
   runMode(802).
 } ELSE IF rm = 802 {
-  RUNONCEPATH(loadScript("lib_orbit_match.ks")).
   IF validMoonTarget() {
     LOCAL b_I IS TARGET:OBT:BODY:OBT:INCLINATION.
     LOCAL b_LAN IS TARGET:OBT:BODY:OBT:LAN.
@@ -95,7 +93,6 @@ IF rm < 0 {
   IF validMoonTarget() { runMode(802). }
 
 } ELSE IF rm = 811 {
-  RUNONCEPATH(loadScript("lib_transfer.ks")).
   IF validMoonTarget() {
     LOCAL t_B IS TARGET:OBT:BODY.
     LOCAL t_AP IS TARGET:APOAPSIS.
@@ -112,7 +109,6 @@ IF rm < 0 {
 } ELSE IF rm = 821 {
   delResume().
   IF validLocalTarget() {
-    RUNONCEPATH(loadScript("lib_rendezvous.ks")).
     LOCAL t IS TARGET.
     store("changeRDZ_DIST(75).").
     append("doRendezvous(831,VESSEL(" + CHAR(34) + t:NAME + CHAR(34) + "),FALSE).").
@@ -127,7 +123,6 @@ IF rm < 0 {
   IF validLocalTarget() { runMode(821,0). }
 
 } ELSE IF rm = 831 {
-  RUNONCEPATH(loadScript("lib_steer.ks")).
   delResume().
   steerNormal().
   pOut("Rendezvous complete.").
@@ -135,7 +130,6 @@ IF rm < 0 {
 
 } ELSE IF rm = 832 {
   IF validLocalTarget() {
-    RUNONCEPATH(loadScript("lib_dock.ks")).
     pOut("Initiate docking.").
     IF doDocking(TARGET) {
       pOut("Docking complete.").
@@ -164,20 +158,15 @@ IF rm < 0 {
   // docked - wait for abort to trigger return
 
 } ELSE IF rm = 851 {
-  delScript("lib_rendezvous.ks").
-  RUNONCEPATH(loadScript("lib_transfer.ks")).
   store("doTransfer(861, FALSE, KERBIN, 30000).").
   doTransfer(861, FALSE, KERBIN, 30000).
 
 } ELSE IF rm = 852 {
-  RUNONCEPATH(loadScript("lib_skeep.ks")).
   IF doSeparation() { runMode(851). }
   ELSE { runMode(859,852). }
 
 } ELSE IF rm = 861 {
   delResume().
-  delScript("lib_transfer.ks").
-  RUNONCEPATH(loadScript("lib_reentry.ks")).
   store("doReentry(1,99).").
   doReentry(1,99).
 }
