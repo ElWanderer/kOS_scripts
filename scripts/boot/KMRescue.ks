@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMRescue.ks v1.2.1 20161107").
+pOut("KMRescue.ks v1.2.2 20170116").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -151,7 +151,6 @@ IF rm < 0 {
 } ELSE IF rm = 851 {
   delScript("lib_rendezvous.ks").
   RUNONCEPATH(loadScript("lib_transfer.ks")).
-  RUN ONCE lib_gtb_transfer.ks.
   store("doTransfer(861, FALSE, KERBIN, 30000).").
   doTransfer(861, FALSE, KERBIN, 30000).
 
