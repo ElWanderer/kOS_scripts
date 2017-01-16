@@ -3,13 +3,14 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.3.0 20170113").
+pOut("KSat.ks v1.3.0 20170116").
 
 FOR f IN LIST(
   "lib_runmode.ks",
   "lib_launch_nocrew.ks",
   "lib_steer.ks",
-  "lib_orbit_change.ks"
+  "lib_orbit_change.ks",
+  "lib_orbit_match.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
@@ -52,12 +53,15 @@ IF rm < 0 {
   delResume().
   runMode(802).
 } ELSE IF rm = 802 {
-  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W) { runMode(803,802). }
+  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W) { runMode(803). }
   ELSE { runMode(809,802). }
 } ELSE IF rm = 803 {
+  IF doOrbitMatch(FALSE,stageDV(),SAT_I,SAT_LAN) { runMode(804,802). }
+  ELSE { runMode(809,802). }
+} ELSE IF rm = 804 {
   hudMsg("Mission complete. Hit abort to retry (mode " + abortMode() + ").").
   steerSun().
-  WAIT UNTIL runMode() <> 803.
+  WAIT UNTIL runMode() <> 804.
 }
 
 }
