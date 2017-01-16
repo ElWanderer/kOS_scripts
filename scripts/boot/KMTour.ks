@@ -9,7 +9,6 @@ FOR f IN LIST(
   "lib_runmode.ks",
   "lib_launch_crew.ks",
   "lib_steer.ks",
-  "lib_orbit_change.ks",
   "lib_orbit_match.ks",
   "lib_transfer.ks",
   "lib_reentry.ks"
