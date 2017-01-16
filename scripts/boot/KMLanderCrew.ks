@@ -30,15 +30,15 @@ FUNCTION validLocalTarget {
   RETURN HASTARGET AND TARGET:OBT:BODY = BODY.
 }
 
-IF runMode() > 0 { logOn(). }
+IF SHIP:NAME = NEW_NAME { logOn(). }
 
 UNTIL runMode() = 99 {
 LOCAL rm IS runMode().
 IF rm < 0 {
-  SET SHIP:NAME TO NEW_NAME.
-  logOn().
-
+  hudMsg("Lander boot complete. Shutting down.").
+  hudMsg("On reboot, hit abort to initiate landing.").
   runMode(801).
+  CORE:DOEVENT("Toggle Power").
 
 } ELSE IF rm > 200 AND rm < 250 {
   resume().
@@ -59,6 +59,8 @@ IF rm < 0 {
   // wait
 
 } ELSE IF rm = 803 {
+  SET SHIP:NAME TO NEW_NAME.
+  logOn().
   IF doSeparation() { runMode(811,0). }
   ELSE { runMode(809,803). }
 
@@ -130,7 +132,7 @@ IF rm < 0 {
     IF doDocking(TARGET) {
       pOut("Docking complete.").
       hudMsg("Shutting down.").
-      runMode(-1).
+      runMode(801).
       CORE:DOEVENT("Toggle Power").
     } ELSE {
       IF HASTARGET { SET TARGET TO "". }
@@ -149,8 +151,6 @@ IF rm < 0 {
     IF TARGET:POSITION:MAG < 5000 { runMode(862,0). }
     ELSE { runMode(851). }
   }
-} ELSE IF rm = 871 {
-  // docked - wait for abort to trigger return
 }
 
   WAIT 0.
