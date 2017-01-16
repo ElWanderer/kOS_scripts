@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_steer.ks v1.2.4 20161121").
+pOut("lib_steer.ks v1.2.5 20170113").
 
 setTime("STEER").
 GLOBAL STEER_ON IS FALSE.
@@ -18,7 +18,7 @@ FUNCTION steerOff
 
 FUNCTION steerTo
 {
-  PARAMETER fore IS { RETURN FACING:FOREVECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
+  PARAMETER fore IS { RETURN FACING:VECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
   IF NOT STEER_ON { pOut("Steering engaged."). }
   SET STEER_ON TO TRUE.
   LOCK STEERING TO LOOKDIRUP(fore(),top()).
@@ -61,7 +61,7 @@ FUNCTION steerOk
   IF diffTime("STEER") <= 0.1 { RETURN FALSE. }
   IF NOT STEERINGMANAGER:ENABLED { hudMsg("ERROR: Steering Manager not enabled!"). }
 
-  IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:FOREVECTOR) < aoa AND
+  IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:VECTOR) < aoa AND
      SHIP:ANGULARVEL:MAG * precision / 10 < MAX(steerAV(), 0.0005) {
     pOut("Steering aligned.").
     RETURN TRUE.
@@ -76,7 +76,7 @@ FUNCTION steerOk
 FUNCTION dampSteering
 {
   pOut("Damping steering.").
-  LOCAL cur_f IS FACING:FOREVECTOR.
+  LOCAL cur_f IS FACING:VECTOR.
   steerTo({ RETURN cur_f. }).
   WAIT UNTIL steerOk().
   steerOff().
