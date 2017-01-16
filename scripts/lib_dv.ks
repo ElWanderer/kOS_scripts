@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170114").
+pOut("lib_dv.ks v1.1.0 20170116").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -98,13 +98,13 @@ FUNCTION setIspFuelRate
   LOCAL el IS LIST().
   LIST ENGINES IN el.
 
-  FOR eng IN el { IF eng:IGNITION {
+  FOR eng IN currentStageEngines() {
     LOCAL e_isp IS eng:ISP.
     LOCAL e_t IS eng:AVAILABLETHRUST * limiter.
     SET t TO t + e_t.
     SET t_over_isp TO t_over_isp + (e_t / e_isp).
     SET DV_FR TO DV_FR + fuelRate(e_t,e_isp).
-  }}
+  }
   IF t_over_isp > 0 { SET DV_ISP TO t / t_over_isp. }
 }
 
@@ -121,7 +121,6 @@ FUNCTION fuelMassChildren
   PARAMETER p.
   IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
-    partHighlight(p). WAIT 0.2. // test line
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
     FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
   }
@@ -133,41 +132,19 @@ FUNCTION fuelMassFamily
   FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
   IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
-    partHighlight(p). WAIT 0.2. // test line
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
     IF p:HASPARENT { fuelMassFamily(p:PARENT). }
   }
 }
 
-FUNCTION fuelMassCurrentStage
-{
-  DV_PL:CLEAR.
-  SET DV_FM TO 0.
-
-  FOR e IN currentStageEngines() { fuelMassFamily(e). }
-
-  WAIT 5. clearHighlights(). // test line
-
-  RETURN DV_FM.
-}
-
 FUNCTION stageDV
 {
   setIspFuelRate().
-  LOCAL fm IS fuelMassCurrentStage().
-  // test lines
-  LOCAL fm2 IS fuelMass(STAGE:RESOURCES).
-  pOut("fuelMassCurrentStage(): " + ROUND(fm*1000) + "kg.").
-  pOut("fuelMass(STAGE:RESOURCES): " + ROUND(fm2*1000) + "kg.").
-  // end of test lines
-  IF fm = 0 AND SHIP:AVAILABLETHRUST > 0 {
-    SET fm TO fuelMass(SHIP:RESOURCES).
-    // test lines
-    pOut("Using SHIP instead of STAGE for dv calc.").
-    pOut("fuelMass(SHIP:RESOURCES): " + ROUND(fm*1000) + "kg.").
-    // end of test lines
-  }
-  RETURN (g0 * DV_ISP * LN(MASS / (MASS-fm))).
+  DV_PL:CLEAR.
+  SET DV_FM TO 0.
+  FOR e IN currentStageEngines() { fuelMassFamily(e). }
+  IF DV_FM = 0 AND SHIP:AVAILABLETHRUST > 0 { SET DV_FM TO fuelMass(SHIP:RESOURCES). }
+  RETURN (g0 * DV_ISP * LN(MASS / (MASS-DV_FM))).
 }
 
 FUNCTION pDV
