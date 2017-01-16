@@ -7,6 +7,7 @@ pOut("KRescue.ks v1.3.0 20170116").
 
 FOR f IN LIST(
   "lib_runmode.ks",
+  "lib_crew.ks",
   "lib_launch_crew.ks",
   "lib_steer.ks",
   "lib_orbit_change.ks",
