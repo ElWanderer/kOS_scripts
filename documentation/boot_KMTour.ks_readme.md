@@ -6,7 +6,27 @@ The purpose of this boot script is to launch a tourist craft into a specific orb
 
 ### Disk space requirement
 
-This needs confirming. The requirements are similar to those for the KMSat.ks script, albeit with the extra overhead of re-entry, so it should fit within `40000` bytes.
+60000 bytes (actual use is about 58-59k at the time of writing, depending on which init file is used).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_crew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_chutes.ks`
+* `lib_ca.ks`
+* `lib_transfer.ks`
+* `lib_hoh.ks`
+* `lib_reentry.ks`
 
 ### Script Parameters
 
@@ -44,6 +64,8 @@ It should be noted that while these values are used to refine the transfer to th
 ### Script Steps
 
 #### Init
+
+All libraries are loaded onto the local hard drive(s).
 
 The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
