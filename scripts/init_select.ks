@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-//"init_select.ks v1.1.0 20170109"
+//"init_select.ks v1.1.0 20170116"
 // this lives on the archive, run it once on start-up to copy
 // either "0:/init.ks" or "0/init_multi.ks" to "1:/init.ks"
 
