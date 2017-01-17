@@ -95,9 +95,6 @@ FUNCTION setIspFuelRate
   LOCAL t IS 0.
   LOCAL t_over_isp IS 0.
 
-  LOCAL el IS LIST().
-  LIST ENGINES IN el.
-
   FOR eng IN currentStageEngines() {
     LOCAL e_isp IS eng:ISP.
     LOCAL e_t IS eng:AVAILABLETHRUST * limiter.
