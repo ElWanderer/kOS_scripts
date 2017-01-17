@@ -21,7 +21,6 @@ The purpose of this boot script is to launch a satellite into a specific orbit o
 * `lib_orbit.ks`
 * `lib_orbit_change.ks`
 * `lib_orbit_match.ks`
-* `lib_orbit_phase.ks`
 * `lib_parts.ks`
 * `lib_ca.ks`
 * `lib_transfer.ks`
