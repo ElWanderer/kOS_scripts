@@ -6,13 +6,31 @@ The purpose of this boot script is to launch a tourist craft into Low Kerbin Orb
 
 ### Disk space requirement
 
-This needs checking, but the requirements should be fairly small.
+40000 bytes (actual use is about 36k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_common.ks`
+* `lib_launch_crew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_parts.ks`
+* `lib_chutes.ks`
+* `lib_reentry.ks`
 
 ### Script Parameters
 
 There are no adjustable parameters.
 
 ### Script Steps
+
+#### Initialisation
+
+All libraries are loaded onto the local hard drive(s).
 
 #### Launch
 
