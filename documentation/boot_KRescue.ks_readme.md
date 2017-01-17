@@ -8,7 +8,30 @@ A multi-seat craft can be used to rescue multiple Kerbals from different targets
 
 ### Disk space requirement
 
-This script requires full use of the orbit libraries and the large rendezvous library. As such, the required disk space is on the high side. It needs confirming whether this is above or below `40000` bytes.
+65000 bytes (actual use is about 64k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_crew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_chutes.ks`
+* `lib_crew.ks`
+* `lib_ca.ks`
+* `lib_rendezvous.ks`
+* `lib_hoh.ks`
+* `lib_reentry.ks`
+* `lib_skeep.ks`
 
 ### Script Parameters
 
@@ -17,6 +40,8 @@ There are no adjustable parameters. Target selection is performed interactively 
 ### Script Steps
 
 #### Initialisation
+
+All libraries are loaded onto the local hard drive(s).
 
 On first boot, the script willl check that the craft actually has at least one spare seat. If all the seats are occupied, it'll throw an error then exit, with the expectation that you recover/revert and launch again with fewer/no crew members.
 
