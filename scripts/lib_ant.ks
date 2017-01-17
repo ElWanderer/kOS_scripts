@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_ant.ks v1.1.0 20170110").
+pOut("lib_ant.ks v1.1.0 20170117").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -18,7 +18,7 @@ FUNCTION antIdle {
 
 FUNCTION doAllAnt {
   PARAMETER fl.
-  FOR m IN SHIP:MODULESNAMED(ANT_TX_MOD) { FOR f IN fl { f(m:PART). } }
+  FOR m IN SHIP:MODULESNAMED(ANT_ANIM_MOD) { FOR f IN fl { f(m:PART). } }
 }
 
 FUNCTION extendAllAntennae {
