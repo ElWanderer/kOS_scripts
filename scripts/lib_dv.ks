@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170116").
+pOut("lib_dv.ks v1.1.0 20170117").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -143,6 +143,7 @@ FUNCTION stageDV
   DV_PL:CLEAR.
   SET DV_FM TO 0.
   FOR e IN currentStageEngines() { fuelMassFamily(e). }
+  SET DV_FM TO MAX(DV_FM,fuelMass(STAGE:RESOURCES)).
   IF DV_FM = 0 AND SHIP:AVAILABLETHRUST > 0 { SET DV_FM TO fuelMass(SHIP:RESOURCES). }
   RETURN (g0 * DV_ISP * LN(MASS / (MASS-DV_FM))).
 }
