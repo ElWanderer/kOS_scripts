@@ -4,7 +4,7 @@
 
 Functions for dealing with antennae.
 
-There is currently one main function intended to be called by boot/mission scripts: `extendAllAntennae()`. This will extend all antennae. This may be extended in future, in particular when it comes to implementing CommNet in KSP v1.2.
+There are currently two main functions intended to be called by boot/mission scripts: `extendAllAntennae()` and `retractAllAntennae()`.
 
 ### Requirements
 
@@ -18,49 +18,49 @@ This stores the KSP module name for a transmitter: `ModuleDataTransmitter`.
 
 #### `ANT_ANIM_MOD`
 
-This stores the KSP module name for a part that can animate: `"ModuleAnimateGeneric"`.
+This stores the KSP module name (as of KSP v1.2) for a transmitter that can animate: `"ModuleDeployableAntenna"`.
 
-In KSP 1.1.3, all antennae must extend in order to send science data, so all transmitters have this module. From KSP v1.2, there is at least one antennae that doesn't extend/retract, so it probably won't have this module.
+In KSP 1.1.3, all antennae were animated and used a generic animation module.
 
 #### `antCommStatus`
 
-Function delegate. The `partModField(field,module,part)` function this is based on is defined in lib_parts.ks. 
+Function delegate. The `partModField(field,module,part)` function this is based on is defined in `lib_parts.ks`. 
 
-This delegate returns the contents of the `ANT_TX_MOD` module field `Comm`, if this exists. Otherwise it will return `-`.
+This delegate returns the contents of the `ANT_TX_MOD` module field `Antenna State`, if this exists. Otherwise it will return `-`.
+
+Note: in earlier versions of KSP, the module field was called `Comm`.
 
 #### `antAnimStatus`
 
-Function delegate. The `partModField(field,module,part)` function this is based on is defined in lib_parts.ks. 
+Function delegate. The `partModField(field,module,part)` function this is based on is defined in `lib_parts.ks`. 
 
 This delegate returns the contents of the `ANT_ANIM_MOD` module field `Status`, if this exists. Otherwise it will return `-`.
 
 #### `antExtend`
 
-Function delegate. The `partEvent(event,module,part)` function this is based on is defined in lib_parts.ks.
+Function delegate. The `partEvent(event,module,part)` function this is based on is defined in `lib_parts.ks`.
 
-This delegate will try to trigger the "Extend" event for the input `part`, returning `TRUE` if the event was fired and `FALSE` if it was not.
+This delegate will try to trigger the `Extend Antenna` event for the input `part`, returning `TRUE` if the event was fired and `FALSE` if it was not.
+
+Note: in earlier versions of KSP, the event was called `Extend`.
 
 #### `antRetract`
 
-Function delegate. The `partEvent(event,module,part)` function this is based on is defined in lib_parts.ks.
+Function delegate. The `partEvent(event,module,part)` function this is based on is defined in `lib_parts.ks`.
 
-This delegate will try to trigger the "Retract" event for the input `part`, returning `TRUE` if the event was fired and `FALSE` if it was not.
+This delegate will try to trigger the `Retract Antenna` event for the input `part`, returning `TRUE` if the event was fired and `FALSE` if it was not.
+
+Note: in earlier versions of KSP, the event was called `Retract`.
 
 ### Function reference
 
-#### `waitUntilIdle(part)`
+#### `antIdle(part)`
 
 This function waits until the input transmitter `part` is idle.
 
-This is defined as the `Comm` field containing the string `Idle` and the `Status` field not containing the string `Moving...`.
+This is defined as the `Antenna State` field containing the string `Idle` and the `Status` field being either `Retracted` or `Extended`.
 
-Note - if the part does not have the `Comm` field, this will loop indefinitely.
-
-#### `antToggle(part)`
-
-This function will trigger either the `Extend` or `Retract` events on the input `part`. If neither event is available for `part`, nothing will happen.
-
-Returns `TRUE` if either event was fired, `FALSE` otherwise.
+Note - this will loop indefinitely if the modules and their fields are different to expected.
 
 #### `doAllAnt(function_list)`
 
@@ -72,6 +72,12 @@ The function loops through all antennae, identified as parts containing the `ANT
 
 This function extends all extendable antennae on the active vessel. It does this by constructing a list of functions and passing them into `doAllAnt()`.
 
-For each antennae, the function list requires the antennae to be idle before extending and prior to returning.
+For each antennae, the function list requires the antennae to be idle before extending and prior to returning. This is relatively slow, but ensures the antennae are ready prior to transmitting science (for example).
+
+#### `retractAllAntennae()`
+
+This function retracts all extendable antennae on the active vessel. It does this by constructing a list of functions and passing them into `doAllAnt()`.
+
+For each antennae, the function list requires the antennae to be idle before retracting and prior to returning. This is relatively slow, but ensures all antennae will be retracted prior to doing something else.
 
 Geoff Banks / ElWanderer
