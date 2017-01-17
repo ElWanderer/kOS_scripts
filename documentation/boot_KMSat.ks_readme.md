@@ -6,7 +6,26 @@ The purpose of this boot script is to launch a satellite into a specific orbit o
 
 ### Disk space requirement
 
-This script and the libraries it calls are meant to remain with the `40000` byte limit of the large, inline kOS processor. As with `KSat.ks`, this is achieved by deleting some libraries once they are no longer needed e.g. the launch libraries are deleted once in orbit, and the transfer library is deleted once in orbit of the destination.
+55000 bytes, (actual use is about 51k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_nocrew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_ca.ks`
+* `lib_transfer.ks`
+* `lib_hoh.ks`
 
 ### Script Parameters
 
@@ -44,6 +63,8 @@ These parameters determine the orientation/inclination of the target orbit.
 ### Script Steps
 
 #### Init
+
+All libraries are loaded onto the local hard drive(s).
 
 The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
