@@ -6,7 +6,24 @@ The purpose of this boot script is to launch a satellite into a specific orbit o
 
 ### Disk space requirement
 
-This script and the libraries it calls are meant to remain with the `20000` byte limit of the small, inline kOS processor. To an extent this achieved by deleting certain libraries once they are no longer needed, e.g. the launch files are removed following insertion into orbit. Also, as part of this space-saving effort, the script does not use the `lib_orbit_match.ks` functions to perfect the orbit plane. The final inclination that is achieved depends on the accuracy of the launch.
+40000 bytes (actual use is about 34k at the time of writing).
+
+By selectively loading libraries on demand and deleting them after use, the disk space requirement used to remain with the `20000` byte limit of the small, inline kOS processor. However, this is no longer possible as the code has grown too large. The requirement has leapt up since the decision was made to load all libraries on the launchpad.
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_nocrew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_parts.ks`
 
 ### Script Parameters
 
@@ -40,6 +57,8 @@ These parameters determine the orientation/inclination of the target orbit.
 
 #### Init
 
+All libraries are loaded onto the local hard drive(s).
+
 The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
 The script will calculate when the plane of the target orbit will pass over the launch site and the initial azimuth (compass bearing) that the craft should follow to launch into this plane.
@@ -50,11 +69,11 @@ For non-equatorial orbits, there will be a wait of up to three hours before laun
 
 Launch is to a standard `85`km by `85`km Low Kerbin Orbit, with the inclination matching (as near as possible) that of the target orbit.
 
-#### Match orbit shape
+#### Match orbit shape and orientation
 
 The script will plot and execute burns to put the periapsis and apoapsis in the target locations and altitudes.
 
-Note - in order to keep down the required disk space below `20000` bytes, this script does not have any way of matching inclination. The inclination is determined by the accuracy of the launch and can't be corrected later.
+It will then plot and execute a burn to match inclination with the target orbit if this had not already been achieved during the launch process. This is done after the burns to change the periapsis and apoapsis as the cost in terms of delta-v should be much lower.
 
 #### Sleep
 
