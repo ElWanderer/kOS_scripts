@@ -6,7 +6,33 @@ The purpose of this boot script is to launch a crewed, science-gathering craft i
 
 ### Disk space requirement
 
-Unknown, but assumed to be moderately high (may fit inside `40000` bytes, but probably won't).
+80000 bytes (actual use is about 75k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_crew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_ant.ks`
+* `lib_chutes.ks`
+* `lib_ca.ks`
+* `lib_transfer.ks`
+* `lib_hoh.ks`
+* `lib_reentry.ks`
+* `lib_geo.ks`
+* `lib_probe.ks`
+* `lib_science.ks`
+* `lib_skeep.ks`
 
 ### Script Parameters
 
@@ -53,6 +79,8 @@ The apoapsis, periapsis and inclination of the "final" science-gathering orbit. 
 ### Script Steps
 
 #### Init
+
+All libraries are loaded onto the local hard drive(s).
 
 The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
