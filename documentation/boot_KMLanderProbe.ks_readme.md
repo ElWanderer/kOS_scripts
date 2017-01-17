@@ -26,6 +26,7 @@ The purpose of this boot script is to launch an automated probe from Kerbin, lan
 * `lib_ant.ks`
 * `lib_chutes.ks`
 * `lib_ca.ks`
+* `lib_transfer.ks`
 * `lib_hoh.ks`
 * `lib_reentry.ks`
 * `lib_geo.ks`
