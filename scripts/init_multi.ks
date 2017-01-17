@@ -30,9 +30,10 @@ FUNCTION listVolumes
   LOCAL pl IS LIST().
   LIST PROCESSORS IN pl.
   FOR p IN pl {
+    LOCAL pp IS p:PART.
     LOCAL LOCK vn TO p:VOLUME:NAME.
-    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND p:UID <> cp:UID AND
-       ((p:TAG = "" AND cp:TAG = "MULTI") OR (p:TAG = cp:TAG AND cp:TAG <> "MULTI")) {
+    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND pp:UID <> cp:UID AND
+       ((pp:TAG = "" AND cp:TAG = "MULTI") OR (pp:TAG = cp:TAG AND cp:TAG <> "MULTI")) {
       IF vn = "" {
         SET dn TO dn + 1.
         SET p:VOLUME:NAME TO (cp:TAG + "D" + dn).
