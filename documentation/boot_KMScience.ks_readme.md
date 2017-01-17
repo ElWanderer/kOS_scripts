@@ -6,7 +6,7 @@ The purpose of this boot script is to launch a crewed, science-gathering craft i
 
 ### Disk space requirement
 
-80000 bytes (actual use is about 75k at the time of writing).
+80000 bytes (actual use is about 74k at the time of writing).
 
 ### Libraries used
 
@@ -21,7 +21,6 @@ The purpose of this boot script is to launch a crewed, science-gathering craft i
 * `lib_orbit.ks`
 * `lib_orbit_change.ks`
 * `lib_orbit_match.ks`
-* `lib_orbit_phase.ks`
 * `lib_parts.ks`
 * `lib_ant.ks`
 * `lib_chutes.ks`
