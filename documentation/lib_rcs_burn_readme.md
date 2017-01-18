@@ -62,9 +62,9 @@ This function sets `RCS_BURN_T`. It loops through all the parts that have the `M
 
 Calculates the delta-v available if using RCS thrusters.
 
-This starts by calculating the fuel mass, by finding the ship's quanity (and the density) of each fuel listed in `RCS_BURN_FUELS`.
+This starts by calculating the fuel mass, by passing `SHIP:RESOURCES` and `RCS_BURN_FUELS` into `fuelMass()`.
 
-This lets us calculate the delta-v via the Tsiolkovsky rocket equation: `delta-v = g0 * Isp * ln(m0 / m1)`
+This lets us calculate the delta-v via the Tsiolkovsky rocket equation: `delta-v = g0 * Isp * ln(m0 / m0 - fuel_mass)`
 
 #### `rcsPDV()`
 
