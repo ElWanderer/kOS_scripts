@@ -125,7 +125,7 @@ FUNCTION warpCloseToNode
 
 FUNCTION warpToNode
 {
-  PARAMETER n, bt, hbt.
+  PARAMETER n, hbt.
   LOCAL time_to_warp IS n:ETA - hbt - BURN_WARP_BUFF.
   IF time_to_warp > 0 { doWarp(TIME:SECONDS + time_to_warp). }
 }
@@ -159,7 +159,7 @@ FUNCTION execNode
     pOut("Throttle up " + ROUND(hbt,1) + "s before node.").
     warpCloseToNode(n,bt).
     pointNode(n).
-    warpToNode(n,bt,hbt).
+    warpToNode(n,hbt).
     SET ok TO burnNode(n,bt,hbt,can_stage).
     IF ok { REMOVE n. }
   } ELSE {
