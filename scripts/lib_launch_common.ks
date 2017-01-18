@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20170112").
+pOut("lib_launch_common.ks v1.4.0 20170118").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -152,7 +152,7 @@ FUNCTION launchCirc
 
 FUNCTION launchCoast
 {
-  PARAMETER exit_mode, flight_mode, fail_mode IS abortMode().
+  PARAMETER exit_mode, flight_mode.
   IF ALTITUDE > BODY:ATM:HEIGHT {
     steerOff().
     launchExtend().
@@ -165,7 +165,7 @@ FUNCTION launchCoast
       launchLocks().
       runMode(flight_mode).
     }
-  } ELSE IF APOAPSIS < MAX(BODY:ATM:HEIGHT + 1000,LCH_AP - 10000) {
+  } ELSE IF APOAPSIS < MAX(BODY:ATM:HEIGHT + 1000,LCH_AP - 5000) {
     launchAP(LCH_AP + ROUND(ABS(BODY:ATM:HEIGHT-ALTITUDE)/3)).
     launchLocks().
     runMode(flight_mode).
