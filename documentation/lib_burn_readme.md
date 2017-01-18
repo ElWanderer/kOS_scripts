@@ -116,7 +116,7 @@ Calculates and returns the throttle setting based on the input burn time. This d
 
 Burns at `BURN_SMALL_THROT` until either burn time seconds have elapsed, or the available thrust has dropped to 0.
 
-#### `burnNode(node, burn_time, staging_allowed)`
+#### `burnNode(node, burn_time, half_burn_time, staging_allowed)`
 
 The basis of this function is/was the example node burn script in the kOS documentation, but I've made quite a few changes.
 
@@ -124,7 +124,7 @@ The function starts by storing the current node vector (refered to below as the 
 
 There is a small piece of Kerbal Alarm Clock integration. If KAC is available, any alarms for the craft that are due to pop up in the five minutes prior to the node are automatically deleted.
 
-The function then waits until the ETA to the node is half the burn time. If the node is "small", it will call `burnSmallNode(node, burn_time)`. Otherwise it will execute the main node burn logic loop:
+The function then waits until the ETA to the node is the time required to burn half the node's delta-v (`half_burn_time`). If the node is "small", it will call `burnSmallNode(node, burn_time)`. Otherwise it will execute the main node burn logic loop:
 
 * Each tick, the available acceleration is checked. If the acceleration is non-zero:
   * The throttle is set by passing a rough calculation of the burn time (delta-v / current acceleration) in to `burnThrottle(burn_time)`
@@ -147,15 +147,15 @@ IF the node is more than 15 minutes in the future (900 seconds) and the predicte
 
 Note - the check on the burn time uses 28 minutes rather than 30 (you'd reasonably expect it to use twice the 15 minutes/900 seconds we want to be before the node) as an extra safety factor.
 
-#### `warpToNode(node, burn_time)`
+#### `warpToNode(node, half_burn_time)`
 
-Calculates a burn start time based on the current time, the node's ETA, half the input burn time and `BURN_WARP_BUFF`. If this time is in the future, it calls `doWarp()` to time warp.
+Calculates a burn start time based on the current time, the node's ETA, the expected time to burn half the required delta-v (`half_burn_time`) and `BURN_WARP_BUFF`. If this time is in the future, it calls `doWarp()` to time warp.
 
 #### `execNode(staging_allowed)`
 
 The main function. This calls the others in turn to execute the next manoeuvre node.
 
-In turn, this function
+In turn, this function:
 * gets the next manoeuvre node or returns `FALSE` if there is no next node
 * calculates whether the craft has enough delta-v to burn the node (using `lib_dv` functions) and will return `FALSE` unless there is enough delta-v or both staging is enabled and there are more engines to stage.
 * checks whether the burn is "small" or not and calculates the predicted burn time - the latter of these uses the more accurate (but slower) `lib_dv` function `burnTime()`
