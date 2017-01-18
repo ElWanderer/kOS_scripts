@@ -219,7 +219,7 @@ The difference between these values is the prograde delta-v required to circular
 
 The function returns `TRUE` if the manoeuvre node is executed successfully and the resultant orbit has a periapsis above the atmosphere. Otherwise it returns `FALSE`.
 
-#### `launchCoast(exit_mode, flight_mode, fail_mode)`
+#### `launchCoast(exit_mode, flight_mode)`
 
 This function represents the third and final stage of launch (coast to apoapsis, then circularisation). It is expected to be called repeatedly, following `launchFlight()`.
 
@@ -236,16 +236,16 @@ If the altitude has risen above the atmosphere height:
       * `launchLocks()` is called to engage steering to the launch vector and lock the throttle back to `1`.
       * `runMode(flight_mode)` is called to switch the run mode back to that which calls `launchFlight()`. This means that we go back to the ascent routine that tries to raise the apoapsis beyond `LCH_AP`. This has code that will try to prevent the vertical speed dropping below 30m/s upwards, which will cause an immediate pitch-up if the craft is currently descending.
 
+Note - the sequence of actions following an unsuccessful burn assumes that the situation is recoverable e.g. because the burn was not perfectly timed, so the apoapsis got shifted around and the burn did not pull the periapsis up high enough. If something unrecoverable occurs, e.g. running out of all fuel, this is likely to get stuck looping through the ascent/flight mode until manually aborted.
+
 If the apoapsis drops below whichever is higher of `5`km below `LCH_AP` or `1`km above the atmosphere:
 * `launchAP()` is called to increase the target apoapsis (`LCH_AP`). This is done in the expectation that following a new burn to raise the apoapsis, drag will cause it to drop again, so the size of the increase is proportional to the difference between the current altitude and the atmosphere height.
 * `launchLocks()` is called to engage steering to the launch vector and lock the throttle back to `1`.
 * `runMode(flight_mode)` is called to switch the run mode back to that which calls `launchFlight()`. This means that we go back to the ascent routine that tries to raise the apoapsis beyond `LCH_AP`.
 
-If not specified, the default value of `fail_mode` is the current abort mode, as returned by `abortMode()`.
-
 #### `launchFlight(next_mode)`
 
-This function represents the second stage of launch (ascent). It is expected to be called repeatedly, following `launchLiftOff()`.
+This function represents the second stage of launch (ascent/flight). It is expected to be called repeatedly, following `launchLiftOff()`.
 
 If the steering is unlocked, it will be locked to the launch vector (`steerLaunch()`).
 
