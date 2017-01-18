@@ -54,7 +54,7 @@ The thrust of an RCS part is not available, so we have to hard-code known thrust
 
 If the part is not one of the known types, the thrust is returned as `0`.
 
-#### `rcsSetThrust()'
+#### `rcsSetThrust()`
 
 This function sets `RCS_BURN_T`. It loops through all the parts that have the `ModuleRCSFX` module, passing them into `rcsPartThrust()` and totalling the results.
 
