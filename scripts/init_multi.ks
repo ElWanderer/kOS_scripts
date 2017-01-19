@@ -5,7 +5,7 @@ GLOBAL VOLUME_NAMES IS LIST().
 listVolumes().
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
-pOut("init_multi.ks v1.1.1 20161130").
+pOut("init_multi.ks v1.1.2 20170116").
 pVolumes().
 
 FUNCTION setVolumeList
@@ -17,19 +17,19 @@ FUNCTION setVolumeList
 
 FUNCTION listVolumes
 {
-  IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO "Disk0". }
-  LOCAL cvn IS CORE:CURRENTVOLUME:NAME.
-  SET VOLUME_NAMES TO LIST(cvn).
+  LOCAL dn IS 0.
+  IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO CORE:TAG + "D" + dn. }
+  SET VOLUME_NAMES TO LIST(CORE:CURRENTVOLUME:NAME).
 
-  LOCAL disk_num IS 1.
   LOCAL pl IS LIST().
   LIST PROCESSORS IN pl.
   FOR p IN pl {
     LOCAL LOCK vn TO p:VOLUME:NAME.
-    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND vn <> cvn {
+    IF p:MODE = "READY" AND p:BOOTFILENAME = "None" AND p:UID <> CORE:UID AND
+       ((p:TAG = "" AND CORE:TAG = "MULTI") OR (p:TAG = CORE:TAG AND CORE:TAG <> "MULTI")) {
       IF vn = "" {
-        SET p:VOLUME:NAME TO ("Disk" + disk_num).
-        SET disk_num TO disk_num + 1.
+        SET dn TO dn + 1.
+        SET p:VOLUME:NAME TO (CORE:TAG + "D" + dn).
       }
       VOLUME_NAMES:ADD(vn).
     }
