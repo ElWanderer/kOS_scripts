@@ -18,7 +18,7 @@ IF NOT EXISTS (CRAFT_FILE) AND cOk() {
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.3.0 20170106").
+pOut("init_common.ks v1.3.0 20170119").
 
 FUNCTION padRep
 {
@@ -67,7 +67,7 @@ FUNCTION pOut
 
 FUNCTION hudMsg
 {
-  PARAMETER t, c IS YELLOW, s IS 40.
+  PARAMETER t, c IS YELLOW, s IS 30.
   HUDTEXT(t, 3, 2, s, c, FALSE).
   pOut("HUD: " + t).
 }
