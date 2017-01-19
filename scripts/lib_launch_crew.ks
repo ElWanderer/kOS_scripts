@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20170112").
+pOut("lib_launch_crew.ks v1.3.0 20170119").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -56,26 +56,21 @@ UNTIL rm = exit_mode
     launchCoast(exit_mode,11).
   } ELSE IF rm = 21 {
     killThrot().
+    hudMsg("LAUNCH ABORT!", RED, 40).
     WAIT 0.
-    steerOff().
-    IF hasLES() {
-      hudMsg("LAUNCH ABORT!", RED, 50).
-      fireLES().
-      decoupleByTag("FINAL").
-    } ELSE { hudMsg("MANUAL STAGING REQUIRED!", RED, 50). }
+    IF hasLES() { steerOff(). fireLES(). }
+    ELSE { steerSurf(). }
+    decoupleByTag("FINAL").
     runMode(22).
   } ELSE IF rm = 22 {
-    IF modeTime() > 6 {
+    IF modeTime() > 6 AND hasLES() { JettisonLES(). }
+    IF modeTime() > 7 {
       steerSurf(FALSE).
-      IF hasLES() { JettisonLES(). }
       runMode(23).
     }
   } ELSE IF rm = 23 {
     IF modeTime() > 6 { runMode(31). }
   } ELSE IF rm = 31 {
-    IF ALTITUDE > LCH_CHUTE_ALT { steerSurf(FALSE). }
-    runMode(32).
-  } ELSE IF rm = 32 {
     IF ALTITUDE < LCH_CHUTE_ALT {
       steerOff().
       IF hasChutes() { hudMsg("Will deploy parachutes once safe."). }
