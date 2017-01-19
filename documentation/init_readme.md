@@ -247,7 +247,7 @@ Prints the input text to the (centre/top of the) screen, with a duration of thre
 
 The default colour is `yellow`.
 
-The default size is `40`.
+The default size is `30`.
 
 #### `setTime(name, u_time)`
 
