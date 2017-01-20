@@ -59,23 +59,32 @@ Then we have a run mode loop. In turn, this calls the `lib_launch_common.ks` fun
 
 `launchLES()` will jettison any Launch Escape Systems present at the appropriate altitude (the default is 62% of the atmosphere height, `43.4`km on Kerbin - this is deliberately slightly higher than the fairing deployment altitude so that fairings deploy first), as long as the run mode is not part of the abort sequence.
 
-If the player hits the `ABORT` key, launch switches to the abort run mode sequence. Please see the file description above for notes concerning the use of a Launch Escape System and part tagging. The abort sequence is:
-
-* The throttle is killed.
-* The words `LAUNCH ABORT!` will be printed on the screen in large, red letters.
-* If the craft has a Launch Escape System (LES) present and it is possible to use it (requires custom action groups to be available), the LES is fired. To assist the LES in pulling the capsule away and to the side, the steering is disengaged.
-* If the craft does not have an LES, the steering is set to surface prograde.
-* Any parts labelled `FINAL` (requires custom action groups to be available) are decoupled from the craft. In my craft, the decoupler immediately below the capsule's heat shield is labelled this way. If no parts are labelled, the script does not know how to detach the capsule from the rest of the rocket and the player will have to activate the parts manually.
-* `6` seconds after the abort, the LES is jettisoned if present.
-* `7` seconds after the abort, the craft steers to surface retrograde.
-* `13` seconds after the abort, the script will disengage the steering if below `LCH_CHUTE_ALT`. If above `LCH_CHUTE_ALT`, the script will wait until the altitude drops before continuing.
-* Once below `LCH_CHUTE_ALT`, the parachutes will open automatically once safe to do so.
-* The kOS CPU will power down on touch down to stop it from trying to run any post-launch code.
-
 If not specified, the default value for `azimuth` is `90` (degrees compass heading).
 
 If not specified, the default value for `inclination` is the craft's current latitude.
 
 If not specified, the default value for `pitchover_altitude` is `250`m.
+
+##### Abort Sequence
+
+If the player hits the `ABORT` key, launch switches to the abort run mode sequence. Please see the file description above for notes concerning the use of a Launch Escape System and part tagging. The abort sequence is initially:
+
+* The throttle is killed.
+* The words `LAUNCH ABORT!` will be printed on the screen in large, red letters.
+* If the craft has a Launch Escape System (LES) present and it is possible to use it (requires custom action groups to be available), the LES is fired. Any parts labelled `FINAL` (requires custom action groups to be available) are decoupled from the craft. This is all done immediately, which typically prevents the throttle to zero command from reaching the active engine.
+* If the craft does not have an LES, there is `0.1` second pause to allow the throttle-down command to reach the engines. Then any parts labelled `FINAL` (requires custom action groups to be available) are decoupled from the craft. 
+Note - In my craft, the decoupler immediately below the capsule's heat shield is labelled this way. If no parts are labelled, the script does not know how to detach the capsule from the rest of the rocket and the player will have to activate the parts manually.
+* The steering is set to surface prograde.
+
+Following this, once at least `2` seconds have passed and the craft has no available thrust (i.e. the LES is no longer firing):
+* The LES is jettisoned if present.
+* The steering is set to surface retrograde.
+
+Following this there is a pause, the length of which depends on the altitude. If the radar altitude is below `1000`m, the pause is `2` seconds. Otherwise it is `5` seconds. This gives time for the craft to orient to surface retrograde.
+
+Finally the script will wait for the altitude to drop below `LCH_CHUTE_ALT`, at which point it disengages the steering and starts running the command to check the parachutes at each tick. This will deploy any available parachutes once it is safe to do so.
+
+The kOS CPU will power down on touch down to stop it from trying to run any post-launch code.
+
 
 Geoff Banks / ElWanderer
