@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20170119").
+pOut("lib_launch_crew.ks v1.3.0 20170120").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -57,19 +57,20 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 21 {
     killThrot().
     hudMsg("LAUNCH ABORT!", RED, 40).
-    WAIT 0.
-    IF hasLES() { steerOff(). fireLES(). }
-    ELSE { steerSurf(). }
+    IF hasLES() { fireLES(). }
+    ELSE { WAIT 0.1. }
     decoupleByTag("FINAL").
+    steerSurf().
     runMode(22).
   } ELSE IF rm = 22 {
-    IF modeTime() > 6 AND hasLES() { JettisonLES(). }
-    IF modeTime() > 7 {
+    IF modeTime() > 2 AND SHIP:AVAILABLETHRUST = 0 {
+      IF hasLES() { JettisonLES(). }
       steerSurf(FALSE).
       runMode(23).
     }
   } ELSE IF rm = 23 {
-    IF modeTime() > 6 { runMode(31). }
+    IF ALT:RADAR > 1000 { IF modeTime() > 5 { runMode(31). } }
+    ELSE IF modeTime() > 2 { runMode(31). }
   } ELSE IF rm = 31 {
     IF ALTITUDE < LCH_CHUTE_ALT {
       steerOff().
