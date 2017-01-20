@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KRescue.ks v1.3.0 20170116").
+pOut("KRescue.ks v1.3.0 20170120").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -110,7 +110,7 @@ IF rm < 0 {
     doOrbitMatch(FALSE,stageDV() - 60,0).
     runMode(841).
   } ELSE {
-    IF doOrbitChange(FALSE,stageDV(),APOAPSIS,29500) { runMode(841). }
+    IF doOrbitChange(FALSE,stageDV(),APOAPSIS,29500) { runMode(842). }
     ELSE {
       pOut("ERROR: Not enough delta-v to lower periapsis below 30km.").
       runMode(839,831).
