@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-//"init_select.ks v1.1.0 20170117"
+//"init_select.ks v1.1.0 20170120"
 // this lives on the archive, run it once on start-up to copy
 // either "0:/init.ks" or "0/init_multi.ks" to "1:/init.ks"
 
@@ -25,10 +25,10 @@ FUNCTION copyOverInit
 {
   LOCAL cp IS CORE:PART.
   IF cp:TAG = "MULTI" OR (countDisks() > 1 AND cp:TAG <> "SINGLE") {
-    HUDTEXT("Copying 0:/init_multi.ks.", 3, 2, 40, YELLOW, FALSE).
+    HUDTEXT("Copying 0:/init_multi.ks.", 3, 2, 30, YELLOW, FALSE).
     COPYPATH("0:/init_multi.ks","1:/init.ks").
   } ELSE {
-    HUDTEXT("Copying 0:/init.ks.", 3, 2, 40, YELLOW, FALSE).
+    HUDTEXT("Copying 0:/init.ks.", 3, 2, 30, YELLOW, FALSE).
     COPYPATH("0:/init.ks","1:/init.ks").
   }
 }
