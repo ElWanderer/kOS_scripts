@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderProbe.ks v1.3.0 20170116").
+pOut("KMLanderProbe.ks v1.3.0 20170123").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -125,7 +125,11 @@ IF rm < 0 {
   doScience(FALSE,FALSE).
   runMode(842).
 } ELSE IF rm = 842 {
-  UNTIL transmitScience(FALSE,TRUE,300) { doWarp(TIME:SECONDS + 600). }
+  UNTIL transmitScience(FALSE,TRUE,15) {
+    LOCAL warp_time IS TIME:SECONDS + 900.
+    IF NOT cOk() { doWarp(warp_time,cOk@). }
+    ELSE { doWarp(warp_time). }
+  }
   runMode(843).
 } ELSE IF rm = 843 {
   resetScience().
