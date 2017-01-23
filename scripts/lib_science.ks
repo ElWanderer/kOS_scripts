@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_science.ks v1.2.0 20170119").
+pOut("lib_science.ks v1.2.0 20170123").
 
 RUNONCEPATH(loadScript("lib_ant.ks")).
 
@@ -83,10 +83,9 @@ FUNCTION transmitScience
 {
   PARAMETER one_use IS TRUE, wait_pc IS TRUE, max_wait IS -1.
   extendAllAntennae().
-  setTime("SCI_START_TX").
-
   FOR m IN SCI_LIST { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
     pOut("Found science data to transmit in " + m:PART:TITLE).
+    setTime("SCI_START_TX").
     LOCAL pOk IS powerOkay(m).
     UNTIL pOk AND cOk() {
       IF NOT wait_pc OR (max_wait > 0 AND diffTime("SCI_START_TX") > max_wait) {
