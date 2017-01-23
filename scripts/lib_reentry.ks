@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.2.0 20170110").
+pOut("lib_reentry.ks v1.2.0 20170123").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -9,25 +9,6 @@ FOR f IN LIST(
   "lib_steer.ks",
   "lib_orbit.ks"
 ) { RUNONCEPATH(loadScript(f)). }
-
-FUNCTION pReentry
-{
-  LOCAL u_time IS TIME:SECONDS + 0.05.
-  LOCAL pe_eta IS secondsToTA(SHIP,u_time,0).
-  LOCAL pe_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time + pe_eta)).
-  LOCAL pe_lng IS mAngle(pe_spot:LNG - (pe_eta * 360 / BODY:ROTATIONPERIOD)).
-
-  LOCAL atm_eta IS secondsToAlt(SHIP,u_time,BODY:ATM:HEIGHT,FALSE).
-  LOCAL atm_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time + atm_eta)).
-  LOCAL atm_lng IS mAngle(atm_spot:LNG - (atm_eta * 360 / BODY:ROTATIONPERIOD)).
-
-  pOut("Re-entry orbit details:").
-  pOut("Inc: " + ROUND(SHIP:OBT:INCLINATION,1) + " degrees.").
-  pOut("Ap:  " + ROUND(APOAPSIS) + "m.").
-  pOut("Pe:  " + ROUND(PERIAPSIS) + "m.").
-  pOut("Lng (atm): " + ROUND(atm_lng,1) + " degrees.").
-  pOut("Lng (pe):  " + ROUND(pe_lng,1) + " degrees.").
-}
 
 FUNCTION deorbitNode
 {
@@ -113,7 +94,6 @@ FUNCTION doReentry
 UNTIL rm = exit_mode
 {
   IF rm = 51 {
-    pReentry().
     IF ALTITUDE > alt_stage {
       steerSun().
       runMode(52).
@@ -134,7 +114,6 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 56 {
     IF ALTITUDE < alt_stage { runMode(60). }
   } ELSE IF rm = 60 {
-    pReentry().
     IF stages > 0 OR SHIP:PARTSTAGGED("FINAL"):LENGTH > 0 {
       steerNormal().
       runMode(64).
