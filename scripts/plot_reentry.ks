@@ -5,9 +5,18 @@ FOR f IN LIST(
   "lib_reentry.ks",
   "lib_transfer.ks",
   "lib_orbit.ks",
-  "lib_geo.ks"
+  "lib_geo.ks",
+  "lib_dv.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
+// find parts tagged "FINAL" and how much mass would be detached with them
+// (assumes that where multiple parts are tagged as such, they are not children of eachother).
+FUNCTION finalMass
+{
+  LOCAL dMass IS 0.
+  FOR d IN SHIP:PARTSTAGGED("FINAL") { SET dMass TO dMass + partMass(d). }
+  RETURN SHIP:MASS - dMass.
+}
 
 // lib_geo.ks has a function latAtTA() which doesn't seem to be used anywhere.
 // I found this logic for calculating the longitude in my notebook, but it never
@@ -42,10 +51,24 @@ FUNCTION lngAtTATime
 // and for a 85km x 29km Kerbin de-orbit:
 //   command pods: -30
 // These values may need adjusting for the KSP v1.2.2 atmosphere. We had to shift the
-// standard de-orbit burn by 20 degrees, suggesting the land_ta is now actually -50
+// standard de-orbit burn by 20 degrees, suggesting the land_ta is now actually -50.
+//
+// Ultimately, we want to be able to predict these based on periapsis velocity and 
+// ballistic co-efficient (mass / heat shield surface area).
+//
 FUNCTION predictReentryForOrbit
 {
   PARAMETER curr_orb, dest IS KERBIN, land_ta IS 20.
+
+  LOCAL m1 IS finalMass().
+  // If we can add a check for which heat shield is attached, we can determine the
+  // cross-sectional area and thus a relative ballistic co-efficient...
+  LOCAL a1 IS CONSTANT:PI*0.625^2.
+  LOCAL a2 IS a1 * 4.
+  pOut("Current ship mass: " + ROUND(SHIP:MASS,2) + " tonnes.").
+  pOut("Mass following staging: " + ROUND(m1,2) + " tonnes.").
+  pOut("Ballistic co-efficient for 1.25m heatshield: " + ROUND(m1/a1,1) + ".").
+  pOut("Ballistic co-efficient for 2.5m heatshield: " + ROUND(m1/a2,1) + ".").
 
   LOCAL orb IS curr_orb.
   LOCAL patch_eta_time IS TIME:SECONDS.
@@ -61,6 +84,10 @@ FUNCTION predictReentryForOrbit
   LOCAL pe_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,pe_eta_time)).
   LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
 
+  LOCAL r IS orb:PERIAPSIS + orb:BODY:RADIUS.
+  LOCAL a IS orb:SEMIMAJORAXIS.
+  LOCAL pe_vel IS SQRT(orb:BODY:MU * ((2/r)-(1/a))).
+
   LOCAL atm_eta_time IS u_time + secondsToAlt(SHIP,u_time,BODY:ATM:HEIGHT,FALSE).
   LOCAL atm_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,atm_eta_time)).
   LOCAL atm_lng IS mAngle(atm_spot:LNG - ((atm_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
@@ -73,6 +100,7 @@ FUNCTION predictReentryForOrbit
   pOut("Inc:  " + ROUND(orb:INCLINATION,1) + " degrees.").
   pOut("Ap.:  " + ROUND(orb:APOAPSIS) + "m.").
   pOut("Pe.: " + ROUND(orb:PERIAPSIS) + "m.").
+  pOut("Velocity at pe: " + ROUND(pe_vel) + "m/s.").
   pOut("Lat (atm interface):  " + ROUND(atm_spot:LAT,1) + " degrees.").
   pOut("Lng (atm interface):  " + ROUND(atm_lng,1) + " degrees.").
   pOut("Lat (periapsis): " + ROUND(pe_spot:LAT,1) + " degrees.").
