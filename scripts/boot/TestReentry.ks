@@ -9,8 +9,7 @@ FOR f IN LIST(
   "lib_runmode.ks",
   "lib_launch_crew.ks",
   "lib_steer.ks",
-  "lib_orbit_match.ks",
-  "lib_transfer.ks",
+  "lib_orbit_change.ks",
   "lib_reentry.ks",
   "plot_reentry.ks"
 ) { RUNONCEPATH(loadScript(f)). }
@@ -18,6 +17,8 @@ FOR f IN LIST(
 // set these values ahead of launch
 GLOBAL SAT_NAME IS "Reentry Test 1".
 GLOBAL SAT_AP IS 9000000.
+GLOBAL ESTIMATED_TA_DIFF IS 20.
+GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 
 IF runMode() > 0 { logOn(). }
 
@@ -50,9 +51,20 @@ IF rm < 0 {
   ELSE { runMode(819,802). }
 
 } ELSE IF rm = 821 {
-  plotReentry().
+  plotReentry(REENTRY_LOG_FILE,ESTIMATED_TA_DIFF).
   store("doReentry(1,99).").
   doReentry(1,99).
+  LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(mAngle(SHIP:LATITUDE),2) + " degrees.".
+  LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
+  pOut(lat_land_str).
+  pOut(lng_land_str).
+  IF REENTRY_LOG_FILE <> "" AND cOk() {
+    LOG "--------" TO REENTRY_LOG_FILE.
+    LOG "Results:" TO REENTRY_LOG_FILE.
+    LOG "--------" TO REENTRY_LOG_FILE.
+    LOG lat_land_str TO REENTRY_LOG_FILE.
+    LOG lng_land_str TO REENTRY_LOG_FILE.
+  }
 }
 
 }
