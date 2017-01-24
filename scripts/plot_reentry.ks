@@ -9,6 +9,8 @@ FOR f IN LIST(
   "lib_dv.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
+GLOBAL PLOT_REENTRY_LOG IS "".
+
 // find parts tagged "FINAL" and how much mass would be detached with them
 // (assumes that where multiple parts are tagged as such, they are not children of eachother).
 FUNCTION finalMass
@@ -69,13 +71,15 @@ FUNCTION lngAtTATime
 //
 FUNCTION predictReentryForOrbit
 {
-  PARAMETER curr_orb, dest IS KERBIN, land_ta IS 20.
+  PARAMETER curr_orb, dest, land_ta.
 
   pOut("Current ship mass: " + ROUND(SHIP:MASS,2) + " tonnes.").
   LOCAL m1 IS finalMass().
   pOut("Mass following staging: " + ROUND(m1,2) + " tonnes.").
   LOCAL ca IS shipArea().
-  pOut("Ballistic co-efficient: " + ROUND(m1/ca,1) + ".").
+  LOCAL bc IS m1/ca.
+  LOCAL ship_detail_str IS "Ballistic co-efficient: " + ROUND(bc,1) + "."
+  pOut(ship_detail_str).
 
   LOCAL orb IS curr_orb.
   LOCAL patch_eta_time IS TIME:SECONDS.
@@ -99,25 +103,55 @@ FUNCTION predictReentryForOrbit
   LOCAL atm_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,atm_eta_time)).
   LOCAL atm_lng IS mAngle(atm_spot:LNG - ((atm_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
 
+  // put estimation of land_ta in here (replacing input parameter), based on pe_vel and bc
+  // assuming pe is fixed for now, but may eventually need to vary it too
+
+  LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
+  pOut(land_ta_str).
   LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
   LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
 
   pOut("Re-entry orbit details:").
-  pOut("Inc:  " + ROUND(orb:INCLINATION,1) + " degrees.").
-  pOut("Ap.:  " + ROUND(orb:APOAPSIS) + "m.").
+  LOCAL inc_detail_str IS "Inc: " + ROUND(orb:INCLINATION,2) + " degrees.".
+  pOut(inc_detail_str).
+  pOut("Ap.: " + ROUND(orb:APOAPSIS) + "m.").
   pOut("Pe.: " + ROUND(orb:PERIAPSIS) + "m.").
-  pOut("Velocity at pe: " + ROUND(pe_vel) + "m/s.").
-  pOut("Lat (atm interface):  " + ROUND(atm_spot:LAT,1) + " degrees.").
-  pOut("Lng (atm interface):  " + ROUND(atm_lng,1) + " degrees.").
-  pOut("Lat (periapsis): " + ROUND(pe_spot:LAT,1) + " degrees.").
-  pOut("Lng (periapsis): " + ROUND(pe_lng,1) + " degrees.").
-  pOut("Lat (landing prediction): " + ROUND(land_lat,1) + " degrees.").
-  pOut("Lng (landing prediction): " + ROUND(land_lng,1) + " degrees.").
+  LOCAL pe_detail_str IS "Velocity at pe: " + ROUND(pe_vel) + "m/s.".
+  pOut(pe_detail_str).
+  pOut("Lat (atm interface):  " + ROUND(atm_spot:LAT,2) + " degrees.").
+  pOut("Lng (atm interface):  " + ROUND(atm_lng,2) + " degrees.").
+  LOCAL lat_pe_str IS "Lat (periapsis): " + ROUND(pe_spot:LAT,2) + " degrees.".
+  LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
+  pOut(lat_pe_str).
+  pOut(lng_pe_str).
+  LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
+  LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
+  pOut(lat_pred_str).
+  pOut(lng_pred_str).
+  
+  IF PLOT_REENTRY_LOG <> "" AND cOk() {
+    LOG "--------" TO PLOT_REENTRY_LOG.
+    LOG "Details:" TO PLOT_REENTRY_LOG.
+    LOG "--------" TO PLOT_REENTRY_LOG.
+    LOG ship_detail_str TO PLOT_REENTRY_LOG.
+    LOG pe_detail_str TO PLOT_REENTRY_LOG.
+    LOG lat_pe_str TO PLOT_REENTRY_LOG.
+    LOG lng_pe_str TO PLOT_REENTRY_LOG.
+    LOG inc_detail_str TO PLOT_REENTRY_LOG.
+    LOG "-----------" TO PLOT_REENTRY_LOG.
+    LOG "Prediction:" TO PLOT_REENTRY_LOG.
+    LOG "-----------" TO PLOT_REENTRY_LOG.
+    LOG land_ta_str TO PLOT_REENTRY_LOG.
+    LOG lat_pred_str TO PLOT_REENTRY_LOG.
+    LOG lng_pred_str TO PLOT_REENTRY_LOG.
+  }
 }
 
 FUNCTION plotReentry
 {
-  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT). }
-  ELSE { predictReentryForOrbit(SHIP:ORBIT). }
+  PARAMETER lf IS PLOT_REENTRY_LOG, ta_diff IS 20.
+  IF lf <> PLOT_REENTRY_LOG { SET PLOT_REENTRY_LOG TO lf. }
+  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT, KERBIN, ta_diff). }
+  ELSE { predictReentryForOrbit(SHIP:ORBIT, KERBIN, ta_diff). }
 }
