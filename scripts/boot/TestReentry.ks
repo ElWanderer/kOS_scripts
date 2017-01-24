@@ -16,9 +16,10 @@ FOR f IN LIST(
 
 // set these values ahead of launch
 GLOBAL SAT_NAME IS "Reentry Test 1".
-GLOBAL SAT_AP IS 9000000.
+GLOBAL SAT_AP IS 64000000.
 GLOBAL ESTIMATED_TA_DIFF IS 20.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
+GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
 IF runMode() > 0 { logOn(). }
 
@@ -47,6 +48,10 @@ IF rm < 0 {
   runMode(811).
 
 } ELSE IF rm = 811 {
+  IF EXISTS(CRAFT_FILE) { updateReentryAP(). pOut("SAT_AP now has value: " + SAT_AP + "m."). }
+  ELSE { KUNIVERSE:QUICKSAVE(). hudMsg("Quicksaving"). WAIT 5. }
+  runMode(812).
+} ELSE IF rm = 812 {
   IF doOrbitChange(FALSE,stageDV(),SAT_AP,30000) { runMode(821). }
   ELSE { runMode(819,802). }
 
@@ -58,12 +63,30 @@ IF rm < 0 {
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
   pOut(lat_land_str).
   pOut(lng_land_str).
-  IF REENTRY_LOG_FILE <> "" AND cOk() {
+
+  reentryExtend().
+  WAIT UNTIL cOk().
+
+  IF REENTRY_LOG_FILE <> "" {
     LOG "--------" TO REENTRY_LOG_FILE.
     LOG "Results:" TO REENTRY_LOG_FILE.
     LOG "--------" TO REENTRY_LOG_FILE.
     LOG lat_land_str TO REENTRY_LOG_FILE.
     LOG lng_land_str TO REENTRY_LOG_FILE.
+  }
+
+  IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
+  LOCAL factor IS 0.
+  IF SAT_AP > 1000000 { SET factor TO 0.5. }
+  ELSE IF SAT_AP > 100000 { SET factor TO 0.8. }
+  IF factor > 0 {
+    LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + ROUND(SAT_AP * factor) + ". }" TO REENTRY_CRAFT_FILE.
+    hudMsg("Craft file updated, preparing to quickload.").
+    WAIT 2.
+    KUNIVERSE:QUICKLOAD().
+    WAIT UNTIL FALSE.
+  } ELSE {
+    hudMsg("Simulation finished.").
   }
 }
 
