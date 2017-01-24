@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170123").
+pOut("plot_reentry.ks v1.0.0 20170124").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -16,6 +16,17 @@ FUNCTION finalMass
   LOCAL dMass IS 0.
   FOR d IN SHIP:PARTSTAGGED("FINAL") { SET dMass TO dMass + partMass(d). }
   RETURN SHIP:MASS - dMass.
+}
+
+FUNCTION shipArea
+{
+  LOCAL a1 IS CONSTANT:PI*0.625^2. // area of heat shield with diameter 1.25m
+  IF SHIP:PARTSNAMED("HeatShield3"):LENGTH > 0 { RETURN a1 * 16. }
+  IF SHIP:PARTSNAMED("HeatShield2"):LENGTH > 0 { RETURN a1 * 4. }
+  IF SHIP:PARTSNAMED("HeatShield1"):LENGTH > 0 { RETURN a1. }
+  IF SHIP:PARTSNAMED("HeatShield0"):LENGTH > 0 { RETURN a1 / 4. }
+  pOut("Could not find a heat shield. Assuming 1.25m shield for ballistic purposes.").
+  RETURN a1.
 }
 
 // lib_geo.ks has a function latAtTA() which doesn't seem to be used anywhere.
@@ -60,15 +71,11 @@ FUNCTION predictReentryForOrbit
 {
   PARAMETER curr_orb, dest IS KERBIN, land_ta IS 20.
 
-  LOCAL m1 IS finalMass().
-  // If we can add a check for which heat shield is attached, we can determine the
-  // cross-sectional area and thus a relative ballistic co-efficient...
-  LOCAL a1 IS CONSTANT:PI*0.625^2.
-  LOCAL a2 IS a1 * 4.
   pOut("Current ship mass: " + ROUND(SHIP:MASS,2) + " tonnes.").
+  LOCAL m1 IS finalMass().
   pOut("Mass following staging: " + ROUND(m1,2) + " tonnes.").
-  pOut("Ballistic co-efficient for 1.25m heatshield: " + ROUND(m1/a1,1) + ".").
-  pOut("Ballistic co-efficient for 2.5m heatshield: " + ROUND(m1/a2,1) + ".").
+  LOCAL ca IS shipArea().
+  pOut("Ballistic co-efficient: " + ROUND(m1/ca,1) + ".").
 
   LOCAL orb IS curr_orb.
   LOCAL patch_eta_time IS TIME:SECONDS.
@@ -92,7 +99,7 @@ FUNCTION predictReentryForOrbit
   LOCAL atm_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,atm_eta_time)).
   LOCAL atm_lng IS mAngle(atm_spot:LNG - ((atm_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
 
-  LOCAL land_eta_time IS pe_eta_time. // not 100% accurate, but won't be far off
+  LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
   LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
 
@@ -109,5 +116,8 @@ FUNCTION predictReentryForOrbit
   pOut("Lng (landing prediction): " + ROUND(land_lng,1) + " degrees.").
 }
 
-IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT). }
-ELSE { predictReentryForOrbit(SHIP:ORBIT). }
+FUNCTION plotReentry
+{
+  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT). }
+  ELSE { predictReentryForOrbit(SHIP:ORBIT). }
+}
