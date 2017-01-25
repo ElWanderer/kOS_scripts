@@ -91,17 +91,17 @@ FUNCTION predictReentryForOrbit
 
   LOCAL u_time IS patch_eta_time + 1.
 
-  LOCAL pe_eta_time IS u_time + secondsToTA(SHIP,u_time,0).
-  LOCAL pe_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,pe_eta_time)).
-  LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
-
   LOCAL r IS orb:PERIAPSIS + orb:BODY:RADIUS.
   LOCAL a IS orb:SEMIMAJORAXIS.
   LOCAL pe_vel IS SQRT(orb:BODY:MU * ((2/r)-(1/a))).
 
   LOCAL atm_eta_time IS u_time + secondsToAlt(SHIP,u_time,BODY:ATM:HEIGHT,FALSE).
-  LOCAL atm_spot IS BODY:GEOPOSITIONOF(posAt(SHIP,atm_eta_time)).
+  LOCAL atm_spot IS dest:GEOPOSITIONOF(POSITIONAT(SHIP,atm_eta_time)).
   LOCAL atm_lng IS mAngle(atm_spot:LNG - ((atm_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
+
+  LOCAL pe_eta_time IS u_time + secondsToTA(SHIP,u_time,0).
+  LOCAL pe_spot IS dest:GEOPOSITIONOF(POSITIONAT(SHIP,pe_eta_time)).
+  LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
 
   // put estimation of land_ta in here (replacing input parameter), based on pe_vel and bc
   // assuming pe is fixed for now, but may eventually need to vary it too
