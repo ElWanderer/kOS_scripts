@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170124").
+pOut("plot_reentry.ks v1.0.0 20170125").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -78,7 +78,7 @@ FUNCTION predictReentryForOrbit
   pOut("Mass following staging: " + ROUND(m1,2) + " tonnes.").
   LOCAL ca IS shipArea().
   LOCAL bc IS m1/ca.
-  LOCAL ship_detail_str IS "Ballistic co-efficient: " + ROUND(bc,1) + "."
+  LOCAL ship_detail_str IS "Ballistic co-efficient: " + ROUND(bc,1) + ".".
   pOut(ship_detail_str).
 
   LOCAL orb IS curr_orb.
