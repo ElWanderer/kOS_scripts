@@ -701,3 +701,174 @@ Results:
 --------
 Touchdown latitude: 359.95 degrees.
 Touchdown longitude: 326.48 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 3004m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 83.16 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 101.16 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.95 degrees.
+Touchdown longitude: 87.29 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2836m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 132.31 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 150.3 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.95 degrees.
+Touchdown longitude: 134.31 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2781m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 141.01 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 159.01 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.95 degrees.
+Touchdown longitude: 142.05 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2727m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 147.68 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 165.68 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.95 degrees.
+Touchdown longitude: 147.56 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2675m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 152.82 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 170.82 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.96 degrees.
+Touchdown longitude: 151.32 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2628m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 156.8 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 174.79 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.96 degrees.
+Touchdown longitude: 153.63 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2584m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 159.9 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 177.89 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.97 degrees.
+Touchdown longitude: 154.71 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2545m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 162.32 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 180.31 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.97 degrees.
+Touchdown longitude: 154.63 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.4.
+Velocity at pe: 2511m/s.
+Lat (periapsis): -0.05 degrees.
+Lng (periapsis): 164.22 degrees.
+Inc: 0.1 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 20 degrees beyond periapsis.
+Lat (landing prediction): -0.07 degrees.
+Lng (landing prediction): 182.21 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 359.98 degrees.
+Touchdown longitude: 153.42 degrees.
