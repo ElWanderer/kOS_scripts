@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170124").
+pOut("TestReentry.ks v1.0.0 20170131").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,8 +15,8 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 1".
-GLOBAL SAT_AP IS 64000000.
+GLOBAL SAT_NAME IS "Reentry Test 5".
+GLOBAL SAT_AP IS 8000000.
 GLOBAL ESTIMATED_TA_DIFF IS 20.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
@@ -78,13 +78,14 @@ IF rm < 0 {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
   LOCAL factor IS 0.
   IF SAT_AP > 1000000 { SET factor TO 0.5. }
-  ELSE IF SAT_AP > 100000 { SET factor TO 0.8. }
+  ELSE IF SAT_AP > 85000 { SET factor TO 0.8. }
   IF factor > 0 {
     LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + ROUND(SAT_AP * factor) + ". }" TO REENTRY_CRAFT_FILE.
     hudMsg("Craft file updated, preparing to quickload.").
-    WAIT 2.
-    KUNIVERSE:QUICKLOAD().
-    WAIT UNTIL FALSE.
+    UNTIL FALSE {
+      WAIT 5.
+      KUNIVERSE:QUICKLOAD().
+    }
   } ELSE {
     hudMsg("Simulation finished.").
   }
