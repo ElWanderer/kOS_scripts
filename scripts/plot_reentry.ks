@@ -107,7 +107,7 @@ FUNCTION predictReentryForOrbit
   // assuming pe is fixed for now, but may eventually need to vary it too
 
   //LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
-  pOut(land_ta_str).
+  //pOut(land_ta_str).
   LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
   LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
