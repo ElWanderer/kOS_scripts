@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170125").
+pOut("plot_reentry.ks v1.0.0 20170131").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -106,7 +106,7 @@ FUNCTION predictReentryForOrbit
   // put estimation of land_ta in here (replacing input parameter), based on pe_vel and bc
   // assuming pe is fixed for now, but may eventually need to vary it too
 
-  LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
+  //LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
   pOut(land_ta_str).
   LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
@@ -125,10 +125,10 @@ FUNCTION predictReentryForOrbit
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
   pOut(lng_pe_str).
-  LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
-  LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
-  pOut(lat_pred_str).
-  pOut(lng_pred_str).
+  //LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
+  //LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
+  //pOut(lat_pred_str).
+  //pOut(lng_pred_str).
   
   IF PLOT_REENTRY_LOG <> "" AND cOk() {
     LOG "--------" TO PLOT_REENTRY_LOG.
@@ -139,12 +139,12 @@ FUNCTION predictReentryForOrbit
     LOG lat_pe_str TO PLOT_REENTRY_LOG.
     LOG lng_pe_str TO PLOT_REENTRY_LOG.
     LOG inc_detail_str TO PLOT_REENTRY_LOG.
-    LOG "-----------" TO PLOT_REENTRY_LOG.
-    LOG "Prediction:" TO PLOT_REENTRY_LOG.
-    LOG "-----------" TO PLOT_REENTRY_LOG.
-    LOG land_ta_str TO PLOT_REENTRY_LOG.
-    LOG lat_pred_str TO PLOT_REENTRY_LOG.
-    LOG lng_pred_str TO PLOT_REENTRY_LOG.
+    //LOG "-----------" TO PLOT_REENTRY_LOG.
+    //LOG "Prediction:" TO PLOT_REENTRY_LOG.
+    //LOG "-----------" TO PLOT_REENTRY_LOG.
+    //LOG land_ta_str TO PLOT_REENTRY_LOG.
+    //LOG lat_pred_str TO PLOT_REENTRY_LOG.
+    //LOG lng_pred_str TO PLOT_REENTRY_LOG.
   }
 }
 
