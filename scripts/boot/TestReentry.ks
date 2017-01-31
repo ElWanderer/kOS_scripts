@@ -48,7 +48,7 @@ IF rm < 0 {
   runMode(811).
 
 } ELSE IF rm = 811 {
-  IF EXISTS(CRAFT_FILE) { updateReentryAP(). pOut("SAT_AP now has value: " + SAT_AP + "m."). }
+  IF EXISTS(REENTRY_CRAFT_FILE) { updateReentryAP(). pOut("SAT_AP now has value: " + SAT_AP + "m."). }
   ELSE { KUNIVERSE:QUICKSAVE(). hudMsg("Quicksaving"). WAIT 5. }
   runMode(812).
 } ELSE IF rm = 812 {
