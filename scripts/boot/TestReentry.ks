@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170131").
+pOut("TestReentry.ks v1.0.0 20170201").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,11 +15,32 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 5".
+GLOBAL SAT_NAME IS "Reentry Test 6".
 GLOBAL SAT_AP IS 8000000.
 GLOBAL ESTIMATED_TA_DIFF IS 20.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
+
+FUNCTION saveNewCraftFileAndReload {
+  IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
+  LOCAL next_ap IS 0.
+  IF SAT_AP > 2000000 { SET next_ap TO ROUND(SAT_AP * 0.5). }
+  ELSE IF SAT_AP = 2000000 { SET next_ap TO 1500000. }
+  ELSE IF SAT_AP = 1500000 { SET next_ap TO 1250000. }
+  ELSE IF SAT_AP > 100000 { SET next_ap TO ROUND(SAT_AP * 0.8). }
+  ELSE IF SAT_AP > 85000 { SET next_ap TO 85000. }
+  IF next_ap > 0 {
+    LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + next_ap + ". }" TO REENTRY_CRAFT_FILE.
+    hudMsg("Craft file updated, preparing to quickload.").
+    UNTIL FALSE {
+      WAIT 5.
+      KUNIVERSE:QUICKLOAD().
+    }
+  } ELSE {
+    hudMsg("Simulation finished.").
+    WAIT UNTIL FALSE.
+  }
+}
 
 IF runMode() > 0 { logOn(). }
 
@@ -29,8 +50,8 @@ IF rm < 0 {
   SET SHIP:NAME TO SAT_NAME.
   logOn().
 
-  store("doLaunch(801,85000,90,0).").
-  doLaunch(801,85000,90,0).
+  store("doLaunch(801,125000,90,0).").
+  doLaunch(801,125000,90,0).
 
 } ELSE IF rm < 50 {
   resume().
@@ -48,8 +69,25 @@ IF rm < 0 {
   runMode(811).
 
 } ELSE IF rm = 811 {
-  IF EXISTS(REENTRY_CRAFT_FILE) { updateReentryAP(). pOut("SAT_AP now has value: " + SAT_AP + "m."). }
-  ELSE { KUNIVERSE:QUICKSAVE(). hudMsg("Quicksaving"). WAIT 5. }
+  LOCAL do_save IS TRUE.
+  LOCAL do_load IS FALSE.
+  IF EXISTS(CRAFT_FILE) {
+    LOCAL old_ap IS SAT_AP.
+    updateReentryAP().
+    IF SAT_AP <> old_ap {
+      pOut("SAT_AP now has value: " + SAT_AP + "m.").
+      SET do_save TO FALSE.
+    } ELSE { SET do_load TO TRUE. }
+  }
+  IF do_save {
+    IF EXISTS(CRAFT_FILE) { DELETEPATH(CRAFT_FILE). }
+    KUNIVERSE:QUICKSAVE().
+    hudMsg("Quicksaving").
+    WAIT 5.
+  }
+  IF do_load {
+    saveNewCraftFileAndReload().
+  }
   runMode(812).
 } ELSE IF rm = 812 {
   IF doOrbitChange(FALSE,stageDV(),SAT_AP,30000) { runMode(821). }
@@ -75,20 +113,7 @@ IF rm < 0 {
     LOG lng_land_str TO REENTRY_LOG_FILE.
   }
 
-  IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
-  LOCAL factor IS 0.
-  IF SAT_AP > 1000000 { SET factor TO 0.5. }
-  ELSE IF SAT_AP > 85000 { SET factor TO 0.8. }
-  IF factor > 0 {
-    LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + ROUND(SAT_AP * factor) + ". }" TO REENTRY_CRAFT_FILE.
-    hudMsg("Craft file updated, preparing to quickload.").
-    UNTIL FALSE {
-      WAIT 5.
-      KUNIVERSE:QUICKLOAD().
-    }
-  } ELSE {
-    hudMsg("Simulation finished.").
-  }
+  saveNewCraftFileAndReload().
 }
 
 }
