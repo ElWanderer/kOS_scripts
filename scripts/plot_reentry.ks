@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170131").
+pOut("plot_reentry.ks v1.0.0 20170201").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -23,7 +23,7 @@ FUNCTION finalMass
 FUNCTION shipArea
 {
   LOCAL a1 IS CONSTANT:PI*0.625^2. // area of heat shield with diameter 1.25m
-  IF SHIP:PARTSNAMED("HeatShield3"):LENGTH > 0 { RETURN a1 * 16. }
+  IF SHIP:PARTSNAMED("HeatShield3"):LENGTH > 0 { RETURN a1 * 9. }
   IF SHIP:PARTSNAMED("HeatShield2"):LENGTH > 0 { RETURN a1 * 4. }
   IF SHIP:PARTSNAMED("HeatShield1"):LENGTH > 0 { RETURN a1. }
   IF SHIP:PARTSNAMED("HeatShield0"):LENGTH > 0 { RETURN a1 / 4. }
