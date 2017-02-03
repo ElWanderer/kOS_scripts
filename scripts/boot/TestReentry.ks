@@ -47,10 +47,8 @@ GLOBAL SAT_NEXT_AP IS LEXICON(
 
 FUNCTION saveNewCraftFileAndReload {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
-  LOCAL next_ap IS 0.
-  IF SAT_NEXT_AP:HASKEY(SAT_AP) { SET next_ap TO SAT_NEXT_AP[SAT_AP]. }
-  IF next_ap > 0 {
-    LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + next_ap + ". }" TO REENTRY_CRAFT_FILE.
+  IF SAT_NEXT_AP:HASKEY(SAT_AP) {
+    LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + SAT_NEXT_AP[SAT_AP] + ". }" TO REENTRY_CRAFT_FILE.
     hudMsg("Craft file updated, preparing to quickload.").
     UNTIL FALSE {
       WAIT 5.
