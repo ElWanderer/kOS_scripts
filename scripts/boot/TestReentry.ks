@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170201").
+pOut("TestReentry.ks v1.0.0 20170203").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,20 +15,40 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 6".
-GLOBAL SAT_AP IS 8000000.
+GLOBAL SAT_NAME IS "Reentry Test 7".
+GLOBAL SAT_AP IS 80000.
 GLOBAL ESTIMATED_TA_DIFF IS 20.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
+GLOBAL SAT_NEXT_AP IS LEXICON(
+     80000,    85000,
+     85000,    92000,
+     92000,   100000,
+    100000,   110000,
+    110000,   125000,
+    125000,   150000,
+    150000,   175000,
+    175000,   200000,
+    200000,   250000,
+    250000,   300000,
+    300000,   400000,
+    400000,   500000,
+    500000,   640000,
+    640000,   800000,
+    800000,  1000000,
+   1000000,  1250000,
+   1250000,  1500000,
+   1500000,  2000000,
+   2000000,  4000000,
+   4000000,  8000000,
+   8000000, 12000000,
+  12000000, 46400000).
+
 FUNCTION saveNewCraftFileAndReload {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
   LOCAL next_ap IS 0.
-  IF SAT_AP > 2000000 { SET next_ap TO ROUND(SAT_AP * 0.5). }
-  ELSE IF SAT_AP = 2000000 { SET next_ap TO 1500000. }
-  ELSE IF SAT_AP = 1500000 { SET next_ap TO 1250000. }
-  ELSE IF SAT_AP > 100000 { SET next_ap TO ROUND(SAT_AP * 0.8). }
-  ELSE IF SAT_AP > 85000 { SET next_ap TO 85000. }
+  IF SAT_NEXT_AP:HASKEY(SAT_AP) { SET next_ap TO SAT_NEXT_AP[SAT_AP]. }
   IF next_ap > 0 {
     LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + next_ap + ". }" TO REENTRY_CRAFT_FILE.
     hudMsg("Craft file updated, preparing to quickload.").
