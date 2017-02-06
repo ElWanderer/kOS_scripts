@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170203").
+pOut("TestReentry.ks v1.0.0 20170206").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -113,8 +113,9 @@ IF rm < 0 {
 
 } ELSE IF rm = 821 {
   plotReentry(REENTRY_LOG_FILE,ESTIMATED_TA_DIFF).
-  store("doReentry(1,99).").
-  doReentry(1,99).
+  store("doReentry(1,831).").
+  doReentry(1,831).
+} ELSE IF rm = 831 {
   LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(mAngle(SHIP:LATITUDE),2) + " degrees.".
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
   pOut(lat_land_str).
