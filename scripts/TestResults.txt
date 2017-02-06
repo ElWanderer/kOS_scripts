@@ -1985,3 +1985,81 @@ Results:
 --------
 Touchdown latitude: 0.02 degrees.
 Touchdown longitude: 344.3 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2623m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 349.14 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.02 degrees.
+Touchdown longitude: 343.36 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2670m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 345.25 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.02 degrees.
+Touchdown longitude: 341.2 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2727m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 339.61 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.03 degrees.
+Touchdown longitude: 337.13 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2781m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 332.91 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.03 degrees.
+Touchdown longitude: 331.59 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2837m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 324.16 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.03 degrees.
+Touchdown longitude: 323.79 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.
+Velocity at pe: 2892m/s.
+Lat (periapsis): 0.03 degrees.
+Lng (periapsis): 312.68 degrees.
+Inc: 0.1 degrees.
+--------
+Results:
+--------
+Touchdown latitude: 0.03 degrees.
+Touchdown longitude: 313.11 degrees.
