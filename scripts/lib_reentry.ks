@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.2.0 20170123").
+pOut("lib_reentry.ks v1.2.0 20170206").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -145,7 +145,14 @@ UNTIL rm = exit_mode
     }
     runMode(74).
   } ELSE IF rm = 74 {
-    IF ALTITUDE < alt_atm { runMode(76). }
+    IF ALTITUDE < alt_atm {
+      WHEN ALTITUDE < (BODY:ATM:HEIGHT * 0.99) THEN {
+        SET WARPMODE TO PHYSICS. WAIT 0.
+        SET WARP TO 3. WAIT 0.
+        WHEN ALT:RADAR < 1000 OR ALTITUDE > BODY:ATM:HEIGHT THEN { killWarp(). }
+      }
+      runMode(76).
+    }
   } ELSE IF rm = 76 {
     reentryRetract().
     steerSurf(FALSE).
