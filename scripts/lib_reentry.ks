@@ -147,8 +147,7 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 74 {
     IF ALTITUDE < alt_atm {
       WHEN ALTITUDE < (BODY:ATM:HEIGHT * 0.99) THEN {
-        SET WARPMODE TO PHYSICS. WAIT 0.
-        SET WARP TO 3. WAIT 0.
+        UNTIL WARPMODE = "PHYSICS" AND WARP > 0 { SET WARPMODE TO "PHYSICS". SET WARP TO 3. WAIT 0.2. }
         WHEN ALT:RADAR < 1000 OR ALTITUDE > BODY:ATM:HEIGHT THEN { killWarp(). }
       }
       runMode(76).
