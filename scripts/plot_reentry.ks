@@ -44,13 +44,7 @@ FUNCTION latAtTA
 
   LOCAL w IS o:ARGUMENTOFPERIAPSIS.
   LOCAL i IS o:INCLINATION.
-  LOCAL lat IS ARCSIN(clamp(-1,SIN(i) * SIN(mAngle(ta + w)),-1)).
-  pOut("latAtTA()").
-  pOut("Argument of periapsis: " + w).
-  pOut("Inclination: " + i).
-  pOut("Input true anomaly: " + ta).
-  pOut("Calculated latitude: " + lat).
-  pOut("End of latAtTA()").
+  LOCAL lat IS ARCSIN(clamp(-1,SIN(i) * SIN(ta + w),1)).
   RETURN lat.
 }
 
@@ -70,14 +64,6 @@ FUNCTION lngAtTATime
   }
   LOCAL geo_lng IS mAngle(o:LAN + rel_lng - o:BODY:ROTATIONANGLE).
   LOCAL lng IS mAngle(geo_lng - ((u_time - TIME:SECONDS) * 360 / o:BODY:ROTATIONPERIOD)).
-  pOut("lngAtTATime()").
-  pOut("Argument of periapsis: " + w).
-  pOut("Inclination: " + i).
-  pOut("Input true anomaly: " + ta).
-  pOut("Input time in future: " + (u_time - TIME:SECONDS)).
-  pOut("Relative longitude: " + rel_lng).
-  pOut("Calculated longitude: " + lng).
-  pOut("End of lngAtTATime()").
   RETURN lng.
 }
 
@@ -91,7 +77,7 @@ FUNCTION predictOvershoot
   // craft with lower BC values.
   // Eventually the results need to be adjusted for BC.
   LOCAL po IS 0.
-  LOCAL x = v_pe - 2400.
+  LOCAL x IS v_pe - 2400.
   IF x < 70 { SET po TO (40 * LOG10(x)) -95. }
   ELSE IF x < 170 { SET po TO (32 * LOG10(x)) -80. }
   ELSE IF x < 400 { SET po TO (19 * LOG10(x)) -50.75. }
