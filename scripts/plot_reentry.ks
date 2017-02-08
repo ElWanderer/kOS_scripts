@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170206").
+pOut("plot_reentry.ks v1.0.0 20170208").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -31,7 +31,29 @@ FUNCTION shipArea
   RETURN a1.
 }
 
-// lib_geo.ks has a function latAtTA() which doesn't seem to be used anywhere.
+FUNCTION clamp
+{
+  PARAMETER low,p,high.
+  RETURN MAX(low,MIN(high,p)).
+}
+
+// lib_geo.ks has this function latAtTA() which doesn't seem to be used anywhere.
+FUNCTION latAtTA
+{
+  PARAMETER o,ta.
+
+  LOCAL w IS o:ARGUMENTOFPERIAPSIS.
+  LOCAL i IS o:INCLINATION.
+  LOCAL lat IS ARCSIN(clamp(-1,SIN(i) * SIN(mAngle(ta + w)),-1)).
+  pOut("latAtTA()").
+  pOut("Argument of periapsis: " + w).
+  pOut("Inclination: " + i).
+  pOut("Input true anomaly: " + ta).
+  pOut("Calculated latitude: " + lat).
+  pOut("End of latAtTA()").
+  RETURN lat.
+}
+
 // I found this logic for calculating the longitude in my notebook, but it never
 // made it into a function.
 FUNCTION lngAtTATime
@@ -39,39 +61,52 @@ FUNCTION lngAtTATime
   PARAMETER o,ta,u_time.
 
   LOCAL i IS o:INCLINATION.
-  LOCAL rel_ta IS mAngle(ta + o:ARGUMENTOFPERIAPSIS).
+  LOCAL w IS o:ARGUMENTOFPERIAPSIS.
+  LOCAL rel_ta IS mAngle(ta + w).
   LOCAL rel_lng IS rel_ta.
   IF i > 0 {
-    SET rel_lng TO ARCSIN(MAX(-1,MIN(1,TAN(latAtTA(o,ta))/TAN(i)))).
+    SET rel_lng TO ARCSIN(clamp(-1,TAN(latAtTA(o,ta))/TAN(i),1)).
     IF rel_ta >= 90 AND rel_ta < 270 { SET rel_lng TO 180 - rel_lng. }
   }
   LOCAL geo_lng IS mAngle(o:LAN + rel_lng - o:BODY:ROTATIONANGLE).
+  LOCAL lng IS mAngle(geo_lng - ((u_time - TIME:SECONDS) * 360 / o:BODY:ROTATIONPERIOD)).
+  pOut("lngAtTATime()").
+  pOut("Argument of periapsis: " + w).
+  pOut("Inclination: " + i).
+  pOut("Input true anomaly: " + ta).
+  pOut("Input time in future: " + (u_time - TIME:SECONDS)).
+  pOut("Relative longitude: " + rel_lng).
+  pOut("Calculated longitude: " + lng).
+  pOut("End of lngAtTATime()").
+  RETURN lng.
+}
 
-  RETURN mAngle(geo_lng - ((u_time - TIME:SECONDS) * 360 / o:BODY:ROTATIONPERIOD)).
+// How far past the plotted periapsis will we land?
+FUNCTION predictOvershoot
+{
+  PARAMETER v_pe, bc IS 1.
+
+  // This function is based on the best-fit line for a craft with a BC of 1.1,
+  // albeit one that seems to have suffered from higher drag than other test
+  // craft with lower BC values.
+  // Eventually the results need to be adjusted for BC.
+  LOCAL po IS 0.
+  LOCAL x = v_pe - 2400.
+  IF x < 70 { SET po TO (40 * LOG10(x)) -95. }
+  ELSE IF x < 170 { SET po TO (32 * LOG10(x)) -80. }
+  ELSE IF x < 400 { SET po TO (19 * LOG10(x)) -50.75. }
+  ELSE IF x < 750 { SET po TO (14 * LOG10(x)) -38. }
+  ELSE { SET po TO (5 * LOG10(x)) -12.15. }
+
+  RETURN po.
 }
 
 // 
 // curr_orb - The current orbit patch or that predicted to follow execution of node.
 // dest - The planet we are aiming for (usually KERBIN).
-// land_ta - The number of degrees beyond the periapsis, where we predict we will land
-//           (can pass in negative numbers for cases where we never reach periapsis).
-//           This varies depending on both craft and orbit.
-//
-// based on testing in KSP v1.1.3, suggested values for returning from a moon of Kerbin
-// are as follows:
-//   command pods: 20
-//   probes:       6
-// and for a 85km x 29km Kerbin de-orbit:
-//   command pods: -30
-// These values may need adjusting for the KSP v1.2.2 atmosphere. We had to shift the
-// standard de-orbit burn by 20 degrees, suggesting the land_ta is now actually -50.
-//
-// Ultimately, we want to be able to predict these based on periapsis velocity and 
-// ballistic co-efficient (mass / heat shield surface area).
-//
 FUNCTION predictReentryForOrbit
 {
-  PARAMETER curr_orb, dest, land_ta.
+  PARAMETER curr_orb, dest.
 
   pOut("Current ship mass: " + ROUND(SHIP:MASS,2) + " tonnes.").
   LOCAL m1 IS finalMass().
@@ -103,11 +138,10 @@ FUNCTION predictReentryForOrbit
   LOCAL pe_spot IS dest:GEOPOSITIONOF(POSITIONAT(SHIP,pe_eta_time)).
   LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
 
-  // put estimation of land_ta in here (replacing input parameter), based on pe_vel and bc
-  // assuming pe is fixed for now, but may eventually need to vary it too
-
-  //LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
-  //pOut(land_ta_str).
+  // estimate how far past periapsis we will land
+  LOCAL land_ta IS predictOvershoot(pe_vel, bc).
+  LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
+  pOut(land_ta_str).
   LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
   LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
@@ -125,10 +159,10 @@ FUNCTION predictReentryForOrbit
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
   pOut(lng_pe_str).
-  //LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
-  //LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
-  //pOut(lat_pred_str).
-  //pOut(lng_pred_str).
+  LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
+  LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
+  pOut(lat_pred_str).
+  pOut(lng_pred_str).
   
   IF PLOT_REENTRY_LOG <> "" AND cOk() {
     LOG "--------" TO PLOT_REENTRY_LOG.
@@ -139,19 +173,19 @@ FUNCTION predictReentryForOrbit
     LOG lat_pe_str TO PLOT_REENTRY_LOG.
     LOG lng_pe_str TO PLOT_REENTRY_LOG.
     LOG inc_detail_str TO PLOT_REENTRY_LOG.
-    //LOG "-----------" TO PLOT_REENTRY_LOG.
-    //LOG "Prediction:" TO PLOT_REENTRY_LOG.
-    //LOG "-----------" TO PLOT_REENTRY_LOG.
-    //LOG land_ta_str TO PLOT_REENTRY_LOG.
-    //LOG lat_pred_str TO PLOT_REENTRY_LOG.
-    //LOG lng_pred_str TO PLOT_REENTRY_LOG.
+    LOG "-----------" TO PLOT_REENTRY_LOG.
+    LOG "Prediction:" TO PLOT_REENTRY_LOG.
+    LOG "-----------" TO PLOT_REENTRY_LOG.
+    LOG land_ta_str TO PLOT_REENTRY_LOG.
+    LOG lat_pred_str TO PLOT_REENTRY_LOG.
+    LOG lng_pred_str TO PLOT_REENTRY_LOG.
   }
 }
 
 FUNCTION plotReentry
 {
-  PARAMETER lf IS PLOT_REENTRY_LOG, ta_diff IS 20.
+  PARAMETER lf IS PLOT_REENTRY_LOG.
   IF lf <> PLOT_REENTRY_LOG { SET PLOT_REENTRY_LOG TO lf. }
-  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT, KERBIN, ta_diff). }
-  ELSE { predictReentryForOrbit(SHIP:ORBIT, KERBIN, ta_diff). }
+  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT, KERBIN). }
+  ELSE { predictReentryForOrbit(SHIP:ORBIT, KERBIN). }
 }
