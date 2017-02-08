@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_geo.ks v1.1.0 20161103").
+pOut("lib_geo.ks v1.2.0 20170208").
 
 RUNONCEPATH(loadScript("lib_orbit.ks")).
 
@@ -9,15 +9,6 @@ FUNCTION latOkForInc
 {
   PARAMETER lat,i.
   RETURN (i > 0 AND MIN(i,180-i) >= ABS(lat)).
-}
-
-FUNCTION latAtTA
-{
-  PARAMETER o,ta.
-
-  LOCAL w IS o:ARGUMENTOFPERIAPSIS.
-  LOCAL i IS o:INCLINATION.
-  RETURN ARCSIN(SIN(i) * SIN(mAngle(ta + w))).
 }
 
 FUNCTION firstTAAtLat
