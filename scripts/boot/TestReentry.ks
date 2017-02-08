@@ -15,10 +15,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 14".
+GLOBAL SAT_NAME IS "Reentry Test 16".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 0.
+GLOBAL SAT_I IS 45.4.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
@@ -76,8 +76,10 @@ IF rm < 0 {
   LOCAL ap IS SAT_LAUNCH_AP.
   LOCAL launch_details IS calcLaunchDetails(ap,SAT_I,SAT_LAN).
   LOCAL az IS launch_details[0].
-  LOCAL launch_time IS launch_details[1].
-  warpToLaunch(launch_time).
+  IF SAT_LAN >= 0 {
+    LOCAL launch_time IS launch_details[1].
+    warpToLaunch(launch_time).
+  }
 
   store("doLaunch(801," + ap + "," + az + "," + SAT_I + ").").
   doLaunch(801,ap,az,SAT_I).
@@ -127,7 +129,7 @@ IF rm < 0 {
   store("doReentry(1,831).").
   doReentry(1,831).
 } ELSE IF rm = 831 {
-  LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(mAngle(SHIP:LATITUDE),2) + " degrees.".
+  LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(SHIP:LATITUDE,2) + " degrees.".
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
   pOut(lat_land_str).
   pOut(lng_land_str).
