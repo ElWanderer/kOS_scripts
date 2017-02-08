@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170206").
+pOut("TestReentry.ks v1.0.0 20170208").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,9 +15,11 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 7".
+GLOBAL SAT_NAME IS "Reentry Test 14".
 GLOBAL SAT_AP IS 80000.
-GLOBAL ESTIMATED_TA_DIFF IS 20.
+GLOBAL SAT_LAUNCH_AP IS 125000.
+GLOBAL SAT_I IS 0.
+GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
@@ -68,8 +70,17 @@ IF rm < 0 {
   SET SHIP:NAME TO SAT_NAME.
   logOn().
 
-  store("doLaunch(801,125000,90,0).").
-  doLaunch(801,125000,90,0).
+  WAIT UNTIL cOk().
+  RUNPATH("0:/lib_launch_geo.ks").
+
+  LOCAL ap IS SAT_LAUNCH_AP.
+  LOCAL launch_details IS calcLaunchDetails(ap,SAT_I,SAT_LAN).
+  LOCAL az IS launch_details[0].
+  LOCAL launch_time IS launch_details[1].
+  warpToLaunch(launch_time).
+
+  store("doLaunch(801," + ap + "," + az + "," + SAT_I + ").").
+  doLaunch(801,ap,az,SAT_I).
 
 } ELSE IF rm < 50 {
   resume().
@@ -112,7 +123,7 @@ IF rm < 0 {
   ELSE { runMode(819,802). }
 
 } ELSE IF rm = 821 {
-  plotReentry(REENTRY_LOG_FILE,ESTIMATED_TA_DIFF).
+  plotReentry(REENTRY_LOG_FILE).
   store("doReentry(1,831).").
   doReentry(1,831).
 } ELSE IF rm = 831 {
