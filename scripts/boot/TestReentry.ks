@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170208").
+pOut("TestReentry.ks v1.0.0 20170209").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,12 +15,12 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 16".
+GLOBAL SAT_NAME IS "Reentry Test 17".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 45.4.
+GLOBAL SAT_I IS 90.
 GLOBAL SAT_LAN IS -1.
-GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry.txt".
+GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry2.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
 GLOBAL SAT_NEXT_AP IS LEXICON(
@@ -53,8 +53,9 @@ FUNCTION saveNewCraftFileAndReload {
     LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + SAT_NEXT_AP[SAT_AP] + ". }" TO REENTRY_CRAFT_FILE.
     hudMsg("Craft file updated, preparing to quickload.").
     UNTIL FALSE {
-      WAIT 5.
+      WAIT 0.5.
       KUNIVERSE:QUICKLOAD().
+      WAIT 5.
     }
   } ELSE {
     hudMsg("Simulation finished.").
@@ -131,8 +132,10 @@ IF rm < 0 {
 } ELSE IF rm = 831 {
   LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(SHIP:LATITUDE,2) + " degrees.".
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
+  LOCAL land_time_str IS "Touchdown timestamp: " + ROUND(TIME:SECONDS) + "s " + formatMET().
   pOut(lat_land_str).
   pOut(lng_land_str).
+  pOut(land_time_str).
 
   reentryExtend().
   WAIT UNTIL cOk().
@@ -143,6 +146,7 @@ IF rm < 0 {
     LOG "--------" TO REENTRY_LOG_FILE.
     LOG lat_land_str TO REENTRY_LOG_FILE.
     LOG lng_land_str TO REENTRY_LOG_FILE.
+    LOG land_time_str TO REENTRY_LOG_FILE.
   }
 
   saveNewCraftFileAndReload().
