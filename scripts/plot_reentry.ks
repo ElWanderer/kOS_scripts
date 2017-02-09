@@ -126,7 +126,9 @@ FUNCTION predictReentryForOrbit
 
   // estimate how far past periapsis we will land
   LOCAL land_ta IS predictOvershoot(pe_vel, bc).
-  LOCAL land_ta_str IS "Estimated landing " + land_ta + " degrees beyond periapsis.".
+  LOCAL pe_detail_str IS "Velocity at pe: " + ROUND(pe_vel) + "m/s.".
+  pOut(pe_detail_str).
+  LOCAL land_ta_str IS "Estimated landing " + ROUND(land_ta,2) + " degrees beyond periapsis.".
   pOut(land_ta_str).
   LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
   LOCAL land_lat IS latAtTA(orb,land_ta).
@@ -137,14 +139,17 @@ FUNCTION predictReentryForOrbit
   pOut(inc_detail_str).
   pOut("Ap.: " + ROUND(orb:APOAPSIS) + "m.").
   pOut("Pe.: " + ROUND(orb:PERIAPSIS) + "m.").
-  LOCAL pe_detail_str IS "Velocity at pe: " + ROUND(pe_vel) + "m/s.".
-  pOut(pe_detail_str).
+
   pOut("Lat (atm interface):  " + ROUND(atm_spot:LAT,2) + " degrees.").
   pOut("Lng (atm interface):  " + ROUND(atm_lng,2) + " degrees.").
   LOCAL lat_pe_str IS "Lat (periapsis): " + ROUND(pe_spot:LAT,2) + " degrees.".
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
   pOut(lng_pe_str).
+  LOCAL pe_time_str IS "Time (periapsis): " + ROUND(pe_eta_time) + "s " + formatTS(pe_eta_time, TIME:SECONDS - MISSIONTIME).
+  pOut(pe_time_str).
+  LOCAL land_time_str IS "Time (landing prediction): " + ROUND(land_eta_time) + "s " + formatTS(land_eta_time, TIME:SECONDS - MISSIONTIME).
+  pOut(land_time_str).
   LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
   LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
   pOut(lat_pred_str).
@@ -156,6 +161,7 @@ FUNCTION predictReentryForOrbit
     LOG "--------" TO PLOT_REENTRY_LOG.
     LOG ship_detail_str TO PLOT_REENTRY_LOG.
     LOG pe_detail_str TO PLOT_REENTRY_LOG.
+    LOG pe_time_str TO PLOT_REENTRY_LOG.
     LOG lat_pe_str TO PLOT_REENTRY_LOG.
     LOG lng_pe_str TO PLOT_REENTRY_LOG.
     LOG inc_detail_str TO PLOT_REENTRY_LOG.
@@ -163,6 +169,7 @@ FUNCTION predictReentryForOrbit
     LOG "Prediction:" TO PLOT_REENTRY_LOG.
     LOG "-----------" TO PLOT_REENTRY_LOG.
     LOG land_ta_str TO PLOT_REENTRY_LOG.
+    LOG land_time_str TO PLOT_REENTRY_LOG.
     LOG lat_pred_str TO PLOT_REENTRY_LOG.
     LOG lng_pred_str TO PLOT_REENTRY_LOG.
   }
