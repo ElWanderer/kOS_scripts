@@ -15,7 +15,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 17".
+GLOBAL SAT_NAME IS "Reentry Test 18".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
 GLOBAL SAT_I IS 90.
@@ -66,6 +66,7 @@ FUNCTION saveNewCraftFileAndReload {
 }
 
 IF runMode() > 0 { logOn(). }
+IF runMode() > 811 AND EXISTS(CRAFT_FILE) { updateReentryAP(). }
 
 UNTIL runMode() = 99 {
 LOCAL rm IS runMode().
@@ -135,9 +136,9 @@ IF rm < 0 {
   LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(SHIP:LATITUDE,2) + " degrees.".
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
   LOCAL land_time_str IS "Touchdown timestamp: " + ROUND(TIME:SECONDS) + "s " + formatMET().
+  pOut(land_time_str).
   pOut(lat_land_str).
   pOut(lng_land_str).
-  pOut(land_time_str).
 
   reentryExtend().
   WAIT UNTIL cOk().
@@ -146,9 +147,9 @@ IF rm < 0 {
     LOG "--------" TO REENTRY_LOG_FILE.
     LOG "Results:" TO REENTRY_LOG_FILE.
     LOG "--------" TO REENTRY_LOG_FILE.
+    LOG land_time_str TO REENTRY_LOG_FILE.
     LOG lat_land_str TO REENTRY_LOG_FILE.
     LOG lng_land_str TO REENTRY_LOG_FILE.
-    LOG land_time_str TO REENTRY_LOG_FILE.
   }
 
   saveNewCraftFileAndReload().
