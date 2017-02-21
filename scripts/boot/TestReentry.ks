@@ -15,7 +15,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 18".
+GLOBAL SAT_NAME IS "Reentry Test 19".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
 GLOBAL SAT_I IS 90.
@@ -54,7 +54,7 @@ FUNCTION saveNewCraftFileAndReload {
     hudMsg("Craft file updated.").
     UNTIL FALSE {
       hudMsg("Waiting until not moving.").
-      WAIT UNTIL SRFPROGRADE:MAG < 0.1.
+      WAIT UNTIL SHIP:VELOCITY:SURFACE:MAG < 0.1.
       hudMsg("Quickloading...").
       KUNIVERSE:QUICKLOAD().
       WAIT 5.
