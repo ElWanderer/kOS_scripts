@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170209").
+pOut("TestReentry.ks v1.0.0 20170221").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -51,9 +51,11 @@ FUNCTION saveNewCraftFileAndReload {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
   IF SAT_NEXT_AP:HASKEY(SAT_AP) {
     LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + SAT_NEXT_AP[SAT_AP] + ". }" TO REENTRY_CRAFT_FILE.
-    hudMsg("Craft file updated, preparing to quickload.").
+    hudMsg("Craft file updated.").
     UNTIL FALSE {
-      WAIT 0.5.
+      hudMsg("Waiting until not moving.").
+      WAIT UNTIL SRFPROGRADE:MAG < 0.1.
+      hudMsg("Quickloading...").
       KUNIVERSE:QUICKLOAD().
       WAIT 5.
     }
@@ -123,7 +125,7 @@ IF rm < 0 {
   runMode(812).
 } ELSE IF rm = 812 {
   IF doOrbitChange(FALSE,stageDV(),SAT_AP,30000) { runMode(821). }
-  ELSE { runMode(819,802). }
+  ELSE { runMode(819,812). }
 
 } ELSE IF rm = 821 {
   plotReentry(REENTRY_LOG_FILE).
