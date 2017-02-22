@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.3.2 20161214").
+pOut("lib_transfer.ks v1.3.3 20170222").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -259,7 +259,6 @@ FUNCTION nodeMoonToBody
   LOCAL c_time IS u_time.
   LOCAL done IS FALSE.
   UNTIL done {
-    LOCAL moon_pos IS POSITIONAT(moon,c_time).
     LOCAL moon_vel IS VELOCITYAT(moon,c_time):ORBIT.
     LOCAL s_pos IS posAt(SHIP,c_time).
     LOCAL s_normal IS VCRS(velAt(SHIP,c_time),s_pos).
@@ -351,8 +350,6 @@ UNTIL rm = exit_mode
       SET n1 TO nodeBodyToMoon(t_time,dest,dest_pe,dest_i,dest_lan).
     } ELSE IF dest = BODY:OBT:BODY {
       SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe,dest_i,dest_lan).
-    } ELSE {
-      // other transfers not supported yet - TBD
     }
 
     IF n1:ETA > 0 {
