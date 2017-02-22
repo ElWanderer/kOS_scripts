@@ -273,10 +273,15 @@ Firstly, the function sets up some useful values relating to the `moon` we're le
     LOCAL r_soi IS moon:SOIRADIUS.
     LOCAL r_pe IS ORBITAT(SHIP,u_time):SEMIMAJORAXIS.
 
-Secondly, the function calculates the velocity required in terms of the destination for a Hohmann transfer orbit from the radius of the `moon`'s orbit (assuming we have just left the sphere of influence of the `moon` at that radius) to the desired `periapsis`.
+Secondly, the function calculates the velocity required in terms of the destination for a Hohmann transfer orbit from the radius of the `moon`'s orbit (assuming we have just left the sphere of influence of the `moon` at that radius) to the desired `periapsis`. The initial change in velocity required for a Hohmann transfer from an orbit with radius r1 to an orbit with radius r2 is given by: `SQRT(mu/r1) * (SQRT((2*r2)/(r1+r2)) -1)`.
 
+    // r1 is the orbit radius (around the parent body) of the moon we are departing from.
+    // We assume the orbit of the moon is circular (or near-enough)...
+    // ...this next line could use the current orbital radius instead for eccentric orbits.
     LOCAL r1 IS ORBITAT(moon,u_time):SEMIMAJORAXIS.
+    // r2 is the desired orbit radius around the parent body
     LOCAL r2 IS dest_pe + dest:RADIUS.
+    // plug these and the value of MU for the parent body into the Hohmann transfer calculation
     LOCAL v_soi IS SQRT(hoh_mu/r1) * (SQRT((2*r2)/(r1+r2)) -1).
 
 This velocity at the sphere of influence transition can be converted back to the velocity at the (new) periapsis of the ejection orbit around the `moon`:
@@ -327,7 +332,7 @@ Thirdly, the function calculates the ejection angle, that is the angle around th
     IF e > 1 { SET theta_eject TO ARCCOS(-1/e). }
     ELSE { pOut("WARNING: Cannot calculate ejection angle as required orbit is not a hyperbola."). }
 
-Lastly, having gone to the trouble of sifting through all these formula, we revert back to advancing the clock in `15` second intervals, each time checking to see if the ejection angle would be correct (within `0.5` degrees) if the burn took place there. 
+Lastly, having gone to the trouble of sifting through all these formula, we revert back to a very simple/dumb concept: advancing the clock in `15` second intervals, each time checking to see if the ejection angle would be correct (within `0.5` degrees) if the burn took place there.
 
 Also considered is the effect of the inclination. If we are in a perfect, `90` degree inclination polar orbit, the plane of our orbit is only rarely aligned with the direction of travel of the `moon` we are orbiting. At a worst case, it will be at a `90` degree angle. Ejecting when that is the case will be possible, but more expensive. To save delta-v, the burn positions are rejected until the effective angle between the plane and the velocity of the `moon` is below `25` degrees. This value was selected somewhat arbitrarily.
 
@@ -417,7 +422,7 @@ Once in the next sphere of influence, the script will loop, and consider making 
 
 Once in the sphere of influence of the `destination`, a further set of corrections is possible. In particular, it is here that any required inclination changes are most likely to occur. 
 
-Note - if the craft appears in orbit of the `destination` and is already beyond the periapsis, a node to put the craft into orbit is plotted and burned. This is done because KSP's intercept predictions can prove to be incorrect, and it's possible to warp through the sphere of influence transition at a high warp rate. Though the warp will be killed on detecting the change of body, this may not be fast enough. This occurred regularly in KSP v1.0.5, but hasn't been so much of a problem in KSP v1.1.3. It is something that may prove to be even better in KSP v1.2.*.
+Note - if the craft appears in orbit of the `destination` and is already beyond the periapsis, a node to put the craft into orbit is plotted and burned. This is done because KSP's intercept predictions can prove to be incorrect, and it's possible to warp through the sphere of influence transition at a high warp rate. Though the warp will be killed on detecting the change of body, this may not be fast enough. This occurred regularly in KSP v1.0.5, but hasn't been so much of a problem since.
 
 Once any necessary final corrections have been made, there are two possibilities:
  * The current periapsis is above the atmosphere. In this case we are assumed to be entering orbit. To achieve this an orbital insertion node is placed at the periapsis that will put the craft in a stable orbit. One apsis will be the current periapsis. The other apsis will have the input `periapsis` altitude. Ideally, these altitudes will be virtually identical, but that may not be the case.
