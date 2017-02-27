@@ -746,3 +746,509 @@ Results:
 Touchdown timestamp: 3823296s [T+00 018 01:47:45]
 Touchdown latitude: -43.41 degrees.
 Touchdown longitude: 167.26 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2413m/s.
+Time (periapsis): 3826077s [T+00 000 00:45:54]
+Lat (periapsis): -44.4 degrees.
+Lng (periapsis): 61.68 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -51.08 degrees beyond periapsis.
+Time (landing prediction): 3825770s [T+00 000 00:40:47]
+Lat (landing prediction): -84.53 degrees.
+Lng (landing prediction): 246.9 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3825984s [T+00 000 00:44:22]
+Touchdown latitude: -80.75 degrees.
+Touchdown longitude: 247.14 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2417m/s.
+Time (periapsis): 3826087s [T+00 000 00:46:04]
+Lat (periapsis): -44.37 degrees.
+Lng (periapsis): 61.5 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -46 degrees beyond periapsis.
+Time (landing prediction): 3825811s [T+00 000 00:41:28]
+Lat (landing prediction): -89.63 degrees.
+Lng (landing prediction): 247.62 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826019s [T+00 000 00:44:57]
+Touchdown latitude: -85.77 degrees.
+Touchdown longitude: 247.95 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2423m/s.
+Time (periapsis): 3826102s [T+00 000 00:46:19]
+Lat (periapsis): -44.37 degrees.
+Lng (periapsis): 61.26 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -40.8 degrees beyond periapsis.
+Time (landing prediction): 3825857s [T+00 000 00:42:14]
+Lat (landing prediction): -85.17 degrees.
+Lng (landing prediction): 65.24 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826061s [T+00 000 00:45:39]
+Touchdown latitude: -88.79 degrees.
+Touchdown longitude: 55.67 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2429m/s.
+Time (periapsis): 3826119s [T+00 000 00:46:35]
+Lat (periapsis): -44.36 degrees.
+Lng (periapsis): 60.98 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -36.34 degrees beyond periapsis.
+Time (landing prediction): 3825900s [T+00 000 00:42:57]
+Lat (landing prediction): -80.7 degrees.
+Lng (landing prediction): 64.57 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826099s [T+00 000 00:46:17]
+Touchdown latitude: -84.08 degrees.
+Touchdown longitude: 62.26 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2437m/s.
+Time (periapsis): 3826139s [T+00 000 00:46:56]
+Lat (periapsis): -44.38 degrees.
+Lng (periapsis): 60.63 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -32.06 degrees beyond periapsis.
+Time (landing prediction): 3825947s [T+00 000 00:43:44]
+Lat (landing prediction): -76.44 degrees.
+Lng (landing prediction): 63.81 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826141s [T+00 000 00:46:58]
+Touchdown latitude: -79.52 degrees.
+Touchdown longitude: 62.36 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2448m/s.
+Time (periapsis): 3826168s [T+00 000 00:47:25]
+Lat (periapsis): -44.39 degrees.
+Lng (periapsis): 60.15 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -27.59 degrees beyond periapsis.
+Time (landing prediction): 3826003s [T+00 000 00:44:40]
+Lat (landing prediction): -71.98 degrees.
+Lng (landing prediction): 62.9 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826191s [T+00 000 00:47:48]
+Touchdown latitude: -74.83 degrees.
+Touchdown longitude: 61.84 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2469m/s.
+Time (periapsis): 3826224s [T+00 000 00:48:21]
+Lat (periapsis): -44.37 degrees.
+Lng (periapsis): 59.22 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -21.52 degrees beyond periapsis.
+Time (landing prediction): 3826095s [T+00 000 00:46:12]
+Lat (landing prediction): -65.88 degrees.
+Lng (landing prediction): 61.37 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826275s [T+00 000 00:49:12]
+Touchdown latitude: -68.7 degrees.
+Touchdown longitude: 60.64 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2487m/s.
+Time (periapsis): 3826277s [T+00 000 00:49:14]
+Lat (periapsis): -44.38 degrees.
+Lng (periapsis): 58.33 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -17.92 degrees beyond periapsis.
+Time (landing prediction): 3826169s [T+00 000 00:47:26]
+Lat (landing prediction): -62.3 degrees.
+Lng (landing prediction): 60.12 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826346s [T+00 000 00:50:23]
+Touchdown latitude: -64.84 degrees.
+Touchdown longitude: 59.54 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2505m/s.
+Time (periapsis): 3826331s [T+00 000 00:50:07]
+Lat (periapsis): -44.38 degrees.
+Lng (periapsis): 57.44 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -15.36 degrees beyond periapsis.
+Time (landing prediction): 3826238s [T+00 000 00:48:35]
+Lat (landing prediction): -59.74 degrees.
+Lng (landing prediction): 58.97 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826412s [T+00 000 00:51:29]
+Touchdown latitude: -62.03 degrees.
+Touchdown longitude: 58.47 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2541m/s.
+Time (periapsis): 3826450s [T+00 000 00:52:07]
+Lat (periapsis): -42.34 degrees.
+Lng (periapsis): 55.44 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -11.23 degrees beyond periapsis.
+Time (landing prediction): 3826383s [T+00 000 00:51:00]
+Lat (landing prediction): -53.57 degrees.
+Lng (landing prediction): 56.56 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826540s [T+00 000 00:53:37]
+Touchdown latitude: -58.07 degrees.
+Touchdown longitude: 56.38 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2572m/s.
+Time (periapsis): 3826558s [T+00 000 00:53:55]
+Lat (periapsis): -42.78 degrees.
+Lng (periapsis): 53.64 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -8.28 degrees beyond periapsis.
+Time (landing prediction): 3826508s [T+00 000 00:53:05]
+Lat (landing prediction): -51.06 degrees.
+Lng (landing prediction): 54.47 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826659s [T+00 000 00:55:37]
+Touchdown latitude: -56.03 degrees.
+Touchdown longitude: 54.4 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2627m/s.
+Time (periapsis): 3826781s [T+00 000 00:57:38]
+Lat (periapsis): -43.31 degrees.
+Lng (periapsis): 49.92 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -6 degrees beyond periapsis.
+Time (landing prediction): 3826745s [T+00 000 00:57:02]
+Lat (landing prediction): -49.3 degrees.
+Lng (landing prediction): 50.51 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3826897s [T+00 000 00:59:34]
+Touchdown latitude: -53.33 degrees.
+Touchdown longitude: 50.45 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2674m/s.
+Time (periapsis): 3827012s [T+00 000 01:01:29]
+Lat (periapsis): -43.61 degrees.
+Lng (periapsis): 46.05 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -4.44 degrees beyond periapsis.
+Time (landing prediction): 3826985s [T+00 000 01:01:02]
+Lat (landing prediction): -48.05 degrees.
+Lng (landing prediction): 46.5 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3827137s [T+00 000 01:03:34]
+Touchdown latitude: -51.68 degrees.
+Touchdown longitude: 46.45 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2730m/s.
+Time (periapsis): 3827348s [T+00 000 01:07:05]
+Lat (periapsis): -43.84 degrees.
+Lng (periapsis): 40.44 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -2.91 degrees beyond periapsis.
+Time (landing prediction): 3827331s [T+00 000 01:06:48]
+Lat (landing prediction): -46.74 degrees.
+Lng (landing prediction): 40.73 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3827482s [T+00 000 01:09:20]
+Touchdown latitude: -49.76 degrees.
+Touchdown longitude: 40.7 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2783m/s.
+Time (periapsis): 3827748s [T+00 000 01:13:45]
+Lat (periapsis): -43.98 degrees.
+Lng (periapsis): 33.75 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -1.67 degrees beyond periapsis.
+Time (landing prediction): 3827738s [T+00 000 01:13:35]
+Lat (landing prediction): -45.64 degrees.
+Lng (landing prediction): 33.92 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3827890s [T+00 000 01:16:07]
+Touchdown latitude: -48.27 degrees.
+Touchdown longitude: 33.9 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2838m/s.
+Time (periapsis): 3828271s [T+00 000 01:22:28]
+Lat (periapsis): -44.06 degrees.
+Lng (periapsis): 25.02 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -1.02 degrees beyond periapsis.
+Time (landing prediction): 3828265s [T+00 000 01:22:22]
+Lat (landing prediction): -45.08 degrees.
+Lng (landing prediction): 25.12 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3828419s [T+00 000 01:24:56]
+Touchdown latitude: -47.02 degrees.
+Touchdown longitude: 25.08 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2892m/s.
+Time (periapsis): 3828957s [T+00 000 01:33:54]
+Lat (periapsis): -44.4 degrees.
+Lng (periapsis): 13.55 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing -0.31 degrees beyond periapsis.
+Time (landing prediction): 3828955s [T+00 000 01:33:52]
+Lat (landing prediction): -44.71 degrees.
+Lng (landing prediction): 13.59 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3829114s [T+00 000 01:36:32]
+Touchdown latitude: -45.43 degrees.
+Touchdown longitude: 13.49 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 2937m/s.
+Time (periapsis): 3829679s [T+00 000 01:45:56]
+Lat (periapsis): -44.41 degrees.
+Lng (periapsis): 1.49 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 0.22 degrees beyond periapsis.
+Time (landing prediction): 3829681s [T+00 000 01:45:58]
+Lat (landing prediction): -44.19 degrees.
+Lng (landing prediction): 1.47 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3829833s [T+00 000 01:48:31]
+Touchdown latitude: -44.85 degrees.
+Touchdown longitude: 1.39 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3005m/s.
+Time (periapsis): 3831222s [T+00 000 02:11:39]
+Lat (periapsis): -44.41 degrees.
+Lng (periapsis): 335.72 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 0.94 degrees beyond periapsis.
+Time (landing prediction): 3831228s [T+00 000 02:11:45]
+Lat (landing prediction): -43.47 degrees.
+Lng (landing prediction): 335.63 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3831379s [T+00 000 02:14:16]
+Touchdown latitude: -44.07 degrees.
+Touchdown longitude: 335.58 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3141m/s.
+Time (periapsis): 3838543s [T+00 000 04:13:40]
+Lat (periapsis): -44.43 degrees.
+Lng (periapsis): 213.42 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 2.18 degrees beyond periapsis.
+Time (landing prediction): 3838556s [T+00 000 04:13:53]
+Lat (landing prediction): -42.25 degrees.
+Lng (landing prediction): 213.2 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3838711s [T+00 000 04:16:28]
+Touchdown latitude: -42.9 degrees.
+Touchdown longitude: 213.21 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3233m/s.
+Time (periapsis): 3857634s [T+00 001 03:31:51]
+Lat (periapsis): -44.43 degrees.
+Lng (periapsis): 254.49 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 2.45 degrees beyond periapsis.
+Time (landing prediction): 3857649s [T+00 001 03:32:05]
+Lat (landing prediction): -41.98 degrees.
+Lng (landing prediction): 254.25 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3857803s [T+00 001 03:34:41]
+Touchdown latitude: -42.53 degrees.
+Touchdown longitude: 254.26 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3272m/s.
+Time (periapsis): 3881451s [T+00 002 04:08:48]
+Lat (periapsis): -44.44 degrees.
+Lng (periapsis): 216.61 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 2.55 degrees beyond periapsis.
+Time (landing prediction): 3881466s [T+00 002 04:09:03]
+Lat (landing prediction): -41.88 degrees.
+Lng (landing prediction): 216.35 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 3881616s [T+00 002 04:11:33]
+Touchdown latitude: -43.64 degrees.
+Touchdown longitude: 216.45 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3329m/s.
+Time (periapsis): 4215113s [T+00 018 00:49:50]
+Lat (periapsis): -44.44 degrees.
+Lng (periapsis): 42.53 degrees.
+Inc: 89.99 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 2.69 degrees beyond periapsis.
+Time (landing prediction): 4215129s [T+00 018 00:50:06]
+Lat (landing prediction): -41.75 degrees.
+Lng (landing prediction): 42.26 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 4215280s [T+00 018 00:52:38]
+Touchdown latitude: -42.77 degrees.
+Touchdown longitude: 42.32 degrees.
