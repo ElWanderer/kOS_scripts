@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170221").
+pOut("TestReentry.ks v1.0.0 20170227").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,7 +15,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 19".
+GLOBAL SAT_NAME IS "Reentry Test 21".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
 GLOBAL SAT_I IS 90.
@@ -53,6 +53,7 @@ FUNCTION saveNewCraftFileAndReload {
     LOG "FUNCTION updateReentryAP { SET SAT_AP TO " + SAT_NEXT_AP[SAT_AP] + ". }" TO REENTRY_CRAFT_FILE.
     hudMsg("Craft file updated.").
     UNTIL FALSE {
+      WAIT 1.
       hudMsg("Waiting until not moving.").
       WAIT UNTIL SHIP:VELOCITY:SURFACE:MAG < 0.1.
       hudMsg("Quickloading...").
