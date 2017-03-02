@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170208").
+pOut("plot_reentry.ks v1.0.0 20170302").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -78,11 +78,11 @@ FUNCTION predictOvershoot
   // Eventually the results need to be adjusted for BC.
   LOCAL po IS 0.
   LOCAL x IS v_pe - 2400.
-  IF x < 70 { SET po TO (40 * LOG10(x)) -95. }
-  ELSE IF x < 170 { SET po TO (32 * LOG10(x)) -80. }
-  ELSE IF x < 400 { SET po TO (19 * LOG10(x)) -50.75. }
-  ELSE IF x < 750 { SET po TO (14 * LOG10(x)) -38. }
-  ELSE { SET po TO (5 * LOG10(x)) -12.15. }
+  IF x < 75 { SET po TO (45 * LOG10(x)) -106. }
+  ELSE IF x < 210 { SET po TO (31 * LOG10(x)) -80. }
+  ELSE IF x < 400 { SET po TO (20 * LOG10(x)) -54.5. }
+  ELSE IF x < 750 { SET po TO (15 * LOG10(x)) -41.5. }
+  ELSE { SET po TO (9 * LOG10(x)) -24.25. }
 
   RETURN po.
 }
@@ -130,8 +130,9 @@ FUNCTION predictReentryForOrbit
   pOut(pe_detail_str).
   LOCAL land_ta_str IS "Estimated landing " + ROUND(land_ta,2) + " degrees beyond periapsis.".
   pOut(land_ta_str).
-  LOCAL land_eta_time IS pe_eta_time + (60 * (land_ta / 10)). // rough guess
+  LOCAL land_eta_time IS pe_eta_time + (160 + (land_ta * 5)). // rough prediction
   LOCAL land_lat IS latAtTA(orb,land_ta).
+  // land_eta_time may need reducing to account for time spent vertical, descending under a parachute
   LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
 
   pOut("Re-entry orbit details:").
