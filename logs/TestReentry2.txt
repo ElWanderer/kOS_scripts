@@ -2176,3 +2176,25 @@ Results:
 Touchdown timestamp: 4627619s [T+00 000 02:40:55]
 Touchdown latitude: -50.89 degrees.
 Touchdown longitude: 129.08 degrees.
+--------
+Details:
+--------
+Ballistic co-efficient: 1.01.
+Velocity at pe: 3142m/s.
+Time (periapsis): 5027065s [T+00 018 05:38:20]
+Lat (periapsis): -50.52 degrees.
+Lng (periapsis): 293.26 degrees.
+Inc: 89.66 degrees.
+-----------
+Prediction:
+-----------
+Estimated landing 2.18 degrees beyond periapsis.
+Time (landing prediction): 5027078s [T+00 018 05:38:33]
+Lat (landing prediction): -52.7 degrees.
+Lng (landing prediction): 293.07 degrees.
+--------
+Results:
+--------
+Touchdown timestamp: 5027221s [T+00 018 05:40:56]
+Touchdown latitude: -51.87 degrees.
+Touchdown longitude: 293.5 degrees.
