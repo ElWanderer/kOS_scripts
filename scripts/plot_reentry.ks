@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170302").
+pOut("plot_reentry.ks v1.0.0 20170308").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -133,7 +133,7 @@ FUNCTION predictReentryForOrbit
   LOCAL land_eta_time IS pe_eta_time + (160 + (land_ta * 5)). // rough prediction
   LOCAL land_lat IS latAtTA(orb,land_ta).
   // land_eta_time may need reducing to account for time spent vertical, descending under a parachute
-  LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time).
+  LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time-120).
 
   pOut("Re-entry orbit details:").
   LOCAL inc_detail_str IS "Inc: " + ROUND(orb:INCLINATION,2) + " degrees.".
