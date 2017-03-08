@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170302").
+pOut("TestReentry.ks v1.0.0 20170308").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,10 +15,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 23".
+GLOBAL SAT_NAME IS "Reentry Test 33".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 0.
+GLOBAL SAT_I IS 150.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry3.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
@@ -45,6 +45,14 @@ GLOBAL SAT_NEXT_AP IS LEXICON(
    2000000,  4000000,
    4000000,  8000000,
    8000000, 12000000,
+  12000000, 46400000).
+
+// short version!
+SET SAT_NEXT_AP TO LEXICON(
+     80000,   125000,
+    125000,   500000,
+    500000,  2000000,
+   2000000, 12000000,
   12000000, 46400000).
 
 FUNCTION saveNewCraftFileAndReload {
