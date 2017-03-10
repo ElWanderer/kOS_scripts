@@ -14,8 +14,10 @@ The functions provided by this library allow for:
   * There is an exception that allows an emergency pitch-up if a rocket is in danger of passing apoapsis too soon.
 * staging off the launcher once in stable orbit
 
-There are always improvements that can be made, some of which are listed under [Issue #46](https://github.com/ElWanderer/kOS_scripts/issues/46):
+There are always improvements that can be made, some of which are listed under [Issue #46](https://github.com/ElWanderer/kOS_scripts/issues/46) / [Issue #93](https://github.com/ElWanderer/kOS_scripts/issues/93):
 * the pitch curve could change based on the TWR of the craft, rather than being fixed.
+* we could use an initial pitch-over velocity instead (or as well as) an altitude.
+* the pitch-over altitude/velocity and curve altitude could be set based on values in the CRAFT_SPECIFIC lexicon, if a craft-specific file exists.
 * the launch trajectory could be improved to try to get into orbit on a single, continuous burn rather than the coast and circularise approach the launch libraries take.
 * handling for RSS/RO vessels could be added, allowing much longer between staging events so that engines have time to spool up, so that separation motors are not counted towards the "has our max thrust dropped?" check and so that we hold on the launch clamps until our thrust has built-up enough.
 
@@ -92,7 +94,9 @@ Unlike most of the global variables in this library, this value could be changed
 
 The altitude at which any fairings will be deployed.
 
-The default value is 60% of the atmosphere height (`42`km on Kerbin).
+The default value is 75% of the atmosphere height (`52.5`km on Kerbin).
+
+Note - until recently this was 60% (`42`km), but it was raised to account for higher drag in the upper atmosphere in KSP v1.2.
 
 Unlike most of the global variables in this library, this value could be changed by modifying the script if so desired.
 
