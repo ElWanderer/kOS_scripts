@@ -74,15 +74,17 @@ Important notes:
 * It is designed for the typical combination of a command module with capsule, heat shield and parachutes, plus an optional service module with tanks and engines.
 * It will stage just prior to reaching the atmosphere if the input `stages` value is non-zero or if any parts tagged `FINAL` are present on the craft. This is expected to be used to jettison a service module or anything else that would prevent the command module from safely reaching the ground.
 * Landing is unguided, using parachutes.
-* If any parachutes are accidentally armed prior to, or by, the staging event, they will be disarmed to prevent them from deploying too early (though KSP v1.2 may render this protection unnecessary).
+* If any parachutes are accidentally armed prior to, or by, the staging event, they will be disarmed to prevent them from deploying too early (KSP v1.2 allows parachutes to be staged in such a way as they won't deploy until it is safe, which renders this protection unnecessary).
 * It is meant to be called once your craft is in the sphere of influence of Kerbin and has a periapsis that is below the height of the atmosphere.
 * It does not use any engines itself. It is expected that you have already plotted and executed a de-orbit burn or transferred back to Kerbin from another body with the periapsis below the top of the atmosphere.
+* The descent through the atmosphere is done at maximum physics warp to save time. This should be safe for the vast majority of craft.
 
 On being called, the function will calculate and print out four altitudes. These vary depending on the height of the atmosphere and the eccentricity of the orbit your craft is on. These correspond to events that will happen during descent. Prior to reaching the first altitude, the craft will orient towards the Sun for maximum solar panel coverge, then engage time warp.
 * 1. Staging: the altitude below which the craft will orient to normal and stage `stages` times. This step is skipped if `stages` is set to `0`. For return from Low Kerbin Orbit (LKO), this is typically `85`km. For returns from Mun/Minmus, where the eccentricity of the orbit is almost `1`, the staging altitude is almost `220`km.
   * The orientation to normal is deliberate so that it does not have a large effect on the craft's periapsis. It is also felt to be the safest way to avoid colliding with the jettisoned stages on the way down!
   * following staging, the craft will disarm any parachutes that have been triggered prematurely and then engage time warp to the next altitude.
 * 2. Atmospheric interface: the altitude below which the craft will steer to retrograde, close any open solar panels and retract any antennae. Typically this altitude is `71.5`km for LKO descents and almost `85km` for returns from Mun/Minmus.
+* 2a. Inside the atmosphere: once below 99% of the atmosphere height, maximum physics time warp is engaged until either the craft goes back above the height of the atmosphere, or the radar altitude drops below `1`km.
 * 3. Steering off: the altitude below which the craft will disengage the steering to save electricity, assuming that the craft should now be in a stable descent, guided by air-flow. For Kerbin, this altitude is `50`km.
 * 4. Chutes on: the altitude below which the craft will start checking the parachutes each tick to see if they can be deployed. For Kerbin this altitude is `20`km. It is assumed that a craft reaching this altitude will definitely re-enter.
 
