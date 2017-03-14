@@ -16,10 +16,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 42".
+GLOBAL SAT_NAME IS "Reentry Test 43".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 5.
+GLOBAL SAT_I IS 15.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry5.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
@@ -176,10 +176,10 @@ IF rm < 0 {
   ELSE { runMode(819,812). }
 
 } ELSE IF rm = 821 {
-  LOCAL node_alt IS posAt(SHIP,TIME:SECONDS + 60):MAG - BODY:RADIUS.
+  LOCAL node_alt IS posAt(SHIP,TIME:SECONDS + 90):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL pe_time IS TIME:SECONDS + ETA:PERIAPSIS.
-    LOCAL ascending IS posAt(SHIP,TIME:SECONDS + 60):MAG > posAt(SHIP,TIME:SECONDS):MAG.
+    LOCAL ascending IS posAt(SHIP,TIME:SECONDS + 90):MAG > posAt(SHIP,TIME:SECONDS):MAG.
     addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(822). }
   }
