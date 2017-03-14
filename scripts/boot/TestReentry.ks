@@ -3,24 +3,25 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170308").
+pOut("TestReentry.ks v1.0.0 20170314").
 
 FOR f IN LIST(
   "lib_runmode.ks",
   "lib_launch_crew.ks",
   "lib_steer.ks",
   "lib_orbit_change.ks",
+  "lib_orbit_match.ks",
   "lib_reentry.ks",
   "plot_reentry.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 33".
+GLOBAL SAT_NAME IS "Reentry Test5 1".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 150.
+GLOBAL SAT_I IS 0.
 GLOBAL SAT_LAN IS -1.
-GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry3.txt".
+GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry5.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
 GLOBAL SAT_NEXT_AP IS LEXICON(
@@ -54,6 +55,43 @@ SET SAT_NEXT_AP TO LEXICON(
     500000,  2000000,
    2000000, 12000000,
   12000000, 46400000).
+
+FUNCTION addNodeForPeriapsisVelocity {
+  PARAMETER target_vel IS 4000, burn_alt IS 125000, pe_alt IS 30000.
+
+  IF APOAPSIS < burn_alt OR PERIAPSIS > burn_alt {
+    SET burn_alt TO (APOAPSIS + PERIAPSIS) / 2.
+  }
+
+  LOCAL u_time IS bufferTime().
+  LOCAL r_pe IS BODY:RADIUS + pe_alt.
+  LOCAL r IS BODY:RADIUS + burn_alt.
+  // secondsToAlt is in lib_reentry.ks
+  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, TRUE).
+
+  // Calculate semimajoraxis based on re-arranging the vis-viva equation
+  LOCAL a IS 1 / ((2/r_pe) - (target_vel^2 / BODY:MU)).
+  // Calculate eccentricity based on semimajoraxis and periapsis
+  LOCAL e IS 1 - (r_pe/a).
+  // If we burn at a radius of r to change our orbit to match a and e,
+  // what will the true anomaly of this point be, in terms of the new orbit?
+  LOCAL ta IS calcTa(a, e, r).
+  // Now we can calculate the resultant flightpath angle
+  LOCAL fang IS ARCTAN(e * SIN(ta) / (1 + (e * COS(ta)))).
+  // and the velocity
+  LOCAL v1 IS SQRT(BODY:MU * ((2/r) - (1/a))).
+
+  // Next, we should be able to plot this velocity and flightpath angle as a vector,
+  // and pass it into the nodeToVector(desired_velocity_vector, time_of_node) function,
+  // which is currently in lib_orbit_match.ks
+  LOCAL s_pro IS velAt(SHIP,n_time).
+  LOCAL s_pos IS posAt(SHIP,n_time).
+  LOCAL s_nrm IS VCRS(s_pro,s_pos).
+  LOCAL s_vel0 IS VCRS(s_pos,s_nrm).
+  LOCAL s_vel_fp IS ANGLEAXIS(-fang,s_nrm) * s_vel0.
+  LOCAL n IS nodeToVector(s_vel_fp:NORMALIZED * v1, n_time).
+  addNode(n).
+}
 
 FUNCTION saveNewCraftFileAndReload {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
@@ -138,9 +176,18 @@ IF rm < 0 {
   ELSE { runMode(819,812). }
 
 } ELSE IF rm = 821 {
+  LOCAL node_alt IS posAt(SHIP,TIME:SECONDS + 60):MAG - BODY:RADIUS.
+  IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
+    LOCAL pe_time IS TIME:SECONDS + ETA:PERIAPSIS.
+    addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000).
+    IF NOT execNode(FALSE) { runMode(822). }
+  }
+  ELSE { runMode(822). }
+} ELSE IF rm = 822 {
   plotReentry(REENTRY_LOG_FILE).
   store("doReentry(1,831).").
   doReentry(1,831).
+
 } ELSE IF rm = 831 {
   LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(SHIP:LATITUDE,2) + " degrees.".
   LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
