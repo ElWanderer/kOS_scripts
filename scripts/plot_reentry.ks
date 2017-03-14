@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170308").
+pOut("plot_reentry.ks v1.0.0 20170314").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -87,6 +87,27 @@ FUNCTION predictOvershoot
   RETURN po.
 }
 
+// This seems to work fairly well in roughly predicting the actual touchdown time.
+// Naturally, that's heavily influenced by the height at which parachutes deploy and open,
+// so this is only a best guess.
+FUNCTION predictLandingTime
+{
+  PARAMETER pe_eta_time, ta_overshoot.
+  RETURN pe_eta_time + (160 + (ta_overshoot * 5)).
+}
+
+// In order to work out the longitude at which we will land, land_eta_time needs 
+// reducing to account for time spent vertical/near-vertical, at which point we're
+// barely moving with respect to the rotating ground.
+// Interestingly, retrograde orbits seem to need a pretty similar adjustment to
+// prograde orbits with a similar angle from the equator. Polar orbits require the
+// smallest adjustment.
+FUNCTION adjustedLandingTime
+{
+  PARAMETER land_eta_time, i.
+  RETURN land_eta_time - (120 + ABS(3.75 * COS(i)^2)).
+}
+
 // 
 // curr_orb - The current orbit patch or that predicted to follow execution of node.
 // dest - The planet we are aiming for (usually KERBIN).
@@ -130,10 +151,9 @@ FUNCTION predictReentryForOrbit
   pOut(pe_detail_str).
   LOCAL land_ta_str IS "Estimated landing " + ROUND(land_ta,2) + " degrees beyond periapsis.".
   pOut(land_ta_str).
-  LOCAL land_eta_time IS pe_eta_time + (160 + (land_ta * 5)). // rough prediction
+  LOCAL land_eta_time IS predictLandingTime(pe_eta_time, land_ta).
   LOCAL land_lat IS latAtTA(orb,land_ta).
-  // land_eta_time may need reducing to account for time spent vertical, descending under a parachute
-  LOCAL land_lng IS lngAtTATime(orb, land_ta, land_eta_time-120).
+  LOCAL land_lng IS lngAtTATime(orb, land_ta, adjustedLandingTime(land_eta_time,orb:INCLINATION)).
 
   pOut("Re-entry orbit details:").
   LOCAL inc_detail_str IS "Inc: " + ROUND(orb:INCLINATION,2) + " degrees.".
