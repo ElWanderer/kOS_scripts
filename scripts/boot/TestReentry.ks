@@ -67,7 +67,7 @@ FUNCTION addNodeForPeriapsisVelocity {
   LOCAL r_pe IS BODY:RADIUS + pe_alt.
   LOCAL r IS BODY:RADIUS + burn_alt.
   // secondsToAlt is in lib_reentry.ks
-  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, TRUE).
+  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, FALSE).
 
   // Calculate semimajoraxis based on re-arranging the vis-viva equation
   LOCAL a IS 1 / ((2/r_pe) - (target_vel^2 / BODY:MU)).
