@@ -16,10 +16,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test5 1".
+GLOBAL SAT_NAME IS "Reentry Test 42".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 0.
+GLOBAL SAT_I IS 5.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry5.txt".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
@@ -57,7 +57,7 @@ SET SAT_NEXT_AP TO LEXICON(
   12000000, 46400000).
 
 FUNCTION addNodeForPeriapsisVelocity {
-  PARAMETER target_vel IS 4000, burn_alt IS 125000, pe_alt IS 30000.
+  PARAMETER target_vel IS 4000, burn_alt IS 125000, pe_alt IS 30000, ascending IS FALSE.
 
   IF APOAPSIS < burn_alt OR PERIAPSIS > burn_alt {
     SET burn_alt TO (APOAPSIS + PERIAPSIS) / 2.
@@ -67,7 +67,7 @@ FUNCTION addNodeForPeriapsisVelocity {
   LOCAL r_pe IS BODY:RADIUS + pe_alt.
   LOCAL r IS BODY:RADIUS + burn_alt.
   // secondsToAlt is in lib_reentry.ks
-  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, FALSE).
+  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, ascending).
 
   // Calculate semimajoraxis based on re-arranging the vis-viva equation
   LOCAL a IS 1 / ((2/r_pe) - (target_vel^2 / BODY:MU)).
@@ -179,7 +179,8 @@ IF rm < 0 {
   LOCAL node_alt IS posAt(SHIP,TIME:SECONDS + 60):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL pe_time IS TIME:SECONDS + ETA:PERIAPSIS.
-    addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000).
+    LOCAL ascending IS posAt(SHIP,TIME:SECONDS + 60):MAG > posAt(SHIP,TIME:SECONDS):MAG.
+    addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(822). }
   }
   ELSE { runMode(822). }
