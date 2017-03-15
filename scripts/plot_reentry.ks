@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170314").
+pOut("plot_reentry.ks v1.0.0 20170315").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -105,7 +105,7 @@ FUNCTION predictLandingTime
 FUNCTION adjustedLandingTime
 {
   PARAMETER land_eta_time, i.
-  RETURN land_eta_time - (120 + ABS(3.75 * COS(i)^2)).
+  RETURN land_eta_time - (60 * (2 + ABS(3.75 * COS(i)^2))).
 }
 
 // 
