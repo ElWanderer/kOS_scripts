@@ -1,15 +1,54 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170315").
+pOut("plot_reentry.ks v1.0.0 20170316").
 
 FOR f IN LIST(
   "lib_reentry.ks",
   "lib_transfer.ks",
   "lib_orbit.ks",
+  "lib_orbit_match.ks",
   "lib_geo.ks",
   "lib_dv.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL PLOT_REENTRY_LOG IS "".
+
+FUNCTION addNodeForPeriapsisVelocity {
+  PARAMETER target_vel IS 4000, burn_alt IS 125000, pe_alt IS 30000, ascending IS FALSE.
+
+  IF APOAPSIS < burn_alt OR PERIAPSIS > burn_alt {
+    SET burn_alt TO (APOAPSIS + PERIAPSIS) / 2.
+  }
+
+  LOCAL u_time IS bufferTime().
+  LOCAL r_pe IS BODY:RADIUS + pe_alt.
+  LOCAL r IS BODY:RADIUS + burn_alt.
+  // secondsToAlt is in lib_reentry.ks
+  LOCAL n_time IS u_time + secondsToAlt(SHIP, u_time, burn_alt, ascending).
+
+  // Calculate semimajoraxis based on re-arranging the vis-viva equation
+  LOCAL a IS 1 / ((2/r_pe) - (target_vel^2 / BODY:MU)).
+  // Calculate eccentricity based on semimajoraxis and periapsis
+  LOCAL e IS 1 - (r_pe/a).
+  // If we burn at a radius of r to change our orbit to match a and e,
+  // what will the true anomaly of this point be, in terms of the new orbit?
+  // Note - this assumes will we be descending at this point of the new orbit.
+  LOCAL ta IS 360 - calcTa(a, e, r).
+  // Now we can calculate the resultant flightpath angle
+  LOCAL fang IS ARCTAN2(e * SIN(ta), 1 + (e * COS(ta))).
+  // and the velocity
+  LOCAL v1 IS SQRT(BODY:MU * ((2/r) - (1/a))).
+
+  // Next, we should be able to plot this velocity and flightpath angle as a vector,
+  // and pass it into the nodeToVector(desired_velocity_vector, time_of_node) function,
+  // which is currently in lib_orbit_match.ks
+  LOCAL s_pro IS velAt(SHIP,n_time).
+  LOCAL s_pos IS posAt(SHIP,n_time).
+  LOCAL s_nrm IS VCRS(s_pro,s_pos).
+  LOCAL s_vel0 IS VCRS(s_pos,s_nrm).
+  LOCAL s_vel_fp IS ANGLEAXIS(fang,s_nrm) * s_vel0.
+  LOCAL n IS nodeToVector(s_vel_fp:NORMALIZED * v1, n_time).
+  addNode(n).
+}
 
 // find parts tagged "FINAL" and how much mass would be detached with them
 // (assumes that where multiple parts are tagged as such, they are not children of eachother).
@@ -104,8 +143,12 @@ FUNCTION predictLandingTime
 // smallest adjustment.
 FUNCTION adjustedLandingTime
 {
-  PARAMETER land_eta_time, i.
-  RETURN land_eta_time - (60 * (2 + ABS(3.75 * COS(i)^2))).
+  PARAMETER land_eta_time, i, pe_vel, bc IS 1.
+  LOCAL low_vel_est IS 60 * (2 + ABS(3.75 * COS(i)^2)).
+  LOCAL high_vel_est IS 60 * (2 + ABS(2.2 * COS(i))).
+  IF pe_vel < 2430 { RETURN land_eta_time - low_vel_est.
+  IF pe_vel > 2440 { RETURN land_eta_time - high_vel_est.
+  RETURN land_eta_time - ((low_vel_est + high_vel_est) / 2).
 }
 
 // 
@@ -114,6 +157,8 @@ FUNCTION adjustedLandingTime
 FUNCTION predictReentryForOrbit
 {
   PARAMETER curr_orb, dest.
+
+  LOCAL return_details IS LEXICON().
 
   pOut("Current ship mass: " + ROUND(SHIP:MASS,2) + " tonnes.").
   LOCAL m1 IS finalMass().
@@ -153,7 +198,7 @@ FUNCTION predictReentryForOrbit
   pOut(land_ta_str).
   LOCAL land_eta_time IS predictLandingTime(pe_eta_time, land_ta).
   LOCAL land_lat IS latAtTA(orb,land_ta).
-  LOCAL land_lng IS lngAtTATime(orb, land_ta, adjustedLandingTime(land_eta_time,orb:INCLINATION)).
+  LOCAL land_lng IS lngAtTATime(orb, land_ta, adjustedLandingTime(land_eta_time,orb:INCLINATION,pe_vel)).
 
   pOut("Re-entry orbit details:").
   LOCAL inc_detail_str IS "Inc: " + ROUND(orb:INCLINATION,2) + " degrees.".
@@ -167,9 +212,13 @@ FUNCTION predictReentryForOrbit
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
   pOut(lng_pe_str).
-  LOCAL pe_time_str IS "Time (periapsis): " + ROUND(pe_eta_time) + "s " + formatTS(pe_eta_time, TIME:SECONDS - MISSIONTIME).
+  LOCAL pe_time_str IS "Time (periapsis): " + ROUND(pe_eta_time) + "s " + formatTS(pe_eta_time, TIME:SECONDS - 
+
+MISSIONTIME).
   pOut(pe_time_str).
-  LOCAL land_time_str IS "Time (landing prediction): " + ROUND(land_eta_time) + "s " + formatTS(land_eta_time, TIME:SECONDS - MISSIONTIME).
+  LOCAL land_time_str IS "Time (landing prediction): " + ROUND(land_eta_time) + "s " + formatTS(land_eta_time, 
+
+TIME:SECONDS - MISSIONTIME).
   pOut(land_time_str).
   LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
   LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
@@ -194,12 +243,91 @@ FUNCTION predictReentryForOrbit
     LOG lat_pred_str TO PLOT_REENTRY_LOG.
     LOG lng_pred_str TO PLOT_REENTRY_LOG.
   }
+
+// details to put in csv:
+// ship name, mass, ballistic coefficient, inclination, periapsis, periapsis velocity, ta overshoot,
+// periapsis time/lat/lng,
+// predicted time/lat/lng,
+// actual time/lat/lng, distance between prediction and actual (to be added later)
+
+  return_details:ADD("Name", SHIP:NAME:REPLACE(",","")).
+  return_details:ADD("Mass", m1).
+  return_details:ADD("BC", bc).
+  return_details:ADD("Inclination", ROUND(orb:INCLINATION,2)).
+  return_details:ADD("Periapsis", ROUND(orb:PERIAPSIS)).
+  return_details:ADD("V(pe)", ROUND(pe_vel)).
+  return_details:ADD("Predicted overshoot", ROUND(land_ta,2)).
+  return_details:ADD("Periapsis time", ROUND(pe_eta_time)).
+  return_details:ADD("Periapsis lat", ROUND(pe_spot:LAT,2)).
+  return_details:ADD("Periapsis lng", ROUND(pe_lng,2)).
+  return_details:ADD("Predicted time", ROUND(land_eta_time)).
+  return_details:ADD("Predicted lat", ROUND(land_lat,2)).
+  return_details:ADD("Predicted lng", ROUND(land_lng,2)).
+
+  RETURN return_details.
 }
 
 FUNCTION plotReentry
 {
   PARAMETER lf IS PLOT_REENTRY_LOG.
   IF lf <> PLOT_REENTRY_LOG { SET PLOT_REENTRY_LOG TO lf. }
-  IF HASNODE { predictReentryForOrbit(NEXTNODE:ORBIT, KERBIN). }
-  ELSE { predictReentryForOrbit(SHIP:ORBIT, KERBIN). }
+  IF HASNODE { RETURN predictReentryForOrbit(NEXTNODE:ORBIT, KERBIN). }
+  ELSE { RETURN predictReentryForOrbit(SHIP:ORBIT, KERBIN). }
+}
+
+FUNCTION logReentry
+{
+  PARAMETER log_file, csv_file IS "", csv_lex IS LEXICON().
+
+  LOCAL lat_land_str IS "Touchdown latitude: " + ROUND(SHIP:LATITUDE,2) + " degrees.".
+  LOCAL lng_land_str IS "Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),2) + " degrees.".
+  LOCAL land_time_str IS "Touchdown timestamp: " + ROUND(TIME:SECONDS) + "s " + formatMET().
+  pOut(land_time_str).
+  pOut(lat_land_str).
+  pOut(lng_land_str).
+
+  reentryExtend().
+  WAIT UNTIL cOk().
+
+  IF log_file <> "" {
+    LOG "--------" TO log_file.
+    LOG "Results:" TO log_file.
+    LOG "--------" TO log_file.
+    LOG land_time_str TO log_file.
+    LOG lat_land_str TO log_file.
+    LOG lng_land_str TO log_file.
+  }
+
+  IF csv_lex:LENGTH > 0 {
+
+    csv_lex:ADD("Actual time", ROUND(TIME:SECONDS)).
+    csv_lex:ADD("Actual lat", ROUND(SHIP:LATITUDE,2)).
+    csv_lex:ADD("Actual lng", ROUND(mAngle(SHIP:LONGITUDE),2)).
+
+    IF csv_lex:HASKEY("Predicted lat") AND csv_lex:HASKEY("Predicted lng") {
+      LOCAL p_lat IS csv_lex["Predicted lat"].
+      LOCAL p_lng IS csv_lex["Predicted lng"].
+      LOCAL p_spot IS LATLNG(p_lat,p_lng).
+      LOCAL a_spot IS LATLNG(SHIP:LATITUDE, SHIP:LONGITUDE).
+      LOCAL dist IS greatCircleDistance(BODY, p_spot, a_spot).
+
+      LOCAL dist_str IS "Touchdown distance from prediction: " + ROUND(dist/1000,1) + "km.".
+      pOut(dist_str).
+      IF log_file <> "" { LOG dist_str TO log_file. }
+      csv_lex:ADD("Prediction error (km)",ROUND(dist/1000,1)).
+    }
+
+    IF csv_file <> "" {
+      IF NOT EXISTS(csv_file) {
+        LOCAL csv_header IS "".
+        FOR key IN csv_lex:KEYS { SET csv_header TO csv_header + key + ",". }
+        LOG csv_header TO csv_file.
+      }
+
+      LOCAL csv_values IS "".
+      FOR val IN csv_lex:VALUES { SET csv_values TO csv_values + val + ",". }
+      LOG csv_values TO csv_file.
+    }
+  }
+
 }
