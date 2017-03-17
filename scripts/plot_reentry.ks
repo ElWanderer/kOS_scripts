@@ -146,8 +146,8 @@ FUNCTION adjustedLandingTime
   PARAMETER land_eta_time, i, pe_vel, bc IS 1.
   LOCAL low_vel_est IS 60 * (2 + ABS(3.75 * COS(i)^2)).
   LOCAL high_vel_est IS 60 * (2 + ABS(2.2 * COS(i))).
-  IF pe_vel < 2430 { RETURN land_eta_time - low_vel_est.
-  IF pe_vel > 2440 { RETURN land_eta_time - high_vel_est.
+  IF pe_vel < 2430 { RETURN land_eta_time - low_vel_est. }
+  IF pe_vel > 2440 { RETURN land_eta_time - high_vel_est. }
   RETURN land_eta_time - ((low_vel_est + high_vel_est) / 2).
 }
 
