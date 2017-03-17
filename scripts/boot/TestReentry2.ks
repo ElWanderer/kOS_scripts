@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry2.ks v1.0.0 20170316").
+pOut("TestReentry2.ks v1.0.0 20170317").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -134,7 +134,7 @@ IF rm < 0 {
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
-    addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000,ascending).
+    addNodeForPeriapsisVelocity(SAT_PE_VEL,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(823). }
   }
   ELSE { runMode(823). }
