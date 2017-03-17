@@ -212,13 +212,9 @@ FUNCTION predictReentryForOrbit
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
   pOut(lng_pe_str).
-  LOCAL pe_time_str IS "Time (periapsis): " + ROUND(pe_eta_time) + "s " + formatTS(pe_eta_time, TIME:SECONDS - 
-
-MISSIONTIME).
+  LOCAL pe_time_str IS "Time (periapsis): " + ROUND(pe_eta_time) + "s " + formatTS(pe_eta_time, TIME:SECONDS - MISSIONTIME).
   pOut(pe_time_str).
-  LOCAL land_time_str IS "Time (landing prediction): " + ROUND(land_eta_time) + "s " + formatTS(land_eta_time, 
-
-TIME:SECONDS - MISSIONTIME).
+  LOCAL land_time_str IS "Time (landing prediction): " + ROUND(land_eta_time) + "s " + formatTS(land_eta_time, TIME:SECONDS - MISSIONTIME).
   pOut(land_time_str).
   LOCAL lat_pred_str IS "Lat (landing prediction): " + ROUND(land_lat,2) + " degrees.".
   LOCAL lng_pred_str IS "Lng (landing prediction): " + ROUND(land_lng,2) + " degrees.".
