@@ -247,8 +247,8 @@ FUNCTION predictReentryForOrbit
 // actual time/lat/lng, distance between prediction and actual (to be added later)
 
   return_details:ADD("Name", SHIP:NAME:REPLACE(",","")).
-  return_details:ADD("Mass", m1).
-  return_details:ADD("BC", bc).
+  return_details:ADD("Mass", ROUND(m1,2)).
+  return_details:ADD("BC", ROUND(bc,2)).
   return_details:ADD("Inclination", ROUND(orb:INCLINATION,2)).
   return_details:ADD("Periapsis", ROUND(orb:PERIAPSIS)).
   return_details:ADD("V(pe)", ROUND(pe_vel)).
