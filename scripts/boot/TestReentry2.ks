@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry2.ks v1.0.0 20170317").
+pOut("TestReentry2.ks v1.0.0 20170318").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,11 +14,11 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test2 1".
-GLOBAL SAT_PE_VEL IS 2600.
+GLOBAL SAT_NAME IS "Reentry Test2 3".
+GLOBAL SAT_PE_VEL IS 2800.
 GLOBAL SAT_PE_VEL_JUMP IS 200.
-GLOBAL SAT_MAX_PE_VEL IS 3600.
-GLOBAL SAT_LAUNCH_AP IS 125000.
+GLOBAL SAT_MAX_PE_VEL IS 4000.
+GLOBAL SAT_LAUNCH_AP IS 500000.
 
 // Estimated delta-v required to go from 125km by 125km orbit to re-entry test orbit
 //
@@ -35,11 +35,11 @@ GLOBAL SAT_LAUNCH_AP IS 125000.
 //            4200m/s | 2220m/s
 //            4400m/s | 2425m/s
 
-GLOBAL SAT_I IS 0.
+GLOBAL SAT_I IS 45.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LEX IS LEXICON().
-GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry2_1.txt".
-GLOBAL REENTRY_CSV_FILE IS "0:/log/TestReentry2_1.csv".
+GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry6.txt".
+GLOBAL REENTRY_CSV_FILE IS "0:/log/TestReentry6.csv".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
 FUNCTION saveNewCraftFileAndReload {
@@ -133,8 +133,11 @@ IF rm < 0 {
   LOCAL node_time IS TIME:SECONDS + 75.
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
+    LOCAL a1 IS BODY:RADIUS + ((APOAPSIS + 30000) /2).
+    LOCAL r_pe IS 30000 + BODY:RADIUS.
+    LOCAL pe_vel IS SQRT(b:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
-    addNodeForPeriapsisVelocity(SAT_PE_VEL,node_alt,30000,ascending).
+    addNodeForPeriapsisVelocity(pe_vel,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(823). }
   }
   ELSE { runMode(823). }
