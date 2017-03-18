@@ -146,7 +146,8 @@ IF rm < 0 {
   LOCAL node_time IS TIME:SECONDS + 75.
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
-    LOCAL a1 IS BODY:RADIUS + ((APOAPSIS + 30000) /2).
+    LOCAL a1 IS SHIP:ORBIT:SEMIMAJORAXIS.
+    IF a1 > 0 { SET a1 TO BODY:RADIUS + ((APOAPSIS + 30000) /2). }
     LOCAL r_pe IS 30000 + BODY:RADIUS.
     LOCAL pe_vel IS SQRT(BODY:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
