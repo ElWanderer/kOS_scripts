@@ -135,7 +135,7 @@ IF rm < 0 {
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL a1 IS BODY:RADIUS + ((APOAPSIS + 30000) /2).
     LOCAL r_pe IS 30000 + BODY:RADIUS.
-    LOCAL pe_vel IS SQRT(b:MU * ((2/r_pe)-(1/a1))).
+    LOCAL pe_vel IS SQRT(BODY:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
     addNodeForPeriapsisVelocity(pe_vel,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(823). }
