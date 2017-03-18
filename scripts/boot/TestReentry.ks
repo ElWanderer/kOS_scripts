@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170317").
+pOut("TestReentry.ks v1.0.0 20170318").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,14 +15,14 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 44".
+GLOBAL SAT_NAME IS "Reentry Test 45".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 30.
+GLOBAL SAT_I IS 45.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LEX IS LEXICON().
-GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry5.txt".
-GLOBAL REENTRY_CSV_FILE IS "0:/log/TestReentry5.csv".
+GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry6.txt".
+GLOBAL REENTRY_CSV_FILE IS "0:/log/TestReentry6.csv".
 GLOBAL REENTRY_CRAFT_FILE IS "0:/craft/" + padRep(0,"_",SAT_NAME) + ".ks".
 
 
@@ -53,10 +53,11 @@ GLOBAL SAT_NEXT_AP IS LEXICON(
 
 // short version!
 SET SAT_NEXT_AP TO LEXICON(
-     80000,   125000,
-    125000,   500000,
-    500000,  2000000,
-   2000000, 12000000,
+     80000,    85000,
+     85000,   100000,
+    100000,   125000,
+    125000,  1000000,
+   1000000, 12000000,
   12000000, 46400000).
 
 FUNCTION saveNewCraftFileAndReload {
@@ -145,9 +146,11 @@ IF rm < 0 {
   LOCAL node_time IS TIME:SECONDS + 75.
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
+    LOCAL a1 IS BODY:RADIUS + ((APOAPSIS + 30000) /2).
+    LOCAL r_pe IS 30000 + BODY:RADIUS.
+    LOCAL pe_vel IS SQRT(b:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
-    LOCAL pe_time IS TIME:SECONDS + ETA:PERIAPSIS.
-    addNodeForPeriapsisVelocity(velAt(SHIP,pe_time):MAG,node_alt,30000,ascending).
+    addNodeForPeriapsisVelocity(pe_vel,node_alt,30000,ascending).
     IF NOT execNode(FALSE) { runMode(822). }
   }
   ELSE { runMode(822). }
