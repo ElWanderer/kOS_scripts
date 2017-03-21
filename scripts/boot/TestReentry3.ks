@@ -138,7 +138,7 @@ IF rm < 0 {
   runMode(851).
 
 } ELSE IF rm = 851 {
-  store("doTransfer(861, FALSE, KERBIN, 30000, -1, -1, "+REENTRY_LOG_FILE+").").
+  store("doTransfer(861, FALSE, KERBIN, 30000, -1, -1, "+CHAR(34)+REENTRY_LOG_FILE+CHAR(34)+").").
   doTransfer(861, FALSE, KERBIN, 30000, -1, -1, REENTRY_LOG_FILE).
 
 } ELSE IF rm = 861 {
