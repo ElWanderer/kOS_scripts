@@ -174,6 +174,9 @@ FUNCTION predictReentryForOrbit
   IF count > 0 {
     SET patch_eta_time TO futureOrbitETATime(curr_orb,count).
     SET orb TO futureOrbit(curr_orb,count).
+  } ELSE IF count < 0 {
+    pOut("ERROR: cannot predict reentry as we do not return to " + dest:NAME).
+    RETURN return_details.
   }
 
   LOCAL u_time IS patch_eta_time + 1.
