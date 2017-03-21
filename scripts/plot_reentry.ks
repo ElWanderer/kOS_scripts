@@ -3,7 +3,7 @@ pOut("plot_reentry.ks v1.0.0 20170321").
 
 FOR f IN LIST(
   "lib_reentry.ks",
-  "lib_transfer.ks",
+  "plot_transfer_reentry.ks",
   "lib_orbit.ks",
   "lib_orbit_match.ks",
   "lib_geo.ks",
