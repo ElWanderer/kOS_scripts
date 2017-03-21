@@ -1,9 +1,20 @@
 @LAZYGLOBAL OFF.
 
+// TestReentry2.ks
+//
+// Launch into MKO then quicksave.
+// From the savepoint, burn radially to lower the periapsis to 30km, with a series of
+// different periapsis velocities. These velocities
+// Tweak the periapsis to ensure it is close to 30km and re-enter. Quickload.
+// Logs out predictions as to where we will land, plus the actual result.
+//
+// This test is not limited by the size of Kerbin's sphere of influence, so inter-planetary
+// re-entry speeds can be tested. However, it costs a lot more delta-v this way.
+
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry2.ks v1.0.0 20170318").
+pOut("TestReentry2.ks v1.0.0 20170321").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,7 +25,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test2 3".
+GLOBAL SAT_NAME IS "Reentry Test2 4".
 GLOBAL SAT_PE_VEL IS 2800.
 GLOBAL SAT_PE_VEL_JUMP IS 200.
 GLOBAL SAT_MAX_PE_VEL IS 4000.
@@ -35,7 +46,21 @@ GLOBAL SAT_LAUNCH_AP IS 500000.
 //            4200m/s | 2220m/s
 //            4400m/s | 2425m/s
 
-GLOBAL SAT_I IS 45.
+// Estimated delta-v required to go from 500km by 500km orbit to re-entry test orbit
+//
+// periapsis velocity |  delta-v
+//-------------------------------
+//            2800m/s |  715m/s
+//            3000m/s | 1125m/s
+//            3200m/s | 1445m/s
+//            3400m/s | 1730m/s
+//            3600m/s | 2000m/s
+//            3800m/s | 2250m/s
+//            4000m/s | 2490m/s
+//            4200m/s | 2725m/s
+//            4400m/s | 2955m/s
+
+GLOBAL SAT_I IS 60.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LEX IS LEXICON().
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry6.txt".
@@ -134,7 +159,7 @@ IF rm < 0 {
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL a1 IS SHIP:ORBIT:SEMIMAJORAXIS.
-    IF a1 > 0 { SET a1 TO BODY:RADIUS + ((APOAPSIS + 30000) /2). }
+    IF APOAPSIS > 0 { SET a1 TO BODY:RADIUS + ((APOAPSIS + 30000)/2). }
     LOCAL r_pe IS 30000 + BODY:RADIUS.
     LOCAL pe_vel IS SQRT(BODY:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
