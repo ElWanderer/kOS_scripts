@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170316").
+pOut("plot_reentry.ks v1.0.0 20170321").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -15,7 +15,7 @@ GLOBAL PLOT_REENTRY_LOG IS "".
 FUNCTION addNodeForPeriapsisVelocity {
   PARAMETER target_vel IS 4000, burn_alt IS 125000, pe_alt IS 30000, ascending IS FALSE.
 
-  IF APOAPSIS < burn_alt OR PERIAPSIS > burn_alt {
+  IF PERIAPSIS > burn_alt OR (APOAPSIS > 0 AND APOAPSIS < burn_alt) {
     SET burn_alt TO (APOAPSIS + PERIAPSIS) / 2.
   }
 
