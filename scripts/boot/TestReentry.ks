@@ -1,9 +1,19 @@
 @LAZYGLOBAL OFF.
 
+// TestReentry.ks
+//
+// Launch into LKO then quicksave.
+// From the savepoint, fix the apoapsis at a series of different altitudes,
+// set the periapsis to 30km and re-enter. Quickload.
+// Logs out predictions as to where we will land, plus the actual result.
+//
+// This test is limited by the size of Kerbin's sphere of influence, as that is the
+// highest the apoapsis can be set.
+
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170318").
+pOut("TestReentry.ks v1.0.0 20170321").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,10 +25,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 45".
+GLOBAL SAT_NAME IS "Reentry Test 46".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 45.
+GLOBAL SAT_I IS 60.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LEX IS LEXICON().
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry6.txt".
@@ -52,13 +62,14 @@ GLOBAL SAT_NEXT_AP IS LEXICON(
   12000000, 46400000).
 
 // short version!
+// 2413m/s, 2417m/s, 2429m/s, 2450m/s, 2500m/s, 2600m/s, 2700m/s
 SET SAT_NEXT_AP TO LEXICON(
      80000,    85000,
      85000,   100000,
     100000,   125000,
-    125000,  1000000,
-   1000000, 12000000,
-  12000000, 46400000).
+    125000,   195000,
+    195000,   360000,
+    360000,   575000).
 
 FUNCTION saveNewCraftFileAndReload {
   IF EXISTS(REENTRY_CRAFT_FILE) { DELETEPATH(REENTRY_CRAFT_FILE). }
@@ -147,7 +158,7 @@ IF rm < 0 {
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   IF ABS(30000-PERIAPSIS) > 250 AND node_alt > (BODY:ATM:HEIGHT + 5000) {
     LOCAL a1 IS SHIP:ORBIT:SEMIMAJORAXIS.
-    IF a1 > 0 { SET a1 TO BODY:RADIUS + ((APOAPSIS + 30000) /2). }
+    IF APOAPSIS > 0 { SET a1 TO BODY:RADIUS + ((APOAPSIS + 30000)/2). }
     LOCAL r_pe IS 30000 + BODY:RADIUS.
     LOCAL pe_vel IS SQRT(BODY:MU * ((2/r_pe)-(1/a1))).
     LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
