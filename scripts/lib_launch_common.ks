@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20170309").
+pOut("lib_launch_common.ks v1.4.0 20170322").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -77,6 +77,15 @@ FUNCTION launchInit
 
   checkFairing().
   checkLES().
+
+  IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_ON_ALT") {
+    IF ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_ON_ALT"] { RCS ON. }
+    ELSE { WHEN ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_ON_ALT"] THEN { RCS ON. } }
+  }
+  IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_OFF_ALT") {
+    IF ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_OFF_ALT"] { RCS OFF. }
+    ELSE { WHEN ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_OFF_ALT"] THEN { RCS OFF. } }
+  }
 
   IF runMode() < 0 {
     hudMsg("Prepare for launch...").
