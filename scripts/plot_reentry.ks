@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170321").
+pOut("plot_reentry.ks v1.0.0 20170322").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -181,17 +181,13 @@ FUNCTION predictReentryForOrbit
 
   LOCAL u_time IS patch_eta_time + 1.
 
-  LOCAL r IS orb:PERIAPSIS + orb:BODY:RADIUS.
+  LOCAL r IS orb:PERIAPSIS + dest:RADIUS.
   LOCAL a IS orb:SEMIMAJORAXIS.
   LOCAL pe_vel IS SQRT(orb:BODY:MU * ((2/r)-(1/a))).
 
-  LOCAL atm_eta_time IS u_time + secondsToAlt(SHIP,u_time,BODY:ATM:HEIGHT,FALSE).
-  LOCAL atm_spot IS dest:GEOPOSITIONOF(POSITIONAT(SHIP,atm_eta_time)).
-  LOCAL atm_lng IS mAngle(atm_spot:LNG - ((atm_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
-
   LOCAL pe_eta_time IS u_time + secondsToTA(SHIP,u_time,0).
   LOCAL pe_spot IS dest:GEOPOSITIONOF(POSITIONAT(SHIP,pe_eta_time)).
-  LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / BODY:ROTATIONPERIOD)).
+  LOCAL pe_lng IS mAngle(pe_spot:LNG - ((pe_eta_time-TIME:SECONDS) * 360 / dest:ROTATIONPERIOD)).
 
   // estimate how far past periapsis we will land
   LOCAL land_ta IS predictOvershoot(pe_vel, bc).
@@ -209,8 +205,6 @@ FUNCTION predictReentryForOrbit
   pOut("Ap.: " + ROUND(orb:APOAPSIS) + "m.").
   pOut("Pe.: " + ROUND(orb:PERIAPSIS) + "m.").
 
-  pOut("Lat (atm interface):  " + ROUND(atm_spot:LAT,2) + " degrees.").
-  pOut("Lng (atm interface):  " + ROUND(atm_lng,2) + " degrees.").
   LOCAL lat_pe_str IS "Lat (periapsis): " + ROUND(pe_spot:LAT,2) + " degrees.".
   LOCAL lng_pe_str IS "Lng (periapsis): " + ROUND(pe_lng,2) + " degrees.".
   pOut(lat_pe_str).
