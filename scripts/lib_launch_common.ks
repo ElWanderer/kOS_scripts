@@ -167,6 +167,7 @@ FUNCTION launchCoast
     launchExtend().
     IF launchCirc() {
       sepLauncher().
+      IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_OFF_IN_ORBIT") { RCS OFF. }
       pDV().
       runMode(exit_mode,0).
     } ELSE {
