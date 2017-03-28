@@ -13,7 +13,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry.ks v1.0.0 20170321").
+pOut("TestReentry.ks v1.0.0 20170328").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -25,10 +25,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test 46".
+GLOBAL SAT_NAME IS "Reentry Test 47".
 GLOBAL SAT_AP IS 80000.
 GLOBAL SAT_LAUNCH_AP IS 125000.
-GLOBAL SAT_I IS 60.
+GLOBAL SAT_I IS 90.
 GLOBAL SAT_LAN IS -1.
 GLOBAL REENTRY_LEX IS LEXICON().
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry6.txt".
@@ -150,7 +150,7 @@ IF rm < 0 {
   }
   runMode(812).
 } ELSE IF rm = 812 {
-  IF doOrbitChange(FALSE,stageDV(),SAT_AP,30000) { runMode(821). }
+  IF doOrbitChange(FALSE,stageDV(),SAT_AP,30000, RANDOM()*360) { runMode(821). }
   ELSE { runMode(819,812). }
 
 } ELSE IF rm = 821 {
