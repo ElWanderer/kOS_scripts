@@ -14,7 +14,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry2.ks v1.0.0 20170328").
+pOut("TestReentry2.ks v1.0.0 20170329").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -25,7 +25,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test2 5".
+GLOBAL SAT_NAME IS "Reentry Test2 6".
 GLOBAL SAT_PE_VEL IS 2800.
 GLOBAL SAT_PE_VEL_JUMP IS 200.
 GLOBAL SAT_MAX_PE_VEL IS 4000.
@@ -148,7 +148,7 @@ IF rm < 0 {
   runMode(821).
 
 } ELSE IF rm = 821 {
-  LOCAL node_time IS TIME:SECONDS + 300 + (RANDOM() * 1800).
+  LOCAL node_time IS TIME:SECONDS + 300 + (RANDOM() * SHIP:ORBIT:PERIOD). 
   LOCAL node_alt IS posAt(SHIP,node_time):MAG - BODY:RADIUS.
   LOCAL ascending IS posAt(SHIP,node_time):MAG > posAt(SHIP,node_time-1):MAG.
   addNodeForPeriapsisVelocity(SAT_PE_VEL,node_alt,30000,ascending).
