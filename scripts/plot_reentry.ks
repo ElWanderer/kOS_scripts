@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170322").
+pOut("plot_reentry.ks v1.0.0 20170329").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -118,10 +118,9 @@ FUNCTION predictOvershoot
   LOCAL po IS 0.
   LOCAL x IS v_pe - 2400.
   IF x < 75 { SET po TO (45 * LOG10(x)) -106. }
-  ELSE IF x < 210 { SET po TO (31 * LOG10(x)) -80. }
-  ELSE IF x < 400 { SET po TO (20 * LOG10(x)) -54.5. }
-  ELSE IF x < 750 { SET po TO (15 * LOG10(x)) -41.5. }
-  ELSE { SET po TO (9 * LOG10(x)) -24.25. }
+  ELSE IF x < 208 { SET po TO (31 * LOG10(x)) -80. }
+  ELSE IF x < 464 { SET po TO (20 * LOG10(x)) -54.5. }
+  ELSE { SET po TO (14 * LOG10(x)) -38.5. }
 
   RETURN po.
 }
