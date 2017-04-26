@@ -38,6 +38,8 @@ We have the capability of running a ship-specific script. This uses the ship's n
     }
     IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 
+The craft file can be used to run any code, but one thing that is explicitly supported is adding to the `CRAFT_SPECIFIC` lexicon. For more details of how this can be used, see the `craft_specific_readme.md` document.
+
 Then we open a terminal and clear its screen ready for output:
 
     CORE:DOEVENT("Open Terminal").
@@ -88,7 +90,7 @@ A function delegate. This returns the time elapsed since the "STAGE" time was up
 
 #### `CRAFT_SPECIFIC`
 
-This is a lexicon. The idea is that craft-specific files can insert values (and even functions) into here for use elsewhere. Currently nothing has actually been implemented. There are some suggested uses in `issue #55`.
+This is a lexicon. Craft-specific files can insert values (and even functions) into here for use elsewhere. See the `craft_specific_readme.md` document for more details.
 
 #### `CRAFT_FILE`
 
