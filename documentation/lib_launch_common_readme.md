@@ -18,6 +18,7 @@ There are always improvements that can be made, some of which are listed under [
 * the pitch curve could change based on the TWR of the craft, rather than being fixed.
 * we could use an initial pitch-over velocity instead (or as well as) an altitude.
 * the pitch-over altitude/velocity and curve altitude could be set based on values in the CRAFT_SPECIFIC lexicon, if a craft-specific file exists.
+* the initial pitch is currently straight up, but this could be modified if a vessel is initialised at an angle (e.g. rotated 5 degrees for launch).
 * the launch trajectory could be improved to try to get into orbit on a single, continuous burn rather than the coast and circularise approach the launch libraries take.
 * handling for RSS/RO vessels could be added, allowing much longer between staging events so that engines have time to spool up, so that separation motors are not counted towards the "has our max thrust dropped?" check and so that we hold on the launch clamps until our thrust has built-up enough.
 
@@ -174,6 +175,7 @@ This function is called once when initiating a launch. It initialises quite a fe
 * `LCH_AN` is set to `TRUE` or `FALSE` depend on whether the input `azimuth` is a Northwards or Southwards compass bearing. Bearings of `90` and `270` are treated as Northwards if the active vessel's latitude is negative (below the Equator) and Southwards otherwise.
 * `LCH_PITCH_ALT` is set to the input `pitchover_alt`.
 * `checkFairing()` and `checkLES()` are called to set `LCH_HAS_FAIRING` and `LCH_HAS_LES` appropriately.
+* two triggers are initialised to turn the RCS on and then off at set altitudes during launch, if the craft specific values `CRAFT_SPECIFIC["LCH_RCS_ON_ALT"]` and/or `CRAFT_SPECIFIC["LCH_RCS_OFF_ALT"]` have been defined. Note an alternative to setting an off altitude is to set `CRAFT_SPECIFIC["LCH_RCS_OFF_IN_ORBIT"]` to any value, though that is handled by the `launchCoast()` function.
 
 If the run mode has not been initialised yet (i.e. it is less than `0`), a HUD Message is displayed that we are about to launch, and the run mode set to `1` by calling `runMode(1)`.
 
@@ -234,6 +236,7 @@ If the altitude has risen above the atmosphere height:
 * `launchCirc()` is called to plot and execute a circularisation manoeuvre node.
    * If the circularisation burn is successful:
       * `sepLauncher()` is called to stage off any parts tagged `FINAL`.
+      * if `CRAFT_SPECIFIC["LCH_RCS_OFF_IN_ORBIT"]` is set to any value, RCS will be disabled.
       * `runMode(exit_mode)` is called, which should cause control to return to the calling script.
    * If the burn was not successful:
       * `launchAP()` is called to increase the target apoapsis (`LCH_AP`) by `10`km. The current apoapsis is probably now behind the craft, so we need to redo the ascent steps.
