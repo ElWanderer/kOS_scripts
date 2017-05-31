@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.2.2 20161104").
+pOut("lib_burn.ks v1.2.3 20170118").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -56,18 +56,18 @@ FUNCTION burnSmallNode
 
 FUNCTION burnNode
 {
-  PARAMETER n, bt, can_stage.
+  PARAMETER n, bt, hbt, can_stage.
 
   LOCAL ok IS TRUE.
   LOCAL o_dv IS n:DELTAV.
 
   LOCK THROTTLE TO BURN_THROTTLE.
-  IF ADDONS:KAC:AVAILABLE AND (bt / 2) < 300 {
+  IF ADDONS:KAC:AVAILABLE AND hbt < 300 {
     WAIT UNTIL n:ETA < 300.
     FOR a IN LISTALARMS("All") { IF a:REMAINING < 300 { DELETEALARM(a:ID). } }
   }
 
-  WAIT UNTIL n:ETA <= (bt / 2).
+  WAIT UNTIL n:ETA <= hbt.
 
   LOCAL done IS BURN_NODE_IS_SMALL.
   IF done { burnSmallNode(n, bt). }
@@ -125,8 +125,8 @@ FUNCTION warpCloseToNode
 
 FUNCTION warpToNode
 {
-  PARAMETER n, bt.
-  LOCAL time_to_warp IS n:ETA - (bt / 2) - BURN_WARP_BUFF.
+  PARAMETER n, hbt.
+  LOCAL time_to_warp IS n:ETA - hbt - BURN_WARP_BUFF.
   IF time_to_warp > 0 { doWarp(TIME:SECONDS + time_to_warp). }
 }
 
@@ -147,18 +147,20 @@ FUNCTION execNode
   pOut("Delta-v required: " + ROUND(n_dv,1) + "m/s.").
   pDV().
 
-  IF (can_stage AND moreEngines()) OR s_dv >= n_dv {
+  IF s_dv >= n_dv OR (can_stage AND moreEngines()) {
     LOCAL bt IS burnTime(n_dv, s_dv).
+    LOCAL hbt IS burnTime(n_dv/2, s_dv).
     checkNodeSize(bt, n_dv, s_dv).
     IF BURN_NODE_IS_SMALL {
       SET BURN_SMALL_THROT TO burnThrottle(bt).
       SET bt TO burnTime(n_dv, s_dv, BURN_SMALL_THROT).
     }
-    pOut("Burn time: " + ROUND(bt,1) + "s.").
+    pOut("Full burn time: " + ROUND(bt,1) + "s.").
+    pOut("Throttle up " + ROUND(hbt,1) + "s before node.").
     warpCloseToNode(n,bt).
     pointNode(n).
-    warpToNode(n,bt).
-    SET ok TO burnNode(n,bt,can_stage).
+    warpToNode(n,hbt).
+    SET ok TO burnNode(n,bt,hbt,can_stage).
     IF ok { REMOVE n. }
   } ELSE {
     SET ok TO FALSE.
