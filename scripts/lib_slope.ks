@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_slope.ks v1.0.0 20170531").
+pOut("lib_slope.ks v1.0.0 20170602").
 
 FOR f IN LIST(
   "lib_geo.ks"
@@ -41,7 +41,7 @@ FUNCTION slopeDetails
   // (this will also result in the East vector pointing West)
   LOCAL north_mod IS 0.01.
   IF lat > (90-north_mod) { SET north_mod TO -north_mod. }
-  LOCAL spot_north_v IS VXCL(spot_up_v, (LATLNG(lat+north_mod,lng):POSITION-spot_v):NORMALIZED.
+  LOCAL spot_north_v IS VXCL(spot_up_v, (LATLNG(lat+north_mod,lng):POSITION-spot_v):NORMALIZED).
   LOCAL spot_east_v IS VCRS(spot_up_v, spot_north_v).
 
   // spots 1, 2 and 3 form an equilateral triangle, 'radius' metres from the centre spot.
@@ -92,8 +92,8 @@ FUNCTION findLowSlope
 
   pOut("findLowSlope() called with parameters:").
   pOut("  Max slope angle: " + max_slope_ang + " degrees.").
-  pOut("  Latitude: " + new_spot:LAT).
-  pOut("  Longitude: " + new_spot:LAT).
+  pOut("  Latitude: " + lat).
+  pOut("  Longitude: " + lng).
   pOut("  Radius: " + radius + "m.").
 
   CLEARVECDRAWS().
@@ -115,7 +115,7 @@ FUNCTION findLowSlope
     LOCAL spot_v IS slope_details[0].
     LOCAL dh_v_unit IS downhillVector(slope_details).
     LOCAL dh_v IS radius * (slope_ang / max_slope_ang)^2 * dh_v_unit.
-    LOCAL new_spot IS BODY:GEOPOSITIONOF(spot_v+dh_v).
+    SET new_spot TO BODY:GEOPOSITIONOF(spot_v+dh_v).
 
     // compare new_spot to recent spots we have visited (except the most recent)
     // if we keep finding ourselves near the same spot, jump away
@@ -155,8 +155,8 @@ FUNCTION findLowSlope
     pOut("New spot:").
     pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
     pOut("  Latitude: " + new_spot:LAT).
-    pOut("  Longitude: " + new_spot:LAT).
-    LOCAL spot_dist IS greatCircleDistance(BODY, LATLNG(prev_lat,prev_lng), new_spot).
+    pOut("  Longitude: " + new_spot:LNG).
+    LOCAL spot_dist IS diff_v:MAG.
     pOut("  Distance from previous spot: " + ROUND(spot_dist,1) + "m.").
     VECDRAW(prev_spot_v, diff_v, RGB(1,0,0), "Jump: "+ROUND(spot_dist,1)+"m", 1, TRUE).
   }
@@ -226,7 +226,7 @@ FUNCTION drawSlopesNearCraft
       IF ang < min_slope { SET min_slope TO ang. }
       IF ang > max_slope { SET max_slope TO ang. }
       SET total_slope TO total_slope + ang.
-      drawSlope(slopeDetails).
+      drawSlope(slope_details).
     }
   }
 
