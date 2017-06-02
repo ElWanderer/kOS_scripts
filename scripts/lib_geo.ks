@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_geo.ks v1.2.0 20170208").
+pOut("lib_geo.ks v1.2.0 20170602").
 
 RUNONCEPATH(loadScript("lib_orbit.ks")).
 
@@ -34,15 +34,19 @@ FUNCTION secondTAAtLat
   RETURN mAngle((2 * ta_extreme_lat) - ta1).
 }
 
+FUNCTION spotRotated
+{
+  PARAMETER planet, spot, time_diff.
+  LOCAL new_lng IS mAngle(spot:LNG - (time_diff * 360 / planet:ROTATIONPERIOD)).
+  RETURN LATLNG(spot:LAT,new_lng).
+}
+
 FUNCTION spotAtTime
 {
   PARAMETER planet,craft,u_time.
 
-  LOCAL p IS planet:ROTATIONPERIOD.
   LOCAL spot IS planet:GEOPOSITIONOF(POSITIONAT(craft,u_time)).
-  LOCAL time_diff IS MOD(u_time - TIME:SECONDS,p).
-  LOCAL new_lng IS mAngle(spot:LNG - (time_diff * 360 / p)).
-  RETURN LATLNG(spot:LAT,new_lng).
+  RETURN spotRotated(planet, spot, u_time-TIME:SECONDS).
 }
 
 FUNCTION greatCircleDistance
@@ -60,6 +64,14 @@ FUNCTION distAtTime
 {
   PARAMETER craft,planet,spot,u_time.
   RETURN greatCircleDistance(planet,spot,spotAtTime(planet,craft,u_time)).
+}
+
+FUNCTION distAtTimeRotated
+{
+  PARAMETER craft,planet,spot,craft_time,time_diff.
+  LOCAL craft_spot IS spotAtTime(planet,craft,craft_time).
+  LOCAL planet_spot IS spotRotated(planet,spot,time_diff).
+  RETURN greatCircleDistance(planet,craft_spot, planet_spot).
 }
 
 FUNCTION findNextPassCA
