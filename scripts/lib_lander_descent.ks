@@ -150,10 +150,11 @@ FUNCTION constantAltitudeVec2
   LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
 
   LOCAL cur_h_acc IS (LND_THRUST_ACC * cav_throt) * COS(MIN(85,cav_pitch)).
-  LOCAL cur_burn_time IS VXCL(UP:VECTOR,VELOCITY:SURFACE):MAG / cur_h_acc.
+  LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
+  LOCAL cur_burn_time IS SQRT(v_xs2) / cur_h_acc.
   LOCAL cur_pred_dist IS distAtTimeRotated(SHIP, BODY, spot, TIME:SECONDS, cur_burn_time).
 
-  LOCAL ship_h_acc IS v_x2 / (2 * cur_pred_dist).
+  LOCAL ship_h_acc IS v_xs2 / (2 * cur_pred_dist).
 
   LOCAL worst_p_ang IS 90.
   LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
