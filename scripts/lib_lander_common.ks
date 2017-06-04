@@ -1,8 +1,9 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.0.1 20160812").
+pOut("lib_lander_common.ks v1.1.0 20170604").
 
 GLOBAL LND_THROTTLE IS 0.
+GLOBAL LND_PITCH IS 0.
 GLOBAL LND_G_ACC IS 0.
 GLOBAL LND_MIN_VS IS 0.
 
@@ -31,12 +32,14 @@ FUNCTION gravAcc
 
 FUNCTION landerPitch
 {
+  LOCAL lp_throt IS LND_THROTTLE.
+  IF lp_throt = 0 { SET lp_throt TO 1. }
   LOCAL p_ang IS 90.
   IF SHIP:AVAILABLETHRUST > 0 {
     LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
     LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
     LOCAL ship_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
-    LOCAL acc_ratio IS ship_acc * MASS / SHIP:AVAILABLETHRUST.
+    LOCAL acc_ratio IS ship_acc * lp_throt * MASS / SHIP:AVAILABLETHRUST.
     IF acc_ratio < 0 { SET p_ang TO 0. }
     ELSE IF acc_ratio < 1 { SET p_ang TO ARCSIN(acc_ratio). }
   }

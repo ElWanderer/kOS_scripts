@@ -122,7 +122,8 @@ LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
 // use our current predicted burn time to work out how far the landing spot will 
 // have rotated. This need not be super-accurate as body rotation is generally slow compared
 // to orbital velocity.
-LOCAL cur_h_acc IS (LND_THRUST_ACC * LND_THROTTLE) * COS(LND_PITCH).
+LOCAL cur_h_acc IS (LND_THRUST_ACC * LND_THROTTLE) * COS(LND_PITCH). 
+// !!!WARNING!!! - divide by zero if pitch angle is 90!
 LOCAL cur_burn_time IS VXCL(UP:VECTOR,VELOCITY:SURFACE):MAG / cur_h_acc.
 LOCAL cur_pred_dist IS distAtTimeRotated(SHIP, BODY, landing_spot, TIME:SECONDS, cur_burn_time).
 
@@ -173,9 +174,9 @@ LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
 
 // a very rough solution, that rotates the current velocity to (and then beyond) the desired
 // velocity vector:
-LOCAL calc_h_v IS ANGLEAXIS(1.5*VANG(des_h_v,cur_h_v), VCRS(cur_h_v, des_h_v)) * cur_h_v.
-// that may oscillate wildly - we could change the 1.5 value depending on how close we are
-// or introduce a PID loop.
+LOCAL calc_h_v IS ANGLEAXIS(2*VANG(des_h_v,cur_h_v), VCRS(cur_h_v, des_h_v)) * cur_h_v.
+// that may oscillate wildly - we could change the multiplier depending on how close we are
+// or introduce a deadband and/or introduce a PID loop.
 
 // put it all together
 LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(VELOCITY:SURFACE,BODY:POSITION)) * -calc_h_v.

@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.1.2 20161121").
+pOut("lib_lander_descent.ks v1.2.0 20170604").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -14,10 +14,15 @@ FOR f IN LIST(
 
 GLOBAL LND_THRUST_ACC IS 0.
 GLOBAL LND_RADAR_ADJUST IS 0.
+GLOBAL LND_LAT IS 0.
+GLOBAL LND_LNG IS 0.
 
 FUNCTION initDescentValues
 {
-  PARAMETER adjust IS 0.
+  PARAMETER l_lat, l_lng, adjust IS 0.
+
+  SET LND_LAT TO l_lat.
+  SET LND_LNG TO l_lng.
 
   landerSetMinVSpeed(0).
   SET LND_RADAR_ADJUST TO adjust.
@@ -129,6 +134,60 @@ FUNCTION constantAltitudeVec
          * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
 }
 
+FUNCTION constantAltitudeVec2
+{
+  CLEARVECDRAWS().
+  SET LND_PITCH TO landerPitch().
+  LOCAL cav_pitch IS LND_PITCH.
+
+  VECDRAW(V(0,0,0), 5 * UP:VECTOR, RGB(1,1,1), "landerPitch(): "+ROUND(LND_PITCH,1), 1, TRUE).
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL cav_throt IS LND_THROTTLE.
+  IF cav_throt = 0 { SET cav_throt TO 1. SET cav_pitch TO 0. }
+
+  LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
+  LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
+  LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
+
+  LOCAL cur_h_acc IS (LND_THRUST_ACC * cav_throt) * COS(MIN(85,cav_pitch)).
+  LOCAL cur_burn_time IS VXCL(UP:VECTOR,VELOCITY:SURFACE):MAG / cur_h_acc.
+  LOCAL cur_pred_dist IS distAtTimeRotated(SHIP, BODY, spot, TIME:SECONDS, cur_burn_time).
+
+  LOCAL ship_h_acc IS v_x2 / (2 * cur_pred_dist).
+
+  LOCAL worst_p_ang IS 90.
+  LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
+  IF acc_ratio < 0 { SET worst_p_ang TO 0. }
+  ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
+  LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
+  VECDRAW(V(0,0,0), 25 * FACING:TOPVECTOR, RGB(0,1,1), "worst_p_ang: "+ROUND(worst_p_ang,1), 1, TRUE).
+
+  IF max_h_acc < ship_h_acc {
+    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
+    SET LND_PITCH TO worst_p_ang.
+  } ELSE {
+    LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
+    LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
+    LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
+    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
+    SET LND_PITCH TO des_pitch.
+  }
+
+  LOCAL spot_rot IS spotRotated(BODY, spot, cur_burn_time).
+  LOCAL des_h_v IS VXCL(UP:VECTOR,spot_rot:POSITION).
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+  LOCAL calc_h_v IS ANGLEAXIS(2*VANG(des_h_v,cur_h_v), VCRS(cur_h_v, des_h_v)) * cur_h_v.
+
+  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(VELOCITY:SURFACE,BODY:POSITION)) * -calc_h_v.
+
+  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
+  VECDRAW(V(0,0,0), 10 * VELOCITY:SURFACE:NORMALIZED, RGB(1,1,0), "Current velocity", 1, TRUE).
+  VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
+  VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
+
+  RETURN final_vector.
+}
+
 FUNCTION doConstantAltitudeBurn
 {
   PARAMETER safety_factor. // m
@@ -143,7 +202,7 @@ FUNCTION doConstantAltitudeBurn
     IF VERTICALSPEED < landerMinVSpeed() {
       pOut("Terrain proximity.").
       SET done TO TRUE.
-    } ELSE IF ETA:PERIAPSIS < 10 OR ABS(VERTICALSPEED) < 0.5 {
+    } ELSE IF ETA:PERIAPSIS < 75 OR ABS(VERTICALSPEED) < 0.5 {
       pOut("Approaching periapsis.").
       SET done TO TRUE.
     }
@@ -279,7 +338,7 @@ FUNCTION doLanding
   LOCAL LOCK rm TO runMode().
 
   IF rm < 201 OR rm > 249 { runMode(201). }
-  initDescentValues(radar_adjust).
+  initDescentValues(l_lat, l_lng, radar_adjust).
 
 UNTIL rm = exit_mode
 {
@@ -291,7 +350,7 @@ UNTIL rm = exit_mode
     runMode(211).
 
   } ELSE IF rm = 211 {
-    IF nodeGeoPhasingOrbit(SHIP, l_lat, l_lng, days_limit) { runMode(215). }
+    IF nodeGeoPhasingOrbit(SHIP, LND_LAT, LND_LNG, days_limit) { runMode(215). }
     ELSE { runMode(212). }
 
   } ELSE IF rm = 212 {
@@ -303,7 +362,7 @@ UNTIL rm = exit_mode
     ELSE IF execNode(TRUE) { runMode(221). }
 
   } ELSE IF rm = 221 {
-    IF addNodeLowerPeriapsisOverSpot(l_lat,l_lng,pe_safety_factor,max_dist,days_limit) { runMode(222). }
+    IF addNodeLowerPeriapsisOverSpot(LND_LAT,LND_LNG,pe_safety_factor,max_dist,days_limit) { runMode(222). }
     ELSE {
       runMode(229,221).
       pOut("Going into standby mode.").
@@ -313,7 +372,7 @@ UNTIL rm = exit_mode
     IF NOT HASNODE { runMode(221). }
     ELSE IF execNode(TRUE) { runMode(223). }
   } ELSE IF rm = 223 {
-    checkPeriapsis(l_lat,l_lng,pe_safety_factor).
+    checkPeriapsis(LND_LAT,LND_LNG,pe_safety_factor).
     runMode(231).
   } ELSE IF rm = 229 {
     // wait
@@ -322,10 +381,11 @@ UNTIL rm = exit_mode
     warpToPeriapsis(pe_safety_factor).
     runMode(232).
   } ELSE IF rm = 232 {
-    steerTo(constantAltitudeVec@).
+    steerTo(constantAltitudeVec2@).
     doConstantAltitudeBurn(pe_safety_factor).
     runMode(233).
   } ELSE IF rm = 233 {
+    CLEARVECDRAWS().
     steerSurf(FALSE).
     doSuicideBurn().
     runMode(234).
