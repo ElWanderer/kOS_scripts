@@ -134,66 +134,10 @@ FUNCTION constantAltitudeVec
          * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
 }
 
-FUNCTION constantAltitudeVec2
-{
-  CLEARVECDRAWS().
-  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
-  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
-  VECDRAW(V(0,0,0), 10 * VELOCITY:SURFACE:NORMALIZED, RGB(1,1,0), "Current velocity", 1, TRUE).
-
-  SET LND_PITCH TO landerPitch().
-  LOCAL cav_pitch IS LND_PITCH.
-  LOCAL cav_throt IS LND_THROTTLE.
-  IF cav_throt = 0 { SET cav_throt TO 1. SET cav_pitch TO 0. }
-
-  LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
-  LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
-  LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
-
-  LOCAL cur_h_acc IS (LND_THRUST_ACC * cav_throt) * COS(MIN(85,cav_pitch)).
-  LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
-  LOCAL cur_burn_time IS SQRT(v_xs2) / cur_h_acc.
-  LOCAL cur_pred_dist IS distAtTimeRotated(SHIP, BODY, spot, TIME:SECONDS, cur_burn_time).
-
-  LOCAL ship_h_acc IS v_xs2 / (2 * cur_pred_dist).
-
-  LOCAL worst_p_ang IS 90.
-  LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
-  IF acc_ratio < 0 { SET worst_p_ang TO 0. }
-  ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
-  LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
-
-  IF max_h_acc < ship_h_acc {
-    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
-    SET LND_PITCH TO worst_p_ang.
-  } ELSE {
-    LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
-    LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
-    LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
-    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
-    SET LND_PITCH TO des_pitch.
-  }
-
-  LOCAL spot_rot IS spotRotated(BODY, spot, cur_burn_time).
-  LOCAL des_h_v IS VXCL(UP:VECTOR,spot_rot:POSITION):NORMALIZED.
-  VECDRAW(V(0,0,0), 8 * des_h_v, RGB(0,0.4,0.9), "Desired vel (horizontal)", 1, TRUE).
-  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE):NORMALIZED.
-  VECDRAW(V(0,0,0), 8 * cur_h_v, RGB(1,0.7,0), "Current vel (horizontal)", 1, TRUE).
-  LOCAL calc_h_v IS ((2 * cur_h_v) - des_h_v):NORMALIZED.
-  VECDRAW(V(0,0,0), 8 * cur_h_v, RGB(0.3,1,0.3), "Calculated vel (horizontal)", 1, TRUE).
-
-  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(calc_h_v,BODY:POSITION)) * -calc_h_v.
-
-  VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
-  VECDRAW(V(0,0,0), 5 * final_vector, RGB(0,0,1), "Desired facing", 1, TRUE).
-
-  RETURN final_vector.
-}
-
 FUNCTION constantAltitudeVec3
 {
   CLEARVECDRAWS().
-
+pOut("constantAltitudeVec3").
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
@@ -203,6 +147,7 @@ FUNCTION constantAltitudeVec3
   VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
 
   SET LND_PITCH TO landerPitch().
+pOut("Pitch 1: " + LND_PITCH).
   LOCAL cav_throt IS LND_THROTTLE.
   IF cav_throt = 0 { SET cav_throt TO 1. }
 
@@ -210,32 +155,35 @@ FUNCTION constantAltitudeVec3
   LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
 
   LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
-  LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
-
+  LOCAL ship_v_acc IS MAX(0,LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED)).
+pOut("ship_v_acc: " + ROUND(ship_v_acc,2)).
   LOCAL worst_p_ang IS 90.
   LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
   IF acc_ratio < 0 { SET worst_p_ang TO 0. }
   ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
   LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
-
+pOut("max_h_acc: " + ROUND(max_h_acc,2)).
   LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
   IF ang > 90 { SET ship_h_acc TO -ship_h_acc. }
-
+pOut("ship_h_acc: " + ROUND(max_h_acc,2)).
   IF ABS(max_h_acc) < ABS(ship_h_acc) {
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
     SET LND_PITCH TO worst_p_ang.
+pOut("Pitch 2a: " + LND_PITCH).
   } ELSE {
     LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
+pOut("total_acc: " + ROUND(total_acc,2)).
     LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
     LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
     SET LND_PITCH TO des_pitch.
+pOut("Pitch 2b: " + LND_PITCH).
   }
 
   LOCAL h_thrust_v IS ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
   LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
 
-  VECDRAW(V(0,0,0), 10 * h_thrust_v, RGB(0.3,0.3,1), "Horizontal thrust vector", 1, TRUE).
+  VECDRAW(V(0,0,0), 10 * h_thrust_v, RGB(0.3,0.3,1), "Horizontal thrust vector "+ROUND(h_thrust_v:MAG,1) + "m/s^2", 1, TRUE).
   VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
   VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
 
