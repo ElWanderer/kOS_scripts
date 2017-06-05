@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170604").
+pOut("lib_lander_descent.ks v1.2.0 20170605").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -137,11 +137,12 @@ FUNCTION constantAltitudeVec
 FUNCTION constantAltitudeVec2
 {
   CLEARVECDRAWS().
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
+  VECDRAW(V(0,0,0), 10 * VELOCITY:SURFACE:NORMALIZED, RGB(1,1,0), "Current velocity", 1, TRUE).
+
   SET LND_PITCH TO landerPitch().
   LOCAL cav_pitch IS LND_PITCH.
-
-  VECDRAW(V(0,0,0), 5 * UP:VECTOR, RGB(1,1,1), "landerPitch(): "+ROUND(LND_PITCH,1), 1, TRUE).
-  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL cav_throt IS LND_THROTTLE.
   IF cav_throt = 0 { SET cav_throt TO 1. SET cav_pitch TO 0. }
 
@@ -161,7 +162,6 @@ FUNCTION constantAltitudeVec2
   IF acc_ratio < 0 { SET worst_p_ang TO 0. }
   ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
   LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
-  VECDRAW(V(0,0,0), 25 * FACING:TOPVECTOR, RGB(0,1,1), "worst_p_ang: "+ROUND(worst_p_ang,1), 1, TRUE).
 
   IF max_h_acc < ship_h_acc {
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
@@ -175,16 +175,17 @@ FUNCTION constantAltitudeVec2
   }
 
   LOCAL spot_rot IS spotRotated(BODY, spot, cur_burn_time).
-  LOCAL des_h_v IS VXCL(UP:VECTOR,spot_rot:POSITION).
-  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
-  LOCAL calc_h_v IS ANGLEAXIS(2*VANG(des_h_v,cur_h_v), VCRS(cur_h_v, des_h_v)) * cur_h_v.
+  LOCAL des_h_v IS VXCL(UP:VECTOR,spot_rot:POSITION):NORMALIZED.
+  VECDRAW(V(0,0,0), 8 * des_h_v, RGB(0,0.4,0.9), "Desired vel (horizontal)", 1, TRUE).
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE):NORMALIZED.
+  VECDRAW(V(0,0,0), 8 * cur_h_v, RGB(1,0.7,0), "Current vel (horizontal)", 1, TRUE).
+  LOCAL calc_h_v IS ((2 * cur_h_v) - des_h_v):NORMALIZED.
+  VECDRAW(V(0,0,0), 8 * cur_h_v, RGB(0.3,1,0.3), "Calculated vel (horizontal)", 1, TRUE).
 
-  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(VELOCITY:SURFACE,BODY:POSITION)) * -calc_h_v.
+  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(calc_h_v,BODY:POSITION)) * -calc_h_v.
 
-  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
-  VECDRAW(V(0,0,0), 10 * VELOCITY:SURFACE:NORMALIZED, RGB(1,1,0), "Current velocity", 1, TRUE).
   VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
-  VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
+  VECDRAW(V(0,0,0), 5 * final_vector, RGB(0,0,1), "Desired facing", 1, TRUE).
 
   RETURN final_vector.
 }
