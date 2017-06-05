@@ -190,12 +190,65 @@ FUNCTION constantAltitudeVec2
   RETURN final_vector.
 }
 
+FUNCTION constantAltitudeVec3
+{
+  CLEARVECDRAWS().
+
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+  LOCAL ang IS VANG(des_h_v, cur_h_v).
+
+  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
+  VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
+
+  SET LND_PITCH TO landerPitch().
+  LOCAL cav_throt IS LND_THROTTLE.
+  IF cav_throt = 0 { SET cav_throt TO 1. }
+
+  LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
+  LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
+
+  LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
+  LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
+
+  LOCAL worst_p_ang IS 90.
+  LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
+  IF acc_ratio < 0 { SET worst_p_ang TO 0. }
+  ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
+  LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
+
+  LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
+  IF ang > 90 { SET ship_h_acc TO -ship_h_acc. }
+
+  IF ABS(max_h_acc) < ABS(ship_h_acc) {
+    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
+    SET LND_PITCH TO worst_p_ang.
+  } ELSE {
+    LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
+    LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
+    LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
+    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
+    SET LND_PITCH TO des_pitch.
+  }
+
+  LOCAL h_thrust_v IS ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+
+  VECDRAW(V(0,0,0), 10 * h_thrust_v, RGB(0.3,0.3,1), "Horizontal thrust vector", 1, TRUE).
+  VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
+  VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
+
+  RETURN final_vector.
+}
+
 FUNCTION doConstantAltitudeBurn
 {
   PARAMETER safety_factor. // m
   pOut("Preparing for constant altitude burn.").
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
 
   LOCAL done IS FALSE.
   UNTIL done {
@@ -221,9 +274,10 @@ FUNCTION doConstantAltitudeBurn
       findMinVSpeed(-50,90,3).
     }
 
-    IF GROUNDSPEED < 4 {
+    IF GROUNDSPEED < 1 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 10 {
       SET done TO TRUE.
-      pOut("Groundspeed close to zero; ending constant altitude burn.").
+      pOut("Groundspeed close to zero and near landing site.").
+      pOut("Ending constant altitude burn.").
     }
   }
 
@@ -383,7 +437,7 @@ UNTIL rm = exit_mode
     warpToPeriapsis(pe_safety_factor).
     runMode(232).
   } ELSE IF rm = 232 {
-    steerTo(constantAltitudeVec2@).
+    steerTo(constantAltitudeVec3@).
     doConstantAltitudeBurn(pe_safety_factor).
     runMode(233).
   } ELSE IF rm = 233 {
