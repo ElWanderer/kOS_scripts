@@ -79,6 +79,26 @@ FUNCTION distAtTimeRotated
 // then use the new function:
 LOCAL pred_dist IS distAtTimeRotated(SHIP, BODY, landing_spot, some_timestamp, burn_time).
 
+// ah, but I've just realised we should take into account orientation - it's no good the spot
+// being the "right" distance away if it's actually behind us by that point
+
+ship_pos IS POSITIONAT(SHIP, some_timestamp).
+spot_pos IS spotRotated(BODY, landing_spot, some_timestamp-TIME:SECONDS):POSITION.
+// compare v to spot_pos - ship_pos, excluding the local up vector
+// that will require lib_slope.ks, to get spotDetails
+ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), some_timestamp-TIME:SECONDS).
+LOCAL ship_spot_details IS spotDetails(ship_spot:LAT, ship_spot:LNG).
+LOCAL ship_pos_up_v IS ship_spot_details[1].
+LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
+LOCAL v_h IS VXCL(ship_pos_up_v, v).
+
+// can we stop before the spot?
+// * is the predicted distance greater than the estimated burn distance?
+// would it be efficient?
+// * more efficient the closer the two distances are
+// * more efficient the closer the two position vectors are
+// one way of combining this is (lower = better):
+LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
 // -----------------------------------------------------------
 // STEP 2 - calculating our burn as we go
