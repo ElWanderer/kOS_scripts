@@ -146,9 +146,9 @@ FUNCTION stepBurnScore
     LOCAL time_diff IS check_time-TIME:SECONDS.
     LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
     LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * max_acc).
-    ship_pos IS POSITIONAT(SHIP, check_time).
-    spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
-    ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), time_diff).
+    LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
+    LOCAL spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
+    LOCAL ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), time_diff).
     LOCAL ship_spot_details IS spotDetails(ship_spot:LAT, ship_spot:LNG).
     LOCAL ship_pos_up_v IS ship_spot_details[1].
     LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
@@ -177,7 +177,7 @@ pOut("Score: " + ROUND(score,1) + ".").
 
 FUNCTION calcDescentBurnTime
 {
-  LOCAL pe_time IS TIME:SECONDS + secondsToTa(SHIP,0).
+  LOCAL pe_time IS TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0).
   LOCAL burn_time IS pe_time.
 
   IF SHIP:AVAILABLETHRUST > 0 {
@@ -185,7 +185,7 @@ FUNCTION calcDescentBurnTime
   }
 
   setTime("LND_BURN_TIME", burn_time).
-pOut("Start descent burn in " + ROUND(diffTime("LND_BURN_TIME")) + "s.".
+pOut("Start descent burn in " + ROUND(diffTime("LND_BURN_TIME")) + "s.").
   RETURN burn_time.
 }
 
@@ -268,7 +268,7 @@ pOut("Pitch 2b: " + LND_PITCH).
   LOCAL final_vector IS UP:VECTOR.
   IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
     VECDRAW(V(0,0,0), 5 * h_thrust_v:NORMALIZED, RGB(0.3,0.3,1), "Horizontal thrust vector ", 1, TRUE).
-    ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+    SET final_vector TO ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
   }
 
   VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
@@ -318,6 +318,7 @@ FUNCTION doConstantAltitudeBurn
   }
 
   SET LND_THROTTLE TO 0.
+  steerSurf(FALSE).
 }
 
 FUNCTION stepTerrainImpact

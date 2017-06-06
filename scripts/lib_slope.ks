@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_slope.ks v1.0.0 20170602").
+pOut("lib_slope.ks v1.0.0 20170606").
 
 FOR f IN LIST(
   "lib_geo.ks"
@@ -164,7 +164,7 @@ FUNCTION findLowSlope
   pOut("findLowSlope() returning spot:").
   pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
   pOut("  Latitude: " + new_spot:LAT).
-  pOut("  Longitude: " + new_spot:LAT).
+  pOut("  Longitude: " + new_spot:LNG).
   LOCAL spot_dist IS greatCircleDistance(BODY, LATLNG(lat,lng), new_spot).
   pOut("  Distance from input spot: " + ROUND(spot_dist) + "m.").
 
