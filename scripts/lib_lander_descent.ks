@@ -7,6 +7,7 @@ FOR f IN LIST(
   "lib_burn.ks",
   "lib_runmode.ks",
   "lib_orbit.ks",
+  "lib_slope.ks",
   "lib_geo.ks",
   "lib_lander_common.ks",
   "lib_lander_geo.ks"
@@ -23,6 +24,8 @@ FUNCTION initDescentValues
 
   SET LND_LAT TO l_lat.
   SET LND_LNG TO l_lng.
+
+  setTime("LND_BURN_TIME", 0).
 
   landerSetMinVSpeed(0).
   SET LND_RADAR_ADJUST TO adjust.
@@ -118,6 +121,86 @@ FUNCTION checkPeriapsis
   steerOff().
 }
 
+FUNCTION refineLandingSite
+{
+  PARAMETER max_slope, radius.
+
+  LOCAL low_slope_spot IS findLowSlope(max_slope, LND_LAT, LND_LNG, radius).
+
+  SET LND_LAT TO low_slope_spot:LAT.
+  SET LND_LNG TO low_slope_spot:LNG.
+
+hudMsg("Landing site chosen: " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + ".").
+}
+
+FUNCTION stepBurnScore
+{
+  PARAMETER start_time, end_time, step, burn_score, burn_time.
+
+  LOCAL max_acc IS SHIP:AVAILABLETHRUST / MASS.
+  LOCAL spot IS LATLNG(LND_LAT, LND_LNG).
+
+  LOCAL check_time IS start_time.
+  UNTIL check_time > end_time {
+
+    LOCAL time_diff IS check_time-TIME:SECONDS.
+    LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
+    LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * max_acc).
+    ship_pos IS POSITIONAT(SHIP, check_time).
+    spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
+    ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), time_diff).
+    LOCAL ship_spot_details IS spotDetails(ship_spot:LAT, ship_spot:LNG).
+    LOCAL ship_pos_up_v IS ship_spot_details[1].
+    LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
+    LOCAL v_h IS VXCL(ship_pos_up_v, v).
+    LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
+pOut("Burn step score...").
+pOut("Time ahead: " + ROUND(check_time-TIME:SECONDS) + "s.").
+pOut("Lat/lng: " + ROUND(ship_spot:LAT,3) + " / " + ROUND(ship_spot:LNG,3) + ".").
+pOut("Score: " + ROUND(score,1) + ".").
+
+    IF score < burn_score {
+      SET burn_score TO score.
+      SET burn_time TO check_time.
+    }
+
+    SET check_time TO check_time + step.
+  }
+
+  IF step > 1 {
+    LOCAL new_step IS MAX(1, ROUND(step / 10)).
+    RETURN stepBurnScore(burn_time+new_step-step, burn_time+step-new_step, new_step, burn_score, burn_time).
+  }
+
+  RETURN burn_time.
+}
+
+FUNCTION calcDescentBurnTime
+{
+  LOCAL pe_time IS TIME:SECONDS + secondsToTa(SHIP,0).
+  LOCAL burn_time IS pe_time.
+
+  IF SHIP:AVAILABLETHRUST > 0 {
+    SET burn_time TO stepBurnScore(pe_time-600, pe_time+600, 60, 99999, pe_time).
+  }
+
+  setTime("LND_BURN_TIME", burn_time).
+pOut("Start descent burn in " + ROUND(diffTime("LND_BURN_TIME")) + "s.".
+  RETURN burn_time.
+}
+
+FUNCTION warpToDescentBurn
+{
+  PARAMETER safety_factor. // m
+  LOCAL burn_time IS TIMES["LND_BURN_TIME"].
+  LOCAL warp_time IS burn_time - 30.
+  IF warp_time - TIME:SECONDS > 5 {
+    pOut("Warping to descent burn point.").
+    doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
+  }
+}
+
+// obsolete in new version
 FUNCTION warpToPeriapsis
 {
   PARAMETER safety_factor. // m
@@ -128,6 +211,7 @@ FUNCTION warpToPeriapsis
   }
 }
 
+// obsolete in new version
 FUNCTION constantAltitudeVec
 {
   RETURN ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION)) 
@@ -200,6 +284,7 @@ FUNCTION doConstantAltitudeBurn
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  IF TIMES["LND_BURN_TIME"] < 1 { calcDescentBurnTime(). }
 
   LOCAL done IS FALSE.
   UNTIL done {
@@ -208,8 +293,8 @@ FUNCTION doConstantAltitudeBurn
     IF VERTICALSPEED < landerMinVSpeed() {
       pOut("Terrain proximity.").
       SET done TO TRUE.
-    } ELSE IF ETA:PERIAPSIS < 75 OR ABS(VERTICALSPEED) < 0.5 {
-      pOut("Approaching periapsis.").
+    } ELSE IF diffTime("LND_BURN_TIME") < 1 {
+      pOut("Approaching (or past) burn point.").
       SET done TO TRUE.
     }
   }
@@ -225,7 +310,7 @@ FUNCTION doConstantAltitudeBurn
       findMinVSpeed(-50,90,3).
     }
 
-    IF GROUNDSPEED < 1 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 10 {
+    IF GROUNDSPEED < 0.5 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 5 {
       SET done TO TRUE.
       pOut("Groundspeed close to zero and near landing site.").
       pOut("Ending constant altitude burn.").
@@ -339,8 +424,9 @@ FUNCTION doLanding
   PARAMETER l_lat, l_lng.
   PARAMETER radar_adjust. // metres between the root part and bottom of landing gear
   PARAMETER pe_safety_factor, max_dist. // both m
-  PARAMETER days_limit.
-  PARAMETER exit_mode.
+  PARAMETER days_limit, exit_mode.
+  PARAMETER max_slope IS 5. // degrees
+  PARAMETER lander_radius IS 2. // metres
 
   LOCAL LOCK rm TO runMode().
 
@@ -385,14 +471,15 @@ UNTIL rm = exit_mode
     // wait
 
   } ELSE IF rm = 231 {
-    warpToPeriapsis(pe_safety_factor).
-    runMode(232).
-  } ELSE IF rm = 232 {
+    refineLandingSite(max_slope, lander_radius).
+    calcDescentBurnTime().
+    CLEARVECDRAWS().
+    warpToDescentBurn(pe_safety_factor).
     steerTo(constantAltitudeVec3@).
     doConstantAltitudeBurn(pe_safety_factor).
+    CLEARVECDRAWS().
     runMode(233).
   } ELSE IF rm = 233 {
-    CLEARVECDRAWS().
     steerSurf(FALSE).
     doSuicideBurn().
     runMode(234).
