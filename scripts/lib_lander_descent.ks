@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170605").
+pOut("lib_lander_descent.ks v1.2.0 20170606").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -181,9 +181,12 @@ pOut("Pitch 2b: " + LND_PITCH).
   }
 
   LOCAL h_thrust_v IS ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
-  LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+  LOCAL final_vector IS UP:VECTOR.
+  IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
+    VECDRAW(V(0,0,0), 5 * h_thrust_v:NORMALIZED, RGB(0.3,0.3,1), "Horizontal thrust vector ", 1, TRUE).
+    ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+  }
 
-  VECDRAW(V(0,0,0), 10 * h_thrust_v, RGB(0.3,0.3,1), "Horizontal thrust vector "+ROUND(h_thrust_v:MAG,1) + "m/s^2", 1, TRUE).
   VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
   VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
 
