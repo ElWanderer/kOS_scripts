@@ -172,6 +172,7 @@ pOut("Original estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     // integral of s(t).dt at t=bt
     LOCAL abt IS a*bt.
     LOCAL est_burn_dist IS D + (C*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
+    SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
 pOut("New estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     
     LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
