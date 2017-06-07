@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_ca.ks v1.0.0 20161130").
+pOut("lib_ca.ks v1.0.0 20170607").
 
 FUNCTION targetDist
 {
