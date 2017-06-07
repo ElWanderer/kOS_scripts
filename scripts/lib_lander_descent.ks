@@ -146,10 +146,6 @@ FUNCTION stepBurnScore
     LOCAL time_diff IS check_time-TIME:SECONDS.
     LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
     
-    // original calculation:
-    LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * max_acc).
-pOut("Original estimated burn distance: " + ROUND(est_burn_dist) + "m.").
-
     // new calculation, taking into account non-constant acceleration:
     // note that this doesn't take into account having to pitch up to avoid dropping into terrain...
     // but the result is astonishing close to a simulation I ran in Excel
@@ -174,7 +170,6 @@ pOut("Original estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     LOCAL abt IS a*bt.
     LOCAL est_burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
     SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
-pOut("New estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     
     LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
     LOCAL spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
@@ -184,10 +179,6 @@ pOut("New estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
     LOCAL v_h IS VXCL(ship_pos_up_v, v).
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
-pOut("Burn step score...").
-pOut("Time ahead: " + ROUND(check_time-TIME:SECONDS) + "s.").
-pOut("Lat/lng: " + ROUND(ship_spot:LAT,3) + " / " + ROUND(ship_spot:LNG,3) + ".").
-pOut("Score: " + ROUND(score,1) + ".").
 
     IF score < burn_score {
       SET burn_score TO score.
