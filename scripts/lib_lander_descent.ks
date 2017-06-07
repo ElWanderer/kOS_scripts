@@ -162,16 +162,17 @@ pOut("Original estimated burn distance: " + ROUND(est_burn_dist) + "m.").
 
     // integral of a(t).dt at t=0
     LOCAL v_int_t0 IS -(c/a)*LN(b).
+
     // calculate the constant of integration based on known value of velocity (v:MAG) at t0
-    LOCAL C IS v:MAG - v_int_t0.
+    LOCAL constC IS v:MAG - v_int_t0.
 
     // integral of s(t).dt at t=0
     LOCAL s_int_t0 IS -(c/a) * b * LN(b) / a.
     // calculate the constant of integration based on known value of distance (0) at t0
-    LOCAL D IS -s_int_t0.
+    LOCAL constD IS -s_int_t0.
     // integral of s(t).dt at t=bt
     LOCAL abt IS a*bt.
-    LOCAL est_burn_dist IS D + (C*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
+    LOCAL est_burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
     SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
 pOut("New estimated burn distance: " + ROUND(est_burn_dist) + "m.").
     
