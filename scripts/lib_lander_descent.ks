@@ -145,7 +145,35 @@ FUNCTION stepBurnScore
 
     LOCAL time_diff IS check_time-TIME:SECONDS.
     LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
+    
+    // original calculation:
     LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * max_acc).
+pOut("Original estimated burn distance: " + ROUND(est_burn_dist) + "m.").
+
+    // new calculation, taking into account non-constant acceleration:
+    // note that this doesn't take into account having to pitch up to avoid dropping into terrain...
+    // but the result is astonishing close to a simulation I ran in Excel
+    // we may wish to add a small safety factor (1 or 2% of the final value?)
+    LOCAL bt IS burnTime(v:MAG). // lib_dv.ks, sets the calculated Isp and fuel rate for current stage
+
+    LOCAL a IS -DV_FR.
+    LOCAL b IS MASS.
+    LOCAL c IS SHIP:AVAILABLETHRUST.
+
+    // integral of a(t).dt at t=0
+    LOCAL v_int_t0 IS -(c/a)*LN(b).
+    // calculate the constant of integration based on known value of velocity (v:MAG) at t0
+    LOCAL C IS v:MAG - v_int_t0.
+
+    // integral of s(t).dt at t=0
+    LOCAL s_int_t0 IS -(c/a) * b * LN(b) / a.
+    // calculate the constant of integration based on known value of distance (0) at t0
+    LOCAL D IS -s_int_t0.
+    // integral of s(t).dt at t=bt
+    LOCAL abt IS a*bt.
+    LOCAL est_burn_dist IS D + (C*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
+pOut("New estimated burn distance: " + ROUND(est_burn_dist) + "m.").
+    
     LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
     LOCAL spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
     LOCAL ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), time_diff).
