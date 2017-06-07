@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170606").
+pOut("lib_lander_descent.ks v1.2.0 20170607").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -185,15 +185,14 @@ FUNCTION calcDescentBurnTime
   }
 
   setTime("LND_BURN_TIME", burn_time).
-pOut("Start descent burn in " + ROUND(diffTime("LND_BURN_TIME")) + "s.").
+pOut("Start descent burn in " + ROUND(-diffTime("LND_BURN_TIME")) + "s.").
   RETURN burn_time.
 }
 
 FUNCTION warpToDescentBurn
 {
   PARAMETER safety_factor. // m
-  LOCAL burn_time IS TIMES["LND_BURN_TIME"].
-  LOCAL warp_time IS burn_time - 30.
+  LOCAL warp_time IS TIMES["LND_BURN_TIME"] - 20.
   IF warp_time - TIME:SECONDS > 5 {
     pOut("Warping to descent burn point.").
     doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
