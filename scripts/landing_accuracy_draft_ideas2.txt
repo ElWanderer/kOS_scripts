@@ -1,0 +1,41 @@
+
+FUNCTION stepBurnScore
+{
+  PARAMETER start_time, end_time, step, burn_score, burn_time.
+
+  LOCAL max_acc IS SHIP:AVAILABLETHRUST / MASS.
+  LOCAL spot IS LATLNG(LND_LAT, LND_LNG).
+
+  LOCAL check_time IS start_time.
+  UNTIL check_time > end_time {
+    LOCAL time_diff IS check_time-TIME:SECONDS.
+    LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
+
+
+// original calculation:
+//    LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * max_acc).
+
+// trying to calculate the burn distance taking into account non-constant acceleration:
+    LOCAL dv IS v:MAG.
+    LOCAL bt IS burnTime(dv). // lib_dv.ks, sets the calculated Isp and fuel rate for current stage
+
+    LOCAL a IS -DV_FR.
+    LOCAL b IS MASS.
+    LOCAL c IS SHIP:AVAILABLETHRUST.
+
+    // integral of a(t).dt at t=0
+    LOCAL v_int_t0 IS -(c/a)*ln(b).
+    // calculate the constant of integration based on known value of velocity (dv) at t0
+    LOCAL C IS dv - v_int_t0.
+
+    // integral of s(t).dt at t=0
+    LOCAL s_int_t0 IS -(c/a) * b * ln(b) / a.
+    // calculate the constant of integration based on known value of distance (0) at t0
+    LOCAL D IS - s_int_t0.
+    // integral of s(t).dt at t=bt
+    LOCAL abt IS a*bt.
+    LOCAL est_burn_dist IS D + (C*bt) - ((c/a) * (((abt+b)*ln(abt+b))-abt) / a).
+
+    // note that this doesn't take into account having to pitch up to avoid dropping into terrain...
+
+etc...
