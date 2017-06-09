@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170607").
+pOut("lib_lander_descent.ks v1.2.0 20170609").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -207,6 +207,7 @@ FUNCTION calcDescentBurnTime
 
   setTime("LND_BURN_TIME", burn_time).
 pOut("Start descent burn in " + ROUND(-diffTime("LND_BURN_TIME")) + "s.").
+pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MISSIONTIME)).
   RETURN burn_time.
 }
 
@@ -304,11 +305,12 @@ FUNCTION doConstantAltitudeBurn
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
-  IF TIMES["LND_BURN_TIME"] < 1 { calcDescentBurnTime(). }
+pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MISSIONTIME)).
 
   LOCAL done IS FALSE.
   UNTIL done {
     WAIT 1.
+pOut("Start descent burn in " + ROUND(-diffTime("LND_BURN_TIME")) + "s.").
     findMinVSpeed(-50,24,4).
     IF VERTICALSPEED < landerMinVSpeed() {
       pOut("Terrain proximity.").
