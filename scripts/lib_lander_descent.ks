@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170609").
+pOut("lib_lander_descent.ks v1.2.0 20170611").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -170,6 +170,7 @@ FUNCTION stepBurnScore
     LOCAL abt IS a*bt.
     LOCAL est_burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
     SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
+
     
     LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
     LOCAL spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
@@ -305,17 +306,15 @@ FUNCTION doConstantAltitudeBurn
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
-pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MISSIONTIME)).
 
   LOCAL done IS FALSE.
   UNTIL done {
     WAIT 1.
-pOut("Start descent burn in " + ROUND(-diffTime("LND_BURN_TIME")) + "s.").
     findMinVSpeed(-50,24,4).
     IF VERTICALSPEED < landerMinVSpeed() {
       pOut("Terrain proximity.").
       SET done TO TRUE.
-    } ELSE IF diffTime("LND_BURN_TIME") < 1 {
+    } ELSE IF diffTime("LND_BURN_TIME") > -1 {
       pOut("Approaching (or past) burn point.").
       SET done TO TRUE.
     }
