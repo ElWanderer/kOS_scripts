@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170117").
+pOut("lib_dv.ks v1.1.0 20170613").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -7,6 +7,7 @@ GLOBAL DV_FM IS 0.
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
 GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
+SET LIB_DV_LOADED TO TRUE.
 
 FUNCTION fuelRate
 {
@@ -136,7 +137,8 @@ FUNCTION fuelMassFamily
 
 FUNCTION stageDV
 {
-  setIspFuelRate().
+  PARAMETER recalc_isp IS FALSE.
+  IF recalc_isp { setIspFuelRate(). }
   DV_PL:CLEAR.
   SET DV_FM TO 0.
   FOR e IN currentStageEngines() { fuelMassFamily(e). }
@@ -152,8 +154,8 @@ FUNCTION pDV
 
 FUNCTION burnTime
 {
-  PARAMETER dv, sdv IS stageDV(), limiter IS 1.
-  setIspFuelRate(limiter).
+  PARAMETER dv, sdv IS stageDV(), limiter IS 1, recalc_isp IS FALSE.
+  IF recalc_isp { setIspFuelRate(limiter). }
   LOCAL bt IS btCalc(dv,MASS,DV_ISP,DV_FR).
   IF dv > sdv {
     LOCAL bt1 IS btCalc(sdv,MASS,DV_ISP,DV_FR).
