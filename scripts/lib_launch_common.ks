@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20170322").
+pOut("lib_launch_common.ks v1.4.0 20170613").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -163,6 +163,8 @@ FUNCTION launchCoast
 {
   PARAMETER exit_mode, flight_mode.
   IF ALTITUDE > BODY:ATM:HEIGHT {
+    setIspFuelRate().
+    pDV().
     steerOff().
     launchExtend().
     IF launchCirc() {
@@ -190,7 +192,6 @@ FUNCTION launchFlight
   launchStaging().
   IF APOAPSIS > LCH_AP {
     killThrot().
-    pDV().
     steerSurf().
     runMode(next_mode).
   }
