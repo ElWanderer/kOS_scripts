@@ -46,9 +46,6 @@ IF rm < 0 {
   logOn().
 
   killThrot().
-  WAIT 2.
-
-  UNTIL SHIP:MAXTHRUST > 0 { doStage(). WAIT 1. }
 
   hudMsg("Hit abort to trigger landing when ready.").
   runMode(809,801).
@@ -74,6 +71,7 @@ IF rm < 0 {
   WAIT UNTIL MOD(runMode(),10) <> 9.
 
 } ELSE IF rm = 801 {
+  UNTIL SHIP:MAXTHRUST > 0 { doStage(). WAIT 1. }
   store("doLanding(" + LAND_LAT + "," + LAND_LNG + ","+CORE_HEIGHT+","+SAFETY_ALT+",5000,25,841).").
   doLanding(LAND_LAT,LAND_LNG,CORE_HEIGHT,SAFETY_ALT,5000,25,841).
 
