@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestLander.ks v1.0.0 20170611").
+pOut("TestLander.ks v1.0.0 20170613").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -48,7 +48,7 @@ IF rm < 0 {
   killThrot().
   WAIT 2.
 
-  UNTIL SHIP:MAXTHRUST > 0 { STAGE. WAIT 1. }
+  UNTIL SHIP:MAXTHRUST > 0 { doStage(). WAIT 1. }
 
   hudMsg("Hit abort to trigger landing when ready.").
   runMode(809,801).
