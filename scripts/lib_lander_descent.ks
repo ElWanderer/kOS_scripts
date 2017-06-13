@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170611").
+pOut("lib_lander_descent.ks v1.2.0 20170613").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -133,6 +133,24 @@ FUNCTION refineLandingSite
 hudMsg("Landing site chosen: " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + ".").
 }
 
+FUNCTION burnDist
+{
+  PARAMETER dv.
+pOut("burnDist("+ROUND(dv,1)+").").
+
+  LOCAL bt IS burnTime(dv, dv).
+  LOCAL a IS -DV_FR.
+  LOCAL b IS MASS.
+  LOCAL c IS SHIP:AVAILABLETHRUST.
+
+  LOCAL constC IS dv + ((c/a)*LN(b)).
+  LOCAL constD IS (c/a) * b * LN(b) / a.
+  LOCAL abt IS a*bt.
+  LOCAL burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
+pOut("Calculated burn distance: " + ROUND(burn_dist) + "m.").
+  RETURN burn_dist.
+}
+
 FUNCTION stepBurnScore
 {
   PARAMETER start_time, end_time, step, burn_score, burn_time.
@@ -145,33 +163,6 @@ FUNCTION stepBurnScore
 
     LOCAL time_diff IS check_time-TIME:SECONDS.
     LOCAL v IS VELOCITYAT(SHIP, check_time):SURFACE.
-    
-    // new calculation, taking into account non-constant acceleration:
-    // note that this doesn't take into account having to pitch up to avoid dropping into terrain...
-    // but the result is astonishing close to a simulation I ran in Excel
-    // we may wish to add a small safety factor (1 or 2% of the final value?)
-    LOCAL bt IS burnTime(v:MAG). // lib_dv.ks, sets the calculated Isp and fuel rate for current stage
-
-    LOCAL a IS -DV_FR.
-    LOCAL b IS MASS.
-    LOCAL c IS SHIP:AVAILABLETHRUST.
-
-    // integral of a(t).dt at t=0
-    LOCAL v_int_t0 IS -(c/a)*LN(b).
-
-    // calculate the constant of integration based on known value of velocity (v:MAG) at t0
-    LOCAL constC IS v:MAG - v_int_t0.
-
-    // integral of s(t).dt at t=0
-    LOCAL s_int_t0 IS -(c/a) * b * LN(b) / a.
-    // calculate the constant of integration based on known value of distance (0) at t0
-    LOCAL constD IS -s_int_t0.
-    // integral of s(t).dt at t=bt
-    LOCAL abt IS a*bt.
-    LOCAL est_burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
-    SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
-
-    
     LOCAL ship_pos IS POSITIONAT(SHIP, check_time).
     LOCAL spot_pos IS spotRotated(BODY, spot, time_diff):POSITION.
     LOCAL ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), time_diff).
@@ -179,6 +170,11 @@ FUNCTION stepBurnScore
     LOCAL ship_pos_up_v IS ship_spot_details[1].
     LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
     LOCAL v_h IS VXCL(ship_pos_up_v, v).
+
+    LOCAL est_burn_dist IS burnDist(v_h:MAG).
+    SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
+pOut("Estimated burn distance: " + ROUND(est_burn_dist) + "m.").
+
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
     IF score < burn_score {
@@ -222,28 +218,10 @@ FUNCTION warpToDescentBurn
   }
 }
 
-// obsolete in new version
-FUNCTION warpToPeriapsis
-{
-  PARAMETER safety_factor. // m
-  LOCAL warp_time IS TIME:SECONDS + ETA:PERIAPSIS - 30.
-  IF warp_time - TIME:SECONDS > 5 {
-    pOut("Warping until close to periapsis.").
-    doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
-  }
-}
-
-// obsolete in new version
 FUNCTION constantAltitudeVec
 {
-  RETURN ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION)) 
-         * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
-}
-
-FUNCTION constantAltitudeVec3
-{
   CLEARVECDRAWS().
-pOut("constantAltitudeVec3").
+pOut("constantAltitudeVec").
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
@@ -497,7 +475,7 @@ UNTIL rm = exit_mode
     calcDescentBurnTime().
     CLEARVECDRAWS().
     warpToDescentBurn(pe_safety_factor).
-    steerTo(constantAltitudeVec3@).
+    steerTo(constantAltitudeVec@).
     doConstantAltitudeBurn(pe_safety_factor).
     CLEARVECDRAWS().
     runMode(233).
