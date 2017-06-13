@@ -8,6 +8,7 @@ GLOBAL INIT_MET IS "".
 GLOBAL stageTime IS diffTime@:BIND("STAGE").
 GLOBAL CRAFT_SPECIFIC IS LEXICON().
 GLOBAL CRAFT_FILE IS "1:/craft.ks".
+GLOBAL LIB_DV_LOADED IS FALSE.
 
 killWarp().
 setTime("STAGE").
@@ -18,7 +19,7 @@ IF NOT EXISTS (CRAFT_FILE) AND cOk() {
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.3.0 20170119").
+pOut("init_common.ks v1.3.0 20170613").
 
 FUNCTION padRep
 {
@@ -89,6 +90,7 @@ FUNCTION doStage
   pOut("Staging.").
   setTime("STAGE").
   STAGE.
+  IF LIB_DV_LOADED { setIspFuelRate(). pDV(). }
 }
 
 FUNCTION mAngle
