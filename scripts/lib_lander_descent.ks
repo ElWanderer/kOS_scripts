@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170613").
+pOut("lib_lander_descent.ks v1.2.0 20170614").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -210,12 +210,13 @@ pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MIS
 
 FUNCTION warpToDescentBurn
 {
-  PARAMETER safety_factor. // m
-  LOCAL warp_time IS TIMES["LND_BURN_TIME"] - 20.
+  PARAMETER safety_factor, ahead IS -20.
+  LOCAL warp_time IS TIMES["LND_BURN_TIME"] + ahead.
   IF warp_time - TIME:SECONDS > 5 {
     pOut("Warping to descent burn point.").
     doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
   }
+  RETURN (TIME:SECONDS >= warp_time).
 }
 
 FUNCTION constantAltitudeVec
@@ -224,14 +225,16 @@ FUNCTION constantAltitudeVec
 pOut("constantAltitudeVec").
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
+  LOCAL site_v IS 
+pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
   LOCAL ang IS VANG(des_h_v, cur_h_v).
 
-  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT), RGB(1,0,0), "Landing site", 1, TRUE).
+  VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT+1), RGB(1,0,0), "Landing site "+ROUND(des_h_v:MAG/1000,1)+"km", 1, TRUE).
   VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
 
   SET LND_PITCH TO landerPitch().
-pOut("Pitch 1: " + LND_PITCH).
   LOCAL cav_throt IS LND_THROTTLE.
   IF cav_throt = 0 { SET cav_throt TO 1. }
 
@@ -253,7 +256,7 @@ pOut("ship_h_acc: " + ROUND(max_h_acc,2)).
   IF ABS(max_h_acc) < ABS(ship_h_acc) {
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
     SET LND_PITCH TO worst_p_ang.
-pOut("Pitch 2a: " + LND_PITCH).
+pOut("Pitch (worst case): " + LND_PITCH).
   } ELSE {
     LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
 pOut("total_acc: " + ROUND(total_acc,2)).
@@ -261,7 +264,7 @@ pOut("total_acc: " + ROUND(total_acc,2)).
     LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
     SET LND_PITCH TO des_pitch.
-pOut("Pitch 2b: " + LND_PITCH).
+pOut("Pitch (normal): " + LND_PITCH).
   }
 
   LOCAL h_thrust_v IS ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
@@ -474,7 +477,10 @@ UNTIL rm = exit_mode
     refineLandingSite(max_slope, lander_radius).
     calcDescentBurnTime().
     CLEARVECDRAWS().
-    warpToDescentBurn(pe_safety_factor).
+    IF warpToDescentBurn(pe_safety_factor,-120) {
+      calcDescentBurnTime().
+      warpToDescentBurn(pe_safety_factor).
+    }
     steerTo(constantAltitudeVec@).
     doConstantAltitudeBurn(pe_safety_factor).
     CLEARVECDRAWS().
