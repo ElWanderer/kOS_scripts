@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170614").
+pOut("lib_lander_descent.ks v1.2.0 20170619").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -17,6 +17,7 @@ GLOBAL LND_THRUST_ACC IS 0.
 GLOBAL LND_RADAR_ADJUST IS 0.
 GLOBAL LND_LAT IS 0.
 GLOBAL LND_LNG IS 0.
+GLOBAL LND_SET_DOWN IS LIST(25,4,10,1.5).
 
 FUNCTION initDescentValues
 {
@@ -382,7 +383,7 @@ FUNCTION doSuicideBurn
   LOCAL imp_alt IS calculateImpact().
   landerResetTimer().
 
-  UNTIL adjustedAltitude() < 25 {
+  UNTIL adjustedAltitude() < LND_SET_DOWN[0] {
     IF landerHeartbeat() > 1 {
       landerResetTimer().
       SET imp_alt TO calculateImpact().
@@ -398,16 +399,15 @@ FUNCTION doSetDown
   LOCK THROTTLE TO LND_THROTTLE.
   PANELS OFF.
 
-  // aim for 5m/s until below 12m, then aim for 2m/s
-  LOCAL aim_speed IS 5.
+  LOCAL aim_speed IS LND_SET_DOWN[1].
 
-  UNTIL adjustedAltitude() < 1 {
-    IF adjustedAltitude() < 12 AND aim_speed > 2 {
-      SET aim_speed TO 2.
+  UNTIL adjustedAltitude() < 0.5 OR LIST("LANDED","SPLASHED"):CONTAINS(STATUS) {
+    IF adjustedAltitude() < LND_SET_DOWN[2] AND aim_speed > LND_SET_DOWN[3] {
+      SET aim_speed TO LND_SET_DOWN[3].
       steerTo({ RETURN UP:VECTOR. }).
     }
 
-    LOCAL des_acc IS -SHIP:VERTICALSPEED - aim_speed.
+    LOCAL des_acc IS 5 * (-SHIP:VERTICALSPEED - aim_speed).
     LOCAL des_throt IS (des_acc + gravAcc()) / LND_THRUST_ACC.
     SET LND_THROTTLE TO MIN(1,MAX(0,des_throt)).
     WAIT 0.
@@ -428,8 +428,8 @@ FUNCTION doLanding
   PARAMETER radar_adjust. // metres between the root part and bottom of landing gear
   PARAMETER pe_safety_factor, max_dist. // both m
   PARAMETER days_limit, exit_mode.
-  PARAMETER max_slope IS 5. // degrees
-  PARAMETER lander_radius IS 2. // metres
+  PARAMETER max_slope IS 3. // degrees
+  PARAMETER lander_radius IS 2.5. // metres
 
   LOCAL LOCK rm TO runMode().
 
