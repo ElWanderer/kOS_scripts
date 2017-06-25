@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170623").
+pOut("lib_lander_descent.ks v1.2.0 20170625").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -255,7 +255,7 @@ pOut("max_h_acc: " + ROUND(max_h_acc,2)).
 pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
   LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc).
 pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
-  IF NOT LND_OVERSHOOT AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
+  IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT (we are travelling away from the landing site).").
     SET LND_OVERSHOOT TO TRUE.
   } ELSE IF LND_OVERSHOOT AND VDOT(des_h_v:NORMALIZED, cur_h_v) > des_speed {
@@ -263,12 +263,13 @@ pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
     SET LND_OVERSHOOT TO FALSE.
   }
 
+  LOCAL h_thrust_v IS V(0,0,0).
   IF LND_OVERSHOOT {
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
     SET LND_PITCH TO worst_p_ang.
 pOut("Pitch (overshoot case): " + LND_PITCH).
 
-    LOCAL h_thrust_v IS ((des_speed + max_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+    SET h_thrust_v TO ((des_speed + max_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
   } ELSE {
     IF ABS(max_h_acc) < ABS(ship_h_acc) {
       IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
@@ -284,7 +285,7 @@ pOut("total_acc: " + ROUND(total_acc,2)).
 pOut("Pitch (normal): " + LND_PITCH).
     }
 
-    LOCAL h_thrust_v IS ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+    SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
   }
 
   IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
@@ -296,7 +297,6 @@ pOut("Pitch (normal): " + LND_PITCH).
   VECDRAW(V(0,0,0), 5 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
 
   IF VANG(final_vector, FACING:VECTOR) > 15 AND LND_THROTTLE > 0 {
-pOut("Facing 15+ degrees from target vector, reducing throttle.").
     SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * VDOT(final_vector:NORMALIZED,FACING:VECTOR)).
   }
 pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
@@ -444,8 +444,10 @@ FUNCTION doSetDown
   WAIT UNTIL LIST("LANDED","SPLASHED"):CONTAINS(STATUS).
   hudMsg("Touchdown.").
   pOut("Landed at LAT: " + ROUND(LATITUDE,2) + " LNG: " + ROUND(LONGITUDE,2)).
+  VECDRAW(V(0,0,0),LATLNG(LND_LAT,LND_LNG):POSITION,RED,"Landing site aim point",1,TRUE).
   dampSteering().
   WAIT 10. PANELS ON.
+  CLEARVECDRAWS().
 }
 
 FUNCTION doLanding
