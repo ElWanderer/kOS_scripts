@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170625").
+pOut("lib_lander_descent.ks v1.2.0 20170629").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -111,13 +111,19 @@ FUNCTION checkPeriapsis
   steerSurf().
   WAIT UNTIL steerOk(1,3).
 
-  LOCAL new_pe IS findHighestPointNear(lat,lng) + safety_factor.
-  IF PERIAPSIS < new_pe {
+  LOCAL start_time IS TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
+  LOCAL end_time IS TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0) + 30.
+  LOCAL clearance IS pathClearance(start_time, end_time,0.1).
+  UNTIL clearance > safety_factor {
+    LOCAL new_pe IS PERIAPSIS + (safety_factor - clearance).
     LOCK THROTTLE TO LND_THROTTLE.
     SET LND_THROTTLE TO 0.1.
     WAIT UNTIL PERIAPSIS >= new_pe.
     SET LND_THROTTLE TO 0.
     WAIT 2.
+    SET start_time TO TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
+    SET end_time TO TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0) + 30.
+    SET clearance TO pathClearance(start_time, end_time,0.1).
   }
 
   steerOff().
@@ -138,7 +144,7 @@ hudMsg("Landing site chosen: " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + "
 FUNCTION burnDist
 {
   PARAMETER dv.
-pOut("burnDist("+ROUND(dv,1)+").").
+//pOut("burnDist("+ROUND(dv,1)+").").
 
   LOCAL bt IS burnTime(dv, dv).
   LOCAL a IS -DV_FR.
@@ -149,7 +155,7 @@ pOut("burnDist("+ROUND(dv,1)+").").
   LOCAL constD IS (c/a) * b * LN(b) / a.
   LOCAL abt IS a*bt.
   LOCAL burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
-pOut("Calculated burn distance: " + ROUND(burn_dist) + "m.").
+//pOut("Calculated burn distance: " + ROUND(burn_dist) + "m.").
   RETURN burn_dist.
 }
 
@@ -174,8 +180,8 @@ FUNCTION stepBurnScore
     LOCAL v_h IS VXCL(ship_pos_up_v, v).
 
     LOCAL est_burn_dist IS burnDist(v_h:MAG).
-    SET est_burn_dist TO est_burn_dist * 1.02. // 2% safety factor
-pOut("Estimated burn distance: " + ROUND(est_burn_dist) + "m.").
+    SET est_burn_dist TO est_burn_dist * 1.05. // 5% safety factor
+//pOut("Estimated burn distance: " + ROUND(est_burn_dist) + "m.").
 
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
@@ -207,32 +213,36 @@ FUNCTION calcDescentBurnTime
   setTime("LND_BURN_TIME", burn_time).
 pOut("Start descent burn in " + ROUND(-diffTime("LND_BURN_TIME")) + "s.").
 pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MISSIONTIME)).
+
+  LOCAL start_time IS TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
+  LOCAL end_time IS TIMES["LND_BURN_TIME"] + 30.
+  pathClearance(start_time, end_time,0.1).
+
   RETURN burn_time.
 }
 
 FUNCTION warpToDescentBurn
 {
-  PARAMETER safety_factor, ahead IS -20.
+  PARAMETER ahead IS -20.
   LOCAL warp_time IS TIMES["LND_BURN_TIME"] + ahead.
   IF warp_time - TIME:SECONDS > 5 {
     pOut("Warping to descent burn point.").
-    doWarp(warp_time, { RETURN ALT:RADAR < (safety_factor / 2). }).
+    doWarp(warp_time).
   }
-  RETURN (TIME:SECONDS >= warp_time).
 }
 
 FUNCTION constantAltitudeVec
 {
   CLEARVECDRAWS().
-pOut("constantAltitudeVec").
+//pOut("constantAltitudeVec").
 
   LOCAL final_vector IS UP:VECTOR.
 
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
-pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
+//pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
-pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
+//pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
 
   VECDRAW(V(0,0,0), spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT+1), RGB(1,0,0), "Landing site "+ROUND(des_h_v:MAG/1000,1)+"km", 1, TRUE).
   VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
@@ -244,17 +254,17 @@ pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
 
   LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
   LOCAL ship_v_acc IS MAX(0,LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED)).
-pOut("ship_v_acc: " + ROUND(ship_v_acc,2)).
+//pOut("ship_v_acc: " + ROUND(ship_v_acc,2)).
   LOCAL worst_p_ang IS 90.
   LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
   IF acc_ratio < 0 { SET worst_p_ang TO 0. }
   ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
   LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
-pOut("max_h_acc: " + ROUND(max_h_acc,2)).
+//pOut("max_h_acc: " + ROUND(max_h_acc,2)).
   LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
-pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
-  LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc).
-pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
+//pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
+  LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc) * 0.75.
+//pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
   IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT (we are travelling away from the landing site).").
     SET LND_OVERSHOOT TO TRUE.
@@ -267,22 +277,22 @@ pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
   IF LND_OVERSHOOT {
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
     SET LND_PITCH TO worst_p_ang.
-pOut("Pitch (overshoot case): " + LND_PITCH).
+//pOut("Pitch (overshoot case): " + LND_PITCH).
 
     SET h_thrust_v TO ((des_speed + max_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
   } ELSE {
     IF ABS(max_h_acc) < ABS(ship_h_acc) {
       IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
       SET LND_PITCH TO worst_p_ang.
-pOut("Pitch (worst case): " + LND_PITCH).
+//pOut("Pitch (worst case): " + LND_PITCH).
     } ELSE {
       LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
-pOut("total_acc: " + ROUND(total_acc,2)).
+//pOut("total_acc: " + ROUND(total_acc,2)).
       LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
       LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
       IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
       SET LND_PITCH TO des_pitch.
-pOut("Pitch (normal): " + LND_PITCH).
+//pOut("Pitch (normal): " + LND_PITCH).
     }
 
     SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
@@ -299,47 +309,53 @@ pOut("Pitch (normal): " + LND_PITCH).
   IF VANG(final_vector, FACING:VECTOR) > 15 AND LND_THROTTLE > 0 {
     SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * VDOT(final_vector:NORMALIZED,FACING:VECTOR)).
   }
-pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
+//pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
 
   RETURN final_vector.
 }
 
 FUNCTION doConstantAltitudeBurn
 {
-  PARAMETER safety_factor. // m
   pOut("Preparing for constant altitude burn.").
+
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
 
-  LOCAL done IS FALSE.
-  UNTIL done {
-    WAIT 1.
-    findMinVSpeed(-50,24,4).
-    IF VERTICALSPEED < landerMinVSpeed() {
-      pOut("Terrain proximity.").
-      SET done TO TRUE.
-    } ELSE IF diffTime("LND_BURN_TIME") > -1 {
-      pOut("Approaching (or past) burn point.").
-      SET done TO TRUE.
-    } ELSE IF LND_OVERSHOOT {
-      pOut("Landing site is behind us.").
-      SET done TO TRUE.
-    }
-  }
+  LOCAL surface_g IS BODY:MU / BODY:RADIUS^2.
+  LOCAL min_safety_factor IS MAX(30,(10 * surface_g)).
 
-  WAIT UNTIL steerOk(5,1).
+  WAIT UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT.
   pOut("Executing constant altitude burn.").
   landerResetTimer().
+  findMinVSpeed2(-20,10,0.5,min_safety_factor).
   SET LND_THROTTLE TO 1.
-  SET done TO FALSE.
+  LOCAL done IS FALSE.
   UNTIL done {
     IF landerHeartbeat() > 0.5 {
       landerResetTimer().
-      findMinVSpeed(-50,90,3).
+      LOCAL safety_factor IS min_safety_factor.
+      LOCAL burn_time IS 20.
+      LOCAL step IS 1.
+
+      LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+      LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
+      LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
+      IF acc_dot > 0 {
+        SET burn_time TO MIN(60,MAX(1,ROUND(cur_h_v:MAG / acc_dot))).
+        IF burn_time <= 5 { SET step tO 0.25. }
+        ELSE IF burn_time <= 10 { SET step TO 0.5. }
+      }
+      LOCAL mod_vs IS SHIP:VERTICALSPEED - (surface_g *0.5).
+      IF mod_vs < 0 {
+        LOCAL max_acc IS LND_THRUST_ACC - surface_g.
+        LOCAL min_burn_dist IS mod_vs^2 / (2 * max_acc).
+        SET safety_factor TO MAX(min_burn_dist, safety_factor).
+      }
+      findMinVSpeed2(-50,burn_time,step,safety_factor).
     }
 
-    IF GROUNDSPEED < 0.5 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 5 {
+    IF GROUNDSPEED < 0.25 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 5 {
       SET done TO TRUE.
       pOut("Groundspeed close to zero and near landing site.").
       pOut("Ending constant altitude burn.").
@@ -357,13 +373,10 @@ FUNCTION stepTerrainImpact
   LOCAL s_count IS 1.
   UNTIL s_count > (look_ahead / step) {
     LOCAL u_time IS start_time + (s_count * step).
-    LOCAL ship_alt IS posAt(SHIP,u_time):MAG - BODY:RADIUS.
-    LOCAL terrain_alt IS terrainAltAtTime(u_time).
-
-    IF ship_alt < (terrain_alt + 5) {
+    IF u_time > TIME:SECONDS AND radarAltAtTime(u_time) < LND_RADAR_ADJUST {
       IF step > 1 { RETURN stepTerrainImpact(u_time - step, step * 2, 1). }
       ELSE IF step = 1 { RETURN stepTerrainImpact(u_time-1, 2, 0.1). }
-      ELSE { RETURN terrain_alt. }
+      ELSE { RETURN terrainAltAtTime(u_time). }
     }
     SET s_count TO s_count + 1.
   }
@@ -505,12 +518,11 @@ UNTIL rm = exit_mode
     refineLandingSite(max_slope, lander_radius).
     calcDescentBurnTime().
     CLEARVECDRAWS().
-    IF warpToDescentBurn(pe_safety_factor,-120) {
-      calcDescentBurnTime().
-      warpToDescentBurn(pe_safety_factor).
-    }
+    warpToDescentBurn(-120).
+    calcDescentBurnTime().
+    warpToDescentBurn().
     steerTo(constantAltitudeVec@).
-    doConstantAltitudeBurn(pe_safety_factor).
+    doConstantAltitudeBurn().
     CLEARVECDRAWS().
     runMode(233).
   } ELSE IF rm = 233 {

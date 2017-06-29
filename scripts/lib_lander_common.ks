@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20170604").
+pOut("lib_lander_common.ks v1.1.0 20170629").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
@@ -14,7 +14,7 @@ GLOBAL landerResetTimer IS setTime@:BIND("LND").
 FUNCTION landerSetMinVSpeed
 {
   PARAMETER s.
-  IF s <> LND_MIN_VS {
+  IF ROUND(s,1) <> ROUND(LND_MIN_VS,1) {
     SET LND_MIN_VS TO s.
     pOut("LND_MIN_VS now: " + ROUND(s,1) + "m/s").
   }
@@ -55,10 +55,62 @@ FUNCTION terrainAltAtTime
   RETURN LATLNG(spot:LAT,new_lng):TERRAINHEIGHT.
 }
 
+FUNCTION radarAltAtTime
+{
+  PARAMETER u_time.
+  RETURN (posAt(SHIP,u_time):MAG - BODY:RADIUS) - terrainAltAtTime(u_time).
+}
+
+FUNCTION pathClearance
+{
+  PARAMETER start_time, end_time, step.
+
+  LOCAL min_clearance IS 999999.
+
+  LOCAL u_time IS start_time + step.
+  UNTIL u_time > end_time {
+    SET min_clearance TO MIN(radarAltAtTime(u_time), min_clearance).
+    SET u_time TO u_time + step.
+  }
+pOut("Minimum clearance above terrain: " + ROUND(min_clearance) + "m.").
+  RETURN min_clearance.
+}
+
+FUNCTION findMinVSpeed2
+{
+  PARAMETER init_min_vs, look_ahead, step, safety_factor.
+
+  LOCAL min_vs IS init_min_vs.
+  LOCAL start_time IS TIME:SECONDS.
+  LOCAL end_time IS start_time + look_ahead.
+  LOCAL u_time IS start_time + step.
+
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+  LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
+  LOCAL pos_v IS V(0,0,0).
+
+  UNTIL u_time > end_time {
+    SET cur_h_v TO cur_h_v + (acc_v * step).
+    SET pos_v TO pos_v + (cur_h_v * step).
+
+    LOCAL eta IS u_time - TIME:SECONDS.
+    IF eta > 0 {
+      LOCAL spot IS BODY:GEOPOSITIONOF(pos_v).
+      LOCAL new_lng IS mAngle(spot:LNG + (eta * 360 / BODY:ROTATIONPERIOD)).
+      LOCAL th IS LATLNG(spot:LAT,new_lng):TERRAINHEIGHT.
+      LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / eta.
+      SET min_vs TO MAX(min_vs, safe_vs).
+    }
+
+    SET u_time TO u_time + step.
+  }
+
+  landerSetMinVSpeed(min_vs).
+}
+
 FUNCTION stepTerrainVS
 {
-  PARAMETER init_min_vs.
-  PARAMETER start_time, look_ahead, step.
+  PARAMETER init_min_vs, start_time, look_ahead, step.
 
   LOCAL min_vs IS init_min_vs.
   LOCAL s_count IS 1 / step.
@@ -89,7 +141,6 @@ FUNCTION findMinVSpeed
   SET min_vs TO stepTerrainVS(min_vs,u_time,look_ahead,step).
   landerSetMinVSpeed(min_vs).
 }
-
 
 FUNCTION initLanderValues
 {

@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.0.3 20161108").
+pOut("lib_orbit.ks v1.1.0 20170629").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
@@ -9,6 +9,9 @@ FUNCTION calcTa
   LOCAL inv IS ((a * (1 - e^2)) - r)/ (e * r).
   IF ABS(inv) > 1 {
     hudMsg("ERROR: Invalid ARCCOS() in calcTa(). Rebooting in 5s.").
+    pOut("a: " + ROUND(a) + "m.").
+    pOut("e: " + ROUND(e,5) + ".").
+    pOut("r: " + ROUND(r) + "m.").
     WAIT 5. REBOOT.
   }
   RETURN ARCCOS( inv ).
@@ -97,4 +100,37 @@ FUNCTION nodeAlterOrbit
   LOCAL rad IS -v1 * SIN(f_ang).
   LOCAL n IS NODE(u_time, rad, 0, pro).
   RETURN n.
+}
+
+FUNCTION firstTAAtRadius
+{
+  PARAMETER orb, r.
+  LOCAL e IS orb:ECCENTRICITY.
+  IF e > 0 AND e <> 1 AND r > 0 { RETURN calcTa(orb:SEMIMAJORAXIS,e,r). }
+  ELSE { RETURN -1. }
+}
+
+FUNCTION secondTAAtRadius
+{
+  PARAMETER orb, r.
+  LOCAL ta2 IS -1.
+  LOCAL ta1 IS firstTAAtRadius(orb,r).
+  IF ta1 >= 0 { SET ta2 TO 360 - ta1. }
+  RETURN ta2.
+}
+
+FUNCTION secondsToAlt
+{
+  PARAMETER craft, u_time, t_alt, ascending.
+
+  LOCAL secs IS -1.
+  LOCAL orb IS ORBITAT(craft,u_time).
+  LOCAL e IS orb:ECCENTRICITY.
+  LOCAL t_ta IS -1.
+  IF t_alt > orb:PERIAPSIS AND (t_alt < orb:APOAPSIS OR e > 1) {
+    IF ascending { SET t_ta TO firstTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
+    ELSE { SET t_ta TO secondTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
+    SET secs TO secondsToTA(craft,u_time,t_ta).
+  }
+  RETURN secs.
 }

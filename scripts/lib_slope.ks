@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_slope.ks v1.0.0 20170606").
+pOut("lib_slope.ks v1.0.0 20170628").
 
 FOR f IN LIST(
   "lib_geo.ks"
@@ -90,11 +90,11 @@ FUNCTION findLowSlope
   // radius is in metres
   PARAMETER max_slope_ang IS 5, lat IS SHIP:LATITUDE, lng IS SHIP:LONGITUDE, radius IS 2.
 
-  pOut("findLowSlope() called with parameters:").
-  pOut("  Max slope angle: " + max_slope_ang + " degrees.").
-  pOut("  Latitude: " + lat).
-  pOut("  Longitude: " + lng).
-  pOut("  Radius: " + radius + "m.").
+//  pOut("findLowSlope() called with parameters:").
+//  pOut("  Max slope angle: " + max_slope_ang + " degrees.").
+//  pOut("  Latitude: " + lat).
+//  pOut("  Longitude: " + lng).
+//  pOut("  Radius: " + radius + "m.").
 
   CLEARVECDRAWS().
 
@@ -134,7 +134,7 @@ FUNCTION findLowSlope
       // remove oldest list members until we have space to add the latest point
       UNTIL visited_spots:LENGTH < spots_to_keep { visited_spots:REMOVE(0). }
     } ELSE {
-      pOut("*** Think we are stuck. Jumping " + stuck_count + " kilometres away. ***").
+//      pOut("*** Think we are stuck. Jumping " + stuck_count + " kilometres away. ***").
       // jump 'stuck_count' kilometres in a random direction
       LOCAL spot_up_v IS slope_details[1].
       LOCAL random_rot IS ANGLEAXIS(RANDOM()*360, spot_up_v).
@@ -152,21 +152,21 @@ FUNCTION findLowSlope
     SET slope_details TO slopeDetails(new_spot:LAT, new_spot:LNG, radius).
     SET slope_ang TO slope_details[4].
     LOCAL diff_v IS slope_details[0]-prev_spot_v.
-    pOut("New spot:").
-    pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
-    pOut("  Latitude: " + new_spot:LAT).
-    pOut("  Longitude: " + new_spot:LNG).
+//    pOut("New spot:").
+//    pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
+//    pOut("  Latitude: " + new_spot:LAT).
+//    pOut("  Longitude: " + new_spot:LNG).
     LOCAL spot_dist IS diff_v:MAG.
-    pOut("  Distance from previous spot: " + ROUND(spot_dist,1) + "m.").
-    VECDRAW(prev_spot_v, diff_v, RGB(1,0,0), "Jump: "+ROUND(spot_dist,1)+"m", 1, TRUE).
+//    pOut("  Distance from previous spot: " + ROUND(spot_dist,1) + "m.").
+//    VECDRAW(prev_spot_v, diff_v, RGB(1,0,0), "Jump: "+ROUND(spot_dist,1)+"m", 1, TRUE).
   }
 
-  pOut("findLowSlope() returning spot:").
-  pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
-  pOut("  Latitude: " + new_spot:LAT).
-  pOut("  Longitude: " + new_spot:LNG).
+//  pOut("findLowSlope() returning spot:").
+//  pOut("  Slope angle: " + ROUND(slope_ang,2) + " degrees.").
+//  pOut("  Latitude: " + new_spot:LAT).
+//  pOut("  Longitude: " + new_spot:LNG).
   LOCAL spot_dist IS greatCircleDistance(BODY, LATLNG(lat,lng), new_spot).
-  pOut("  Distance from input spot: " + ROUND(spot_dist) + "m.").
+//  pOut("  Distance from input spot: " + ROUND(spot_dist) + "m.").
 
   RETURN new_spot.
 }
