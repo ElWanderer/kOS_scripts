@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170630").
+pOut("lib_lander_descent.ks v1.2.0 20170702").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -19,14 +19,15 @@ GLOBAL LND_LAT IS 0.
 GLOBAL LND_LNG IS 0.
 GLOBAL LND_SET_DOWN IS LIST(25,4,10,1.5).
 GLOBAL LND_OVERSHOOT IS FALSE.
-GLOBAL LND_VS_LIMIT IS -50.
+GLOBAL LND_VS_LIMIT IS -20.
 
 FUNCTION initDescentValues
 {
-  PARAMETER l_lat, l_lng, adjust IS 0.
+  PARAMETER l_lat, l_lng, adjust IS 0, vs_limit IS LND_VS_LIMIT.
 
   SET LND_LAT TO l_lat.
   SET LND_LNG TO l_lng.
+  SET LND_VS_LIMIT TO vs_limit.
 
   setTime("LND_BURN_TIME", 0).
 
@@ -491,11 +492,12 @@ FUNCTION doLanding
   PARAMETER days_limit, exit_mode.
   PARAMETER max_slope IS 3. // degrees
   PARAMETER lander_radius IS 2.5. // metres
+  PARAMETER vs_limit IS LND_VS_LIMIT. // m/s
 
   LOCAL LOCK rm TO runMode().
 
   IF rm < 201 OR rm > 249 { runMode(201). }
-  initDescentValues(l_lat, l_lng, radar_adjust).
+  initDescentValues(l_lat, l_lng, radar_adjust, vs_limit).
 
 UNTIL rm = exit_mode
 {
