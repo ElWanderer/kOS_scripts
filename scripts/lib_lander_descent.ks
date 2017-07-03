@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170702").
+pOut("lib_lander_descent.ks v1.2.0 20170703").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -27,13 +27,10 @@ FUNCTION initDescentValues
 
   SET LND_LAT TO l_lat.
   SET LND_LNG TO l_lng.
-  SET LND_VS_LIMIT TO vs_limit.
-
-  setTime("LND_BURN_TIME", 0).
-
-  landerSetMinVSpeed(0).
   SET LND_RADAR_ADJUST TO adjust.
-
+  SET LND_VS_LIMIT TO vs_limit.
+  setTime("LND_BURN_TIME", 0).
+  landerSetMinVSpeed(0).
   LOCK LND_THRUST_ACC TO SHIP:AVAILABLETHRUST / MASS.
   initLanderValues().
 }
@@ -146,7 +143,6 @@ hudMsg("Landing site chosen: " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + "
 FUNCTION burnDist
 {
   PARAMETER dv.
-//pOut("burnDist("+ROUND(dv,1)+").").
 
   LOCAL bt IS burnTime(dv, dv).
   LOCAL a IS -DV_FR.
@@ -157,7 +153,7 @@ FUNCTION burnDist
   LOCAL constD IS (c/a) * b * LN(b) / a.
   LOCAL abt IS a*bt.
   LOCAL burn_dist IS constD + (constC*bt) - ((c/a) * (((abt+b)*LN(abt+b))-abt) / a).
-//pOut("Calculated burn distance: " + ROUND(burn_dist) + "m.").
+
   RETURN burn_dist.
 }
 
@@ -181,9 +177,18 @@ FUNCTION stepBurnScore
     LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
     LOCAL v_h IS VXCL(ship_pos_up_v, v).
 
+    LOCAL theta IS VANG(spot_pos_h, v_h).
+    LOCAL correction_dv IS 2 * v_h:MAG * SIN(theta/2).
+    LOCAL correction_time IS burnTime(correction_dv).
+    LOCAL correction_dist IS correction_time * v_h:MAG.
+
     LOCAL est_burn_dist IS burnDist(v_h:MAG).
-    SET est_burn_dist TO est_burn_dist * 1.05. // 5% safety factor
-//pOut("Estimated burn distance: " + ROUND(est_burn_dist) + "m.").
+pOut("Estimated burn distances:").
+pOut("-------------------------").
+pOut("Correcting bearing:   " + ROUND(correction_dist) + "m.").
+pOut("Killing v_h:          " + ROUND(est_burn_dist) + "m.").
+    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.05.
+pOut("Total distance (+5%): " + ROUND(est_burn_dist) + "m.").
 
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
@@ -274,7 +279,7 @@ pOut("max_h_acc: " + ROUND(max_h_acc,2)).
   LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
 pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
   LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc) * 0.75.
-pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
+
   IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT (we are travelling away from the landing site).").
     SET LND_OVERSHOOT TO TRUE.
@@ -285,6 +290,7 @@ pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
 
   LOCAL h_thrust_v IS V(0,0,0).
   IF LND_OVERSHOOT {
+pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
     SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
     LOCAL des_h_acc IS h_thrust_v:MAG / 5.
 pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
