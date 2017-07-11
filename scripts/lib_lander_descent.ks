@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170703").
+pOut("lib_lander_descent.ks v1.2.0 20170711").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -19,15 +19,33 @@ GLOBAL LND_LAT IS 0.
 GLOBAL LND_LNG IS 0.
 GLOBAL LND_SET_DOWN IS LIST(25,4,10,1.5).
 GLOBAL LND_OVERSHOOT IS FALSE.
-GLOBAL LND_VS_LIMIT IS -20.
+GLOBAL LND_VS_LIMIT IS -99.
+
+FUNCTION calcRadarAltAdjust
+{
+  LOCAL core_height IS 0.
+  LOCAL pl IS LIST().
+  LIST PARTS IN pl.
+  FOR p IN pl {
+    LOCAL p_pos IS p:POSITION - CORE:PART:POSITION.
+    LOCAL p_height IS VDOT(-FACING:VECTOR,p_pos).
+pOut("PART: " + p:TITLE + ", distance below core: " + ROUND(p_height,1) + "m.").
+    IF LIST("LT-2 Landing Strut", "LT-1 Landing Struts", "LT-05 Micro Landing Strut"):CONTAINS(p:TITLE) {
+      SET p_height TO p_height + 1.5.
+    }
+    SET core_height tO MAX(p_height, core_height).
+  }
+pOut("Calculated radar adjust value: " + ROUND(core_height,1) + "m.").
+  RETURN core_height.
+}
 
 FUNCTION initDescentValues
 {
-  PARAMETER l_lat, l_lng, adjust IS 0, vs_limit IS LND_VS_LIMIT.
+  PARAMETER l_lat, l_lng, vs_limit IS LND_VS_LIMIT.
 
   SET LND_LAT TO l_lat.
   SET LND_LNG TO l_lng.
-  SET LND_RADAR_ADJUST TO adjust.
+  SET LND_RADAR_ADJUST TO calcRadarAltAdjust().
   SET LND_VS_LIMIT TO vs_limit.
   setTime("LND_BURN_TIME", 0).
   landerSetMinVSpeed(0).
@@ -119,7 +137,7 @@ FUNCTION checkPeriapsis
     SET LND_THROTTLE TO 0.1.
     WAIT UNTIL PERIAPSIS >= new_pe.
     SET LND_THROTTLE TO 0.
-    WAIT 2.
+    WAIT 1.
     SET start_time TO TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
     SET end_time TO TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0) + 30.
     SET clearance TO pathClearance(start_time, end_time,0.1).
@@ -183,12 +201,7 @@ FUNCTION stepBurnScore
     LOCAL correction_dist IS correction_time * v_h:MAG.
 
     LOCAL est_burn_dist IS burnDist(v_h:MAG).
-pOut("Estimated burn distances:").
-pOut("-------------------------").
-pOut("Correcting bearing:   " + ROUND(correction_dist) + "m.").
-pOut("Killing v_h:          " + ROUND(est_burn_dist) + "m.").
     SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.05.
-pOut("Total distance (+5%): " + ROUND(est_burn_dist) + "m.").
 
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
@@ -279,6 +292,7 @@ pOut("max_h_acc: " + ROUND(max_h_acc,2)).
   LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
 pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
   LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc) * 0.75.
+  IF des_h_v:MAG < 150 { SET des_speed TO SQRT(des_h_v:MAG). }
 
   IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT (we are travelling away from the landing site).").
@@ -292,7 +306,7 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2)).
   IF LND_OVERSHOOT {
 pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
     SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
-    LOCAL des_h_acc IS h_thrust_v:MAG / 5.
+    LOCAL des_h_acc IS MIN(max_h_acc, h_thrust_v:MAG * 5).
 pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
     LOCAL total_acc IS SQRT(ship_v_acc^2 + des_h_acc^2).
     LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
@@ -493,7 +507,7 @@ FUNCTION doSetDown
 FUNCTION doLanding
 {
   PARAMETER l_lat, l_lng.
-  PARAMETER radar_adjust. // metres between the root part and bottom of landing gear
+  PARAMETER radar_adjust. // deprecated - has no effect
   PARAMETER pe_safety_factor, max_dist. // both m
   PARAMETER days_limit, exit_mode.
   PARAMETER max_slope IS 3. // degrees
@@ -503,7 +517,7 @@ FUNCTION doLanding
   LOCAL LOCK rm TO runMode().
 
   IF rm < 201 OR rm > 249 { runMode(201). }
-  initDescentValues(l_lat, l_lng, radar_adjust, vs_limit).
+  initDescentValues(l_lat, l_lng, vs_limit).
 
 UNTIL rm = exit_mode
 {
