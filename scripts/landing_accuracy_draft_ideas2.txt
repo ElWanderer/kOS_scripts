@@ -39,3 +39,61 @@ FUNCTION stepBurnScore
     // note that this doesn't take into account having to pitch up to avoid dropping into terrain...
 
 etc...
+
+
+
+// draft
+FUNCTION constantAltitudeVec2
+{
+  CLEARVECDRAWS().
+pOut("constantAltitudeVec2").
+
+  LOCAL final_vector IS UP:VECTOR.
+
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
+pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
+
+  // display-only code
+  LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
+  LOCAL spot_dist_string IS ROUND(des_h_v:MAG/1000,1)+"km".
+  IF des_h_v:MAG < 1000 {
+    SET spot_dist_string TO ROUND(des_h_v:MAG)+"m".
+  }
+  VECDRAW(V(0,0,0), spot_draw_v, RGB(1,0,0), "Landing site "+spot_dist_string, 1, TRUE).
+  VECDRAW(spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, RGB(1,0,0), "", 1, TRUE).
+  VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
+  // end of display
+
+  // actual pitch
+  LOCAL actual_pitch IS 90 - VANG(UP:VECTOR,FACING:VECTOR).
+
+  // vertical acceleration requirement
+  LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
+  LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
+  LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
+  LOCAL target_v_acc IS 2 * MAX(0,LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED)).
+
+  LOCAL min_pitch IS 0.
+  IF target_v_acc > LND_THRUST_ACC { SET min_pitch TO 90. }
+  ELSE { SET min_pitch TO MAX(ARCSIN(target_v_acc / LND_THRUST_ACC)). }
+
+  LOCAL max_h_acc IS LND_THRUST_ACC * COS(min_pitch).
+
+  LOCAL target_h_acc IS 0.
+  LOCAL h_thrust_v IS V(0,0,0).
+
+  // non-overshoot case:
+  IF VANG(des_h_v,cur_h_v) > 0.01 { SET h_thrust_v TO des_h_v:NORMALIZED - cur_h_v:NORMALIZED. }
+  ELSE { SET h_thrust_v TO des_h_v:NORMALIZED. }
+  SET target_h_acc TO v_xs2 / (2 * des_h_v:MAG).
+  LOCAL target_total_acc IS SQRT(target_v_acc^2 + MIN(target_h_acc,max_h_acc)^2).
+  LOCAL target_pitch IS MIN(90,MAX(0,ARCCOS(target_h_acc/target_total_acc)))
+  // steer towards target_pitch, but base throttle setting on actual_pitch
+  SET final_vector TO ANGLEAXIS(target_pitch,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+  // do we prioritise horizontal or vertical acceleration?
+  //...
+  //...
+}
