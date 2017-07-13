@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestLander.ks v1.0.0 20170613").
+pOut("TestLander.ks v1.0.0 20170711").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,13 +14,13 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Lander Test 9".
+GLOBAL SAT_NAME IS "Lander Test 16".
 GLOBAL CORE_HEIGHT IS 4.5. // metres
 //GLOBAL CORE_HEIGHT IS 3.25. // metres
 
 GLOBAL LAND_LAT IS 0.
-GLOBAL LAND_LNG IS 0.
-GLOBAL SAFETY_ALT IS 1200.
+GLOBAL LAND_LNG IS 2.
+GLOBAL SAFETY_ALT IS 1000.
 
 IF runMode() > 0 { logOn(). }
 
@@ -63,6 +63,7 @@ IF rm < 0 {
 } ELSE IF rm = 841 {
   delResume().
   pOut("Test finished.").
+  pDV().
   runMode(99).
 }
   WAIT 0.

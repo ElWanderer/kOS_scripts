@@ -155,7 +155,7 @@ FUNCTION doConstantAltitudeBurn2
       SET LND_PID:MAXOUTPUT TO LND_THRUST_ACC.
 
       LOCAL des_h_v IS VXCL(UP:VECTOR,LATLNG(LND_LAT,LND_LNG):POSITION).
-      LOCAL correction_dv IS 2 * cur_h_v:MAG * SIN(VANG(des_h_h, cur_h_v)/2).
+      LOCAL correction_dv IS 2 * cur_h_v:MAG * SIN(VANG(des_h_v, cur_h_v)/2).
       LOCAL velocity_dv IS (VELOCITY:SURFACE:MAG * 1.1) + (surface_g * 15).
       LOCAL precision_dv IS correction_dv + velocity_dv.
 pOut("Estimated delta-v required to land: " + ROUND(precision_dv,1) + "m/s.").
