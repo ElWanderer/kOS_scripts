@@ -162,6 +162,7 @@ pOut("Estimated delta-v required to land: " + ROUND(precision_dv,1) + "m/s.").
 pDV().
 IF stageDV() < velocity_dv { pOut("ERROR: not enough delta-v to land safely!"). }
 ELSE IF stageDV() < precision_dv { pOut("WARNING: switch to non-precision landing."). }
+// RETURN FALSE to switch to non-precise version...
     }
 
     IF GROUNDSPEED < 0.25 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 5 {
@@ -173,4 +174,58 @@ ELSE IF stageDV() < precision_dv { pOut("WARNING: switch to non-precision landin
 
   SET LND_THROTTLE TO 0.
   steerSurf(FALSE).
+  RETURN TRUE.
+}
+
+// add an extra run-mode, so if doConstantAltitudeBurn2 returns FALSE, we switch
+// to non-precision versions:
+
+  } ELSE IF rm = 233 {
+    steerTo(constantAltitudeVec3@).
+    LOCAL ok IS doConstantAltitudeBurn2().
+    CLEARVECDRAWS().
+    IF ok { runMode(235). } ELSE { runMode(234). }
+  } ELSE IF rm = 234 {
+    steerTo(nonPrecisionConstantAltitudeVec@).
+    doNonPrecisionConstantAltitudeBurn().
+    runMode(235).
+  } ELSE IF rm = 235 {
+    steerSurf(FALSE).
+    doSuicideBurn().
+    runMode(236).
+  } ELSE IF rm = 236 {
+    IF NOT isSteerOn() { steerSurf(FALSE). }
+    doSetDown().
+    runMode(exit_mode).
+
+
+// cut-down versions of the old constant-altitude-burn code:
+FUNCTION nonPrecisionConstantAltitudeVec
+{
+  RETURN ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION)) 
+         * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
+}
+
+FUNCTION doNonPrecisionConstantAltitudeBurn
+{
+  SET LND_THROTTLE TO 1.
+  LOCK THROTTLE TO LND_THROTTLE.
+
+  pOut("Executing non-precision constant altitude burn.").
+  landerResetTimer().
+  SET LND_THROTTLE TO 1.
+  SET done TO FALSE.
+  UNTIL done {
+    IF landerHeartbeat() > 1 {
+      landerResetTimer().
+      findMinVSpeed(LND_VS_LIMIT,30,1).
+    }
+
+    IF GROUNDSPEED < 2 {
+      SET done TO TRUE.
+      pOut("Groundspeed close to zero; ending constant altitude burn.").
+    }
+  }
+
+  SET LND_THROTTLE TO 0.
 }
