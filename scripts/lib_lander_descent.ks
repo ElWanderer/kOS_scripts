@@ -23,7 +23,7 @@ GLOBAL LND_LNG IS 0.
 GLOBAL LND_SET_DOWN IS LIST(24,6,8,2).
 GLOBAL LND_OVERSHOOT IS FALSE.
 GLOBAL LND_ALLOWED_DRIFT IS 0.5.
-GLOBAL LND_ALLOWED_DIST IS 3.
+GLOBAL LND_ALLOWED_DIST IS 4.
 GLOBAL LND_VS_LIMIT IS -50.
 GLOBAL LND_SURF_G IS BODY:MU / BODY:RADIUS^2.
 
@@ -263,6 +263,8 @@ pOut("constantAltitudeVec").
   LOCAL final_vector IS UP:VECTOR.
   IF LND_THRUST_ACC = 0 { RETURN final_vector. }
 
+  LOCAL max_ang IS 20.
+
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
   LOCAL h_dist IS des_h_v:MAG.
@@ -306,7 +308,7 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
   LOCAL des_speed IS SQRT(h_dist * max_h_acc) * 0.75.
   IF h_dist < 150 { SET des_speed TO SQRT(h_dist). }
 
-  IF NOT LND_OVERSHOOT AND h_dist > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
+  IF NOT LND_OVERSHOOT AND h_dist > LND_ALLOWED_DIST AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT mode.").
     SET LND_OVERSHOOT TO TRUE.
     SET LND_ALLOWED_DRIFT TO LND_ALLOWED_DRIFT * 1.5.
@@ -319,7 +321,7 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
   LOCAL h_thrust_v IS V(0,0,0).
   IF LND_OVERSHOOT {
 pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
-    IF h_dist < LND_ALLOWED_DIST {
+    IF h_dist < LND_ALLOWED_DIST AND cur_h_v:MAG > LND_ALLOWED_DRIFT {
       SET h_thrust_v TO -cur_h_v.
     } ELSE {
       SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
@@ -349,7 +351,7 @@ pOut("Pitch (normal): " + LND_PITCH).
     }
 
     // if we're going to pass close, stop worrying about any radial component and burn retrograde
-    IF h_dist < LND_ALLOWED_DIST OR (h_dist * SIN(VANG(des_h_v,cur_h_v))) < LND_ALLOWED_DIST {
+    IF h_dist < LND_ALLOWED_DIST OR (h_dist * SIN(VANG(des_h_v,cur_h_v))) < LND_ALLOWED_DIST/2 {
       SET h_thrust_v TO -cur_h_v.
     } ELSE {
       SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
@@ -372,20 +374,33 @@ pOut("Facing VDOT: " + ROUND(facing_dot,2)).
     // actual pitch
     LOCAL actual_pitch IS 90 - VANG(UP:VECTOR,FACING:VECTOR).
 pOut("actual_pitch: " + ROUND(actual_pitch,2) + " degrees.").
-    IF actual_pitch > 20 AND ship_v_acc > (LND_SURF_G/2) {
+    IF h_dist < LND_ALLOWED_DIST * 3 {
+      // if close to the target site, use the throttle setting that gives us the 
+      // horizontal acceleration we want
+pOut("Horizontal throttle override").
+      LOCAL h_throttle IS MAX(0,MIN(1,(ship_h_acc / LND_THRUST_ACC) / COS(actual_pitch))).
+      SET LND_THROTTLE TO h_throttle.
+      SET max_ang TO 1.
+    }
+    IF actual_pitch > 20 AND ship_v_acc > 0 AND adjustedAltitude() < (LND_SURF_G*10) {
       // if a higher throttle setting would maintain the v_acc we want, use it
       // this is to prevent catastrophic loss of altitude whilst manoeuvring
+pOut("Vertical throttle override").
       LOCAL min_throttle IS MIN(1,(ship_v_acc / LND_THRUST_ACC) / SIN(actual_pitch)).
       SET LND_THROTTLE TO MAX(min_throttle, LND_THROTTLE).
+      SET max_ang TO 45.
     }
 pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
+pOut("Estimated v_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*SIN(actual_pitch),2) + "m/s^2.").
+pOut("Estimated h_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*COS(actual_pitch),2) + "m/s^2.").
   }
 
   // restrict how far we try to move our facing at any one time
-  LOCAL max_ang IS 30.
   LOCAL cv IS FACING:VECTOR.
-  LOCAL tv IS final_vector.
-  IF VANG(cv,tv) > max_ang { SET final_vector TO ANGLEAXIS(max_ang,VCRS(cv,tv)) * cv. }
+  IF VANG(cv,final_vector) > max_ang {
+    SET final_vector TO ANGLEAXIS(max_ang,VCRS(cv,final_vector)) * cv.
+    IF VDOT(final_vector,UP:VECTOR) < 0 { SET final_vector TO ANGLEAXIS(max_ang,VCRS(cv,UP:VECTOR)) * cv. }
+  }
 
   VECDRAW(V(0,0,0), 10 * final_vector:NORMALIZED, RGB(0,1,1), "Steer vector", 1, TRUE).
 
@@ -664,7 +679,7 @@ UNTIL rm = exit_mode
     doNonPrecisionConstantAltitudeBurn().
     runMode(235).
   } ELSE IF rm = 235 {
-    steerSurf(FALSE).
+    steerTo({ IF VDOT(SRFPROGRADE:VECTOR,UP:VECTOR) < 0 { RETURN SRFRETROGRADE:VECTOR. } ELSE { RETURN UP:VECTOR. } }).
     CLEARVECDRAWS().
     doSuicideBurn().
     runMode(236).
