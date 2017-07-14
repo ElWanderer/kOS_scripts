@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20170713").
+pOut("lib_lander_descent.ks v1.2.0 20170714").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -264,16 +264,17 @@ pOut("constantAltitudeVec").
 
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
-pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
+  LOCAL h_dist IS des_h_v:MAG.
+pOut("Distance to landing site: "+ROUND(h_dist)+"m.").
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
 pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
 pOut("Vertical velocity: " + ROUND(SHIP:VERTICALSPEED,1) + "m/s.").
 
   // display-only code
   LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
-  LOCAL spot_dist_string IS ROUND(des_h_v:MAG/1000,1)+"km".
-  IF des_h_v:MAG < 1000 {
-    SET spot_dist_string TO ROUND(des_h_v:MAG)+"m".
+  LOCAL spot_dist_string IS ROUND(h_dist/1000,1)+"km".
+  IF h_dist < 1000 {
+    SET spot_dist_string TO ROUND(h_dist)+"m".
   }
   VECDRAW(V(0,0,0), spot_draw_v, RGB(1,0,0), "Landing site "+spot_dist_string, 1, TRUE).
   VECDRAW(spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, RGB(1,0,0), "", 1, TRUE).
@@ -295,12 +296,12 @@ pOut("ship_v_acc: " + ROUND(ship_v_acc,2) + "m/s^2.").
   ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
   LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
 pOut("max_h_acc: " + ROUND(max_h_acc,2) + "m/s^2.").
-  LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
+  LOCAL ship_h_acc IS v_xs2 / (2 * h_dist).
 pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
-  LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc) * 0.75.
-  IF des_h_v:MAG < 150 { SET des_speed TO SQRT(des_h_v:MAG). }
+  LOCAL des_speed IS SQRT(h_dist * max_h_acc) * 0.75.
+  IF h_dist < 150 { SET des_speed TO SQRT(h_dist). }
 
-  IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
+  IF NOT LND_OVERSHOOT AND h_dist > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
     hudMsg("OVERSHOOT mode.").
     SET LND_OVERSHOOT TO TRUE.
     SET LND_ALLOWED_DRIFT TO LND_ALLOWED_DRIFT * 1.5.
@@ -313,7 +314,11 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
   LOCAL h_thrust_v IS V(0,0,0).
   IF LND_OVERSHOOT {
 pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
-    SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
+    IF h_dist < LND_ALLOWED_DIST {
+      SET h_thrust_v TO -cur_h_v.
+    } ELSE {
+      SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
+    }
     LOCAL des_h_acc IS MIN(max_h_acc, h_thrust_v:MAG * 5).
 pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
     LOCAL total_acc IS SQRT(ship_v_acc^2 + des_h_acc^2).
@@ -338,7 +343,12 @@ pOut("total_acc: " + ROUND(total_acc,2) + "m/s^2.").
 pOut("Pitch (normal): " + LND_PITCH).
     }
 
-    SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+    // if we're going to pass close, stop worrying about any radial component and burn retrograde
+    IF h_dist < LND_ALLOWED_DIST OR (h_dist * SIN(VANG(des_h_v,cur_h_v))) < LND_ALLOWED_DIST {
+      SET h_thrust_v TO -cur_h_v.
+    } ELSE {
+      SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+    }
   }
 
   IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
@@ -355,6 +365,12 @@ pOut("Facing VDOT: " + ROUND(facing_dot,2)).
     SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * facing_dot).
   }
 pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
+
+  // restrict how far we try to move our facing at any one time
+  LOCAL max_ang IS 30.
+  LOCAL cv IS FACING:VECTOR.
+  LOCAL tv IS final_vector.
+  IF VANG(cv,tv) > max_ang { SET final_vector TO ANGLEAXIS(max_ang,VCRS(cv,tv)) * cv. }
 
   RETURN final_vector.
 }
@@ -441,6 +457,7 @@ FUNCTION doNonPrecisionConstantAltitudeBurn
 {
   SET LND_THROTTLE TO 1.
   LOCK THROTTLE TO LND_THROTTLE.
+  LOCAL surface_g IS BODY:MU / BODY:RADIUS^2.
 
   pOut("Executing non-precision constant altitude burn.").
   landerResetTimer().
@@ -452,9 +469,12 @@ FUNCTION doNonPrecisionConstantAltitudeBurn
       findMinVSpeed(LND_VS_LIMIT,30,1).
     }
 
-    IF GROUNDSPEED < 3 {
+    IF GROUNDSPEED < LND_ALLOWED_DRIFT {
       SET done TO TRUE.
       pOut("Groundspeed close to zero; ending constant altitude burn.").
+    } ELSE IF GROUNDSPEED < (LND_THRUST_ACC-surface_g) {
+      LOCAL v_acc IS surface_g + LND_MIN_VS - SHIP:VERTICALSPEED.
+      SET LND_THROTTLE TO MIN(1,(v_acc + GROUNDSPEED) / LND_THRUST_ACC).
     }
   }
 
