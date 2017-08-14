@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170614").
+pOut("lib_dv.ks v1.1.0 20170814").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -7,7 +7,8 @@ GLOBAL DV_FM IS 0.
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
 GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
-SET LIB_DV_LOADED TO TRUE.
+F_POST_STAGE:ADD(setIspFuelRate@).
+F_POST_STAGE:ADD(pDV@).
 
 setIspFuelRate().
 IF SHIP:AVAILABLETHRUST > 0 { pDV(). }
