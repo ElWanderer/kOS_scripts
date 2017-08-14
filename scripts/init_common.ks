@@ -8,6 +8,7 @@ GLOBAL INIT_MET IS "".
 GLOBAL stageTime IS diffTime@:BIND("STAGE").
 GLOBAL CRAFT_SPECIFIC IS LEXICON().
 GLOBAL CRAFT_FILE IS "1:/craft.ks".
+GLOBAL F_PRE_STAGE IS LIST(pOut@:BIND("Staging."),setTime@:BIND("STAGE")).
 GLOBAL F_POST_STAGE IS LIST().
 
 killWarp().
@@ -87,8 +88,7 @@ FUNCTION diffTime
 
 FUNCTION doStage
 {
-  pOut("Staging.").
-  setTime("STAGE").
+  FOR f IN F_PRE_STAGE { f(). }
   STAGE.
   FOR f IN F_POST_STAGE { f(). }
 }
