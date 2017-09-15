@@ -96,7 +96,7 @@ FUNCTION findMinVSpeed2
     LOCAL eta IS u_time - TIME:SECONDS.
     IF eta > 0 {
       LOCAL spot IS BODY:GEOPOSITIONOF(pos_v).
-      LOCAL new_lng IS mAngle(spot:LNG + (eta * 360 / BODY:ROTATIONPERIOD)).
+      LOCAL new_lng IS mAngle(spot:LNG - (eta * 360 / BODY:ROTATIONPERIOD)).
       LOCAL th IS LATLNG(spot:LAT,new_lng):TERRAINHEIGHT.
       LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / eta.
       SET min_vs TO MAX(min_vs, safe_vs).
