@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20170629").
+pOut("lib_lander_common.ks v1.1.0 20170915").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
@@ -51,7 +51,7 @@ FUNCTION terrainAltAtTime
   PARAMETER u_time.
   LOCAL eta IS u_time - TIME:SECONDS.
   LOCAL spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time)).
-  LOCAL new_lng IS mAngle(spot:LNG + (eta * 360 / BODY:ROTATIONPERIOD)).
+  LOCAL new_lng IS mAngle(spot:LNG - (eta * 360 / BODY:ROTATIONPERIOD)).
   RETURN LATLNG(spot:LAT,new_lng):TERRAINHEIGHT.
 }
 
