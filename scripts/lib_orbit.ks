@@ -59,9 +59,13 @@ FUNCTION taAt
 {
   PARAMETER c, u_time.
   LOCAL o IS ORBITAT(c,u_time).
+  
+  // test line, result not used:
+  LOCAL r1 IS posAt(c,u_time):MAG.
+  
   LOCAL r IS radiusAt(c,u_time).
   LOCAL c_ta IS calcTa(o:SEMIMAJORAXIS,o:ECCENTRICITY,r).
-  IF radiusAt(c,u_time+1):MAG < r { SET c_ta TO 360 - c_ta. }
+  IF radiusAt(c,u_time+1) < r { SET c_ta TO 360 - c_ta. }
   RETURN c_ta.
 }
 
