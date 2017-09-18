@@ -1,12 +1,12 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.1.0 20170629").
+pOut("lib_orbit.ks v1.1.0 20170918").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
 FUNCTION calcTa
 {
   PARAMETER a, e, r.
-  LOCAL inv IS ((a * (1 - e^2)) - r)/ (e * r).
+  LOCAL inv IS ((a * (1 - e^2)) - r) / (e * r).
   IF ABS(inv) > 1 {
     hudMsg("ERROR: Invalid ARCCOS() in calcTa(). Rebooting in 5s.").
     pOut("a: " + ROUND(a) + "m.").
@@ -23,6 +23,13 @@ FUNCTION velAt
   RETURN VELOCITYAT(c,u_time):ORBIT.
 }
 
+FUNCTION radiusAt
+{
+  PARAMETER c, u_time.
+  LOCAL o IS ORBITAT(c,u_time).
+  RETURN 2 / ((velAt(c,u_time):SQRMAGNITUDE / o:BODY:MU) + (1/o:SEMIMAJORAXIS)).
+}
+
 FUNCTION posAt
 {
   PARAMETER c, u_time.
@@ -30,6 +37,21 @@ FUNCTION posAt
   LOCAL p IS POSITIONAT(c, u_time).
   IF b <> BODY { SET p TO p - POSITIONAT(b,u_time). }
   ELSE { SET p TO p - BODY:POSITION. }
+
+// test lines
+  LOCAL r1 IS p:MAG.
+  LOCAL r2 IS radiusAt(c,u_time).
+  pOut("-----------------------------------------------------").
+  pOut("posAt() called, comparing return value to radiusAt().").
+  pOut("posAt() returns a vector with magnitude: " + ROUND(r1) + "m.").
+  pOut("radiusAt() returns a magnitude of:       " + ROUND(r2) + "m.").
+  LOCAL diff IS 100 * (ABS(r1 - r2) / r1).
+  pOut("Difference: " + ROUND(diff,2) + "%.").
+  pOut("Current body: " + BODY:NAME + ".").
+  pOut("Future body: " + b:NAME + ".").
+  pOut("-----------------------------------------------------").
+// end of test lines
+
   RETURN p.
 }
 
@@ -37,9 +59,9 @@ FUNCTION taAt
 {
   PARAMETER c, u_time.
   LOCAL o IS ORBITAT(c,u_time).
-  LOCAL r IS posAt(c,u_time):MAG.
+  LOCAL r IS radiusAt(c,u_time).
   LOCAL c_ta IS calcTa(o:SEMIMAJORAXIS,o:ECCENTRICITY,r).
-  IF posAt(c,u_time+1):MAG < r { SET c_ta TO 360 - c_ta. }
+  IF radiusAt(c,u_time+1):MAG < r { SET c_ta TO 360 - c_ta. }
   RETURN c_ta.
 }
 
@@ -104,17 +126,17 @@ FUNCTION nodeAlterOrbit
 
 FUNCTION firstTAAtRadius
 {
-  PARAMETER orb, r.
-  LOCAL e IS orb:ECCENTRICITY.
-  IF e > 0 AND e <> 1 AND r > 0 { RETURN calcTa(orb:SEMIMAJORAXIS,e,r). }
+  PARAMETER o, r.
+  LOCAL e IS o:ECCENTRICITY.
+  IF e > 0 AND e <> 1 AND r > 0 { RETURN calcTa(o:SEMIMAJORAXIS,e,r). }
   ELSE { RETURN -1. }
 }
 
 FUNCTION secondTAAtRadius
 {
-  PARAMETER orb, r.
+  PARAMETER o, r.
   LOCAL ta2 IS -1.
-  LOCAL ta1 IS firstTAAtRadius(orb,r).
+  LOCAL ta1 IS firstTAAtRadius(o,r).
   IF ta1 >= 0 { SET ta2 TO 360 - ta1. }
   RETURN ta2.
 }
@@ -124,12 +146,12 @@ FUNCTION secondsToAlt
   PARAMETER craft, u_time, t_alt, ascending.
 
   LOCAL secs IS -1.
-  LOCAL orb IS ORBITAT(craft,u_time).
-  LOCAL e IS orb:ECCENTRICITY.
+  LOCAL o IS ORBITAT(craft,u_time).
+  LOCAL e IS o:ECCENTRICITY.
   LOCAL t_ta IS -1.
-  IF t_alt > orb:PERIAPSIS AND (t_alt < orb:APOAPSIS OR e > 1) {
-    IF ascending { SET t_ta TO firstTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
-    ELSE { SET t_ta TO secondTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
+  IF t_alt > o:PERIAPSIS AND (t_alt < o:APOAPSIS OR e > 1) {
+    IF ascending { SET t_ta TO firstTAAtRadius(o,o:BODY:RADIUS + t_alt). }
+    ELSE { SET t_ta TO secondTAAtRadius(o,o:BODY:RADIUS + t_alt). }
     SET secs TO secondsToTA(craft,u_time,t_ta).
   }
   RETURN secs.
