@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.1.0 20170918").
+pOut("lib_orbit.ks v1.1.0 20170919").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
@@ -35,8 +35,13 @@ FUNCTION posAt
   PARAMETER c, u_time.
   LOCAL b IS ORBITAT(c,u_time):BODY.
   LOCAL p IS POSITIONAT(c, u_time).
-  IF b <> BODY { SET p TO p - POSITIONAT(b,u_time). }
-  ELSE { SET p TO p - BODY:POSITION. }
+  LOCAL body_p IS POSITIONAT(BODY,u_time).
+  LOCAL b_p IS POSITIONAT(b,u_time).
+
+  IF BODY = b { SET p TO p - BODY:POSITION. }
+  ELSE IF b:HASBODY AND b:BODY = BODY { SET p TO p - b_p. }
+  ELSE IF BODY:HASBODY AND BODY:BODY = b { SET p TO p + body_p - b_p. }
+  ELSE { SET p TO p - b_p. }
 
 // test lines
   LOCAL r1 IS p:MAG.
