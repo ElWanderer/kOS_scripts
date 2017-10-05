@@ -16,7 +16,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry3.ks v1.0.0 20170322").
+pOut("TestReentry3.ks v1.0.0 20170915").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -108,7 +108,7 @@ IF rm < 0 {
   ELSE { runMode(809,802). }
 
 } ELSE IF rm = 811 {
-  store("doTransfer(851, FALSE, "+SAT_BODY+","+SAT_AP+","+SAT_I+","+SAT_LAN+").").
+  store("doTransfer(821, FALSE, "+SAT_BODY+","+SAT_AP+","+SAT_I+","+SAT_LAN+").").
   doTransfer(821, FALSE, SAT_BODY, SAT_AP, SAT_I, SAT_LAN).
 
 } ELSE IF rm = 821 {
