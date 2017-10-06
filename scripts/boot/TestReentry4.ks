@@ -7,7 +7,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestReentry4.ks v1.0.0 20171005").
+pOut("TestReentry4.ks v1.0.0 20171006").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -20,7 +20,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "Reentry Test4 9".
+GLOBAL SAT_NAME IS "Reentry Test4 11".
 
 GLOBAL REENTRY_LEX IS LEXICON().
 GLOBAL REENTRY_LOG_FILE IS "0:/log/TestReentry7.txt".

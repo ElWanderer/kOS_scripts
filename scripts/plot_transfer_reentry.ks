@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_transfer_reentry.ks v1.0.0 20170321").
+pOut("plot_transfer_reentry.ks v1.0.0 20171006").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -147,6 +147,36 @@ FUNCTION scoreNodeDestOrbit
   RETURN score.
 }
 
+FUNCTION scoreNodeDestReentry
+{
+  PARAMETER dest, pe, i, lan, lat, lng, n, bs.
+
+  LOCAL reentry_score IS 0.
+  LOCAL score IS scoreNodeDestOrbit(dest, pe, i, lan, n, bs).
+
+  ADD n. WAIT 0.
+  LOCAL orb IS n:ORBIT.
+  LOCAL orb_count IS orbitReachesBody(orb,dest).
+  IF orb_count >= 0 {
+    LOCAL next_orb IS futureOrbit(orb,orb_count).
+    LOCAL next_pe IS next_orb:PERIAPSIS.
+    IF ABS(next_pe-30000) <= 1000 {
+      LOCAL reentry_details IS predictReentryForOrbit(orb, dest, FALSE).
+      LOCAL p_lat IS reentry_details["Predicted lat"].
+      LOCAL p_lng IS reentry_details["Predicted lng"].
+
+      LOCAL t_spot IS LATLNG(lat,lng).
+      LOCAL p_spot IS LATLNG(p_lat,p_lng).
+      LOCAL p_dist IS greatCircleDistance(dest, t_spot, p_spot).
+      LOCAL max_dist IS dest:RADIUS * CONSTANT:PI.
+      SET reentry_score TO 10000 * (1 - (p_dist / max_dist)).
+    }
+  }
+  REMOVE n.
+
+  RETURN score + reentry_score.
+}
+
 FUNCTION nodeBodyToMoon
 {
   PARAMETER u_time, dest, dest_pe, i IS -1, lan IS -1.
@@ -193,7 +223,7 @@ FUNCTION nodeMoonToBody
   LOCAL c_time IS u_time.
   LOCAL done IS FALSE.
   UNTIL done {
-    LOCAL moon_vel IS VELOCITYAT(moon,c_time):ORBIT.
+    LOCAL moon_vel IS velAt(moon,c_time).
     LOCAL s_pos IS posAt(SHIP,c_time).
     LOCAL s_normal IS VCRS(velAt(SHIP,c_time),s_pos).
 
@@ -205,7 +235,7 @@ FUNCTION nodeMoonToBody
     IF ABS(s_ang - theta_eject) < 0.5 AND eff_i < 25 {
       SET done TO TRUE.
       SET man_node:ETA TO c_time - TIME:SECONDS.
-      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,i,lan).
+      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
       improveNode(man_node,score_func).
     }
     SET c_time TO c_time + 15.

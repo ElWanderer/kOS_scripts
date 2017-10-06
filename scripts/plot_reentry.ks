@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20170329").
+pOut("plot_reentry.ks v1.0.0 20171006").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -155,7 +155,7 @@ FUNCTION adjustedLandingTime
 // dest - The planet we are aiming for (usually KERBIN).
 FUNCTION predictReentryForOrbit
 {
-  PARAMETER curr_orb, dest.
+  PARAMETER curr_orb, dest, do_logging IS TRUE.
 
   LOCAL return_details IS LEXICON().
 
@@ -217,7 +217,7 @@ FUNCTION predictReentryForOrbit
   pOut(lat_pred_str).
   pOut(lng_pred_str).
   
-  IF PLOT_REENTRY_LOG <> "" AND cOk() {
+  IF do_logging AND PLOT_REENTRY_LOG <> "" AND cOk() {
     LOG "--------" TO PLOT_REENTRY_LOG.
     LOG "Details:" TO PLOT_REENTRY_LOG.
     LOG "--------" TO PLOT_REENTRY_LOG.
