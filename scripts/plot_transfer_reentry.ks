@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_transfer_reentry.ks v1.0.0 20171006").
+pOut("plot_transfer_reentry.ks v1.0.0 20171011").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -189,6 +189,79 @@ FUNCTION nodeBodyToMoon
   RETURN hnode.
 }
 
+FUNCTION ejectionAngles
+{
+  PARAMETER c, u_time, eject_body.
+
+  LOCAL body_vel IS velAt(eject_body,u_time).
+  LOCAL s_pos IS posAt(c,u_time).
+  LOCAL s_normal IS VCRS(velAt(c,u_time),s_pos).
+  LOCAL ret_xcl IS VXCL(s_normal,-body_vel).
+  LOCAL s_ang IS VANG(s_pos,ret_xcl).
+  IF VDOT(VCRS(ret_xcl,s_pos),s_normal) < 0 { SET s_ang TO 360 - s_ang. }
+// s_ang is the ejection angle at u_time
+  LOCAL ang IS VANG(s_normal,-body_vel).
+  LOCAL eff_i IS ABS(ang-90).
+// eff_i is the "effective inclination" at u_time, i.e. the angle between the plane of the ship's orbit and that of the body
+
+pOut("=================").
+pOut("ejectionAngles().").
+LOCAL eta IS ROUND(u_time - TIME:SECONDS).
+pOut("Time in future: " + eta + "s.").
+pOut("Ejection angle: " + s_ang + " degrees.").
+pOut("Effective inc.: " + eff_i + " degrees.").
+
+  RETURN LIST(s_ang, eff_i).
+}
+
+FUNCTION predictNextEjection
+{
+  PARAMETER c, u_time, eject_body, eject_ang, min_ang IS 0.5, min_eff_i IS 25.
+
+  LOCAL min_time IS u_time.
+  LOCAL eject_details IS ejectionAngles(c, u_time, eject_body).
+
+  LOCAL s_ang IS eject_details[0].
+  LOCAL eff_i IS eject_details[1].
+
+  IF ABS(s_ang - eject_ang) < min_ang AND eff_i < min_eff_i { RETURN u_time. }
+
+  LOCAL o IS ORBITAT(c,u_time).
+  LOCAL i IS o:INCLINATION.
+  LOCAL s_p IS o:PERIOD.
+  LOCAL b_p IS eject_body:ORBIT:PERIOD.
+  LOCAL rel_period IS (s_p * b_p) / (b_p - (s_p * COS(i))).
+pOut("Ship period: " + ROUND(s_p) + "s.").
+pOut("Body period: " + ROUND(b_p) + "s.").
+pOut("Relative period: " + ROUND(rel_period) + "s.").
+
+  LOCAL ang_diff IS mAngle(s_ang - eject_ang).
+  LOCAL time_diff IS rel_period * ang_diff / 360.
+
+  SET u_time TO u_time + time_diff.
+  UNTIL FALSE {
+    SET eject_details TO ejectionAngles(c, u_time, eject_body).
+    SET s_ang TO eject_details[0].
+    SET eff_i TO eject_details[1].
+
+    IF ABS(s_ang - eject_ang) < min_ang {
+      IF eff_i < min_eff_i { RETURN u_time. }
+      // angle good but relative inclination outside bounds
+      // add another orbit then try again
+      SET u_time TO u_time + rel_period.
+    } ELSE {
+      // angle is not good - perhaps our orbit is not very circular
+      SET ang_diff TO s_ang - eject_ang.
+      LOCAL new_time IS u_time + (0.5 * ang_diff * rel_period / 360).
+      IF new_time < min_time {
+        SET ang_diff TO mAngle(ang_diff).
+        SET new_time TO u_time + (0.5 * ang_diff * rel_period / 360).
+      }
+      SET u_time TO new_time.
+    }
+  }
+}
+
 FUNCTION nodeMoonToBody
 {
   PARAMETER u_time, moon, dest_pe, i IS -1, lan IS -1.
@@ -220,26 +293,12 @@ FUNCTION nodeMoonToBody
 
   LOCAL man_node IS NODE(u_time, 0, 0, ABS(dv)).
 
-  LOCAL c_time IS u_time.
-  LOCAL done IS FALSE.
-  UNTIL done {
-    LOCAL moon_vel IS velAt(moon,c_time).
-    LOCAL s_pos IS posAt(SHIP,c_time).
-    LOCAL s_normal IS VCRS(velAt(SHIP,c_time),s_pos).
-
-    LOCAL ang IS VANG(s_normal,-moon_vel).
-    LOCAL eff_i IS ABS(ang-90).
-    LOCAL ret_xcl IS VXCL(s_normal,-moon_vel).
-    LOCAL s_ang IS VANG(s_pos,ret_xcl).
-    IF VDOT(VCRS(ret_xcl,s_pos),s_normal) < 0 { SET s_ang TO 360 - s_ang. }
-    IF ABS(s_ang - theta_eject) < 0.5 AND eff_i < 25 {
-      SET done TO TRUE.
-      SET man_node:ETA TO c_time - TIME:SECONDS.
-      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
-      improveNode(man_node,score_func).
-    }
-    SET c_time TO c_time + 15.
-  }
+pOut("Desired ejection angle: " + theta_eject + " degrees.").
+  LOCAL e_time IS predictNextEjection(SHIP, u_time, moon, theta_eject).
+pOut("Desired ejection angle: " + theta_eject + " degrees.").
+  SET man_node:ETA TO e_time - TIME:SECONDS.
+  LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
+  improveNode(man_node,score_func).
 
   RETURN man_node.
 }
