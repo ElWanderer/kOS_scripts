@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20171006").
+pOut("plot_reentry.ks v1.0.0 20171018").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -312,12 +312,18 @@ FUNCTION logReentry
     IF csv_file <> "" {
       IF NOT EXISTS(csv_file) {
         LOCAL csv_header IS "".
-        FOR key IN csv_lex:KEYS { SET csv_header TO csv_header + key + ",". }
+        FOR key IN csv_lex:KEYS {
+          IF csv_header <> "" { SET csv_header TO csv_header + "," + key. }
+          ELSE { SET csv_header TO key. }
+        }
         LOG csv_header TO csv_file.
       }
 
       LOCAL csv_values IS "".
-      FOR val IN csv_lex:VALUES { SET csv_values TO csv_values + val + ",". }
+      FOR val IN csv_lex:VALUES {
+        IF csv_values <> "" { SET csv_values TO csv_values + "," + val. }
+        ELSE { SET csv_values TO val. }
+      }
       LOG csv_values TO csv_file.
     }
   }
