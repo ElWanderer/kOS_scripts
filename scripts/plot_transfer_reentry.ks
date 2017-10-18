@@ -301,7 +301,7 @@ FUNCTION nodeMoonToBody
   LOCAL best_score IS score_func(man_node, IMP_MIN_SCORE).
 
   LOCAL count IS 1.
-  UNTIL count > 6 {
+  UNTIL count > 9 {
     SET e_time TO e_time + (SHIP:ORBIT:PERIOD / 2).
     SET e_time TO predictNextEjection(SHIP, e_time, moon, theta_eject).
     LOCAL e_man_node IS NODE(e_time, 0, 0, ABS(dv)).
