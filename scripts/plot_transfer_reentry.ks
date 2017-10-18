@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_transfer_reentry.ks v1.0.0 20171011").
+pOut("plot_transfer_reentry.ks v1.0.0 20171018").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -293,12 +293,31 @@ FUNCTION nodeMoonToBody
 
   LOCAL man_node IS NODE(u_time, 0, 0, ABS(dv)).
 
-pOut("Desired ejection angle: " + theta_eject + " degrees.").
   LOCAL e_time IS predictNextEjection(SHIP, u_time, moon, theta_eject).
-pOut("Desired ejection angle: " + theta_eject + " degrees.").
   SET man_node:ETA TO e_time - TIME:SECONDS.
   LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
   improveNode(man_node,score_func).
+
+  LOCAL best_score IS score_func(man_node, IMP_MIN_SCORE).
+
+  LOCAL count IS 1.
+  UNTIL count > 6 {
+    SET e_time TO e_time + (SHIP:ORBIT:PERIOD / 2).
+    SET e_time TO predictNextEjection(SHIP, e_time, moon, theta_eject).
+    LOCAL e_man_node IS NODE(e_time, 0, 0, ABS(dv)).
+    improveNode(e_man_node,score_func).
+
+    LOCAL this_score IS score_func(e_man_node,IMP_MIN_SCORE).
+    IF this_score > best_score {
+      pOut("New node is better than all previous nodes.").
+      SET best_score TO this_score.
+      nodeCopy(e_man_node,man_node).
+    } ELSE {
+      pOut("New node is not better than the previous best.").
+    }
+
+    SET count TO count + 1.
+  }
 
   RETURN man_node.
 }
@@ -415,7 +434,7 @@ UNTIL rm = exit_mode
 
     IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
       LOCAL mcc IS NODE(TIME:SECONDS+TFR_NODE_SECS,0,0,0).
-      LOCAL score_func IS scoreNodeDestOrbit@:BIND(dest,dest_pe,dest_i,dest_lan).
+      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
       improveNode(mcc,score_func).
       IF nodeDV(mcc) >= 0.2 {
         addNode(mcc).
