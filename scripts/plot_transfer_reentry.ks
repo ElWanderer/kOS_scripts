@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_transfer_reentry.ks v1.0.0 20171018").
+pOut("plot_transfer_reentry.ks v1.0.0 20171019").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -346,6 +346,8 @@ FUNCTION orbitNeedsCorrection
   LOCAL min_diff IS 1000 * 10^orb_count.
   LOCAL min_pe IS minAltForBody(dest) * 0.8.
 
+  IF pe < min_pe AND orb_count = 0 { SET min_diff TO 100. } // improve accuracy for re-entry
+
   IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
   ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
   ELSE { SET min_diff TO min_diff * 25. }
@@ -434,7 +436,7 @@ UNTIL rm = exit_mode
 
     IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
       LOCAL mcc IS NODE(TIME:SECONDS+TFR_NODE_SECS,0,0,0).
-      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
+      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,dest_i,dest_lan,0,290).
       improveNode(mcc,score_func).
       IF nodeDV(mcc) >= 0.2 {
         addNode(mcc).
