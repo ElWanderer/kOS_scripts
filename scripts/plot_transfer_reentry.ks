@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_transfer_reentry.ks v1.0.0 20171019").
+pOut("plot_transfer_reentry.ks v1.0.0 20171020").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -13,6 +13,9 @@ FOR f IN LIST(
 
 GLOBAL TFR_CURR_BODY IS BODY.
 GLOBAL TFR_NODE_SECS IS 900.
+
+GLOBAL TFR_LAT IS -10. // re-entry target co-ordinates
+GLOBAL TFR_LNG IS 300.
 
 FUNCTION bodyChange
 {
@@ -295,7 +298,7 @@ FUNCTION nodeMoonToBody
 
   LOCAL e_time IS predictNextEjection(SHIP, u_time, moon, theta_eject).
   SET man_node:ETA TO e_time - TIME:SECONDS.
-  LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,0,290).
+  LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,i,lan,TFR_LAT,TFR_LNG).
   improveNode(man_node,score_func).
 
   LOCAL best_score IS score_func(man_node, IMP_MIN_SCORE).
@@ -436,7 +439,7 @@ UNTIL rm = exit_mode
 
     IF orbitNeedsCorrection(SHIP:ORBIT,dest,dest_pe,dest_i,dest_lan) {
       LOCAL mcc IS NODE(TIME:SECONDS+TFR_NODE_SECS,0,0,0).
-      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,dest_i,dest_lan,0,290).
+      LOCAL score_func IS scoreNodeDestReentry@:BIND(dest,dest_pe,dest_i,dest_lan,TFR_LAT,TFR_LNG).
       improveNode(mcc,score_func).
       IF nodeDV(mcc) >= 0.2 {
         addNode(mcc).
