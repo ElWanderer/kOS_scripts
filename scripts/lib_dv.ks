@@ -1,11 +1,12 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20170814").
+pOut("lib_dv.ks v1.1.0 20171020").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
 GLOBAL DV_FM IS 0.
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
+GLOBAL DV_LIMITER IS 1.
 GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
 F_POST_STAGE:ADD(setIspFuelRate@).
 F_POST_STAGE:ADD(pDV@).
@@ -95,6 +96,7 @@ FUNCTION nextStageBT
 FUNCTION setIspFuelRate
 {
   PARAMETER limiter IS 1.
+  SET DV_LIMITER TO limiter.
   SET DV_ISP TO 0.
   SET DV_FR TO 0.
   LOCAL t IS 0.
@@ -159,7 +161,7 @@ FUNCTION pDV
 FUNCTION burnTime
 {
   PARAMETER dv, sdv IS stageDV(), limiter IS 1, recalc_isp IS FALSE.
-  IF recalc_isp { setIspFuelRate(limiter). }
+  IF recalc_isp OR limiter <> DV_LIMITER { setIspFuelRate(limiter). }
   LOCAL bt IS btCalc(dv,MASS,DV_ISP,DV_FR).
   IF dv > sdv {
     LOCAL bt1 IS btCalc(sdv,MASS,DV_ISP,DV_FR).
