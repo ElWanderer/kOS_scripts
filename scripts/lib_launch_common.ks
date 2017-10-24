@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20170613").
+pOut("lib_launch_common.ks v1.4.0 20171024").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -139,10 +139,16 @@ FUNCTION sepLauncher
     UNTIL SHIP:PARTSTAGGED("LAUNCHER"):LENGTH = 0 {
       WAIT UNTIL STAGE:READY AND stageTime() > 0.5.
       doStage().
-      WAIT 0.
     }
     WAIT 2.
     dampSteering().
+  }
+
+  IF NOT CRAFT_SPECIFIC:HASKEY("LCH_NO_STAGE_IN_ORBIT") {
+    UNTIL SHIP:AVAILABLETHRUST > 0 OR NOT moreEngines() {
+      WAIT UNTIL STAGE:READY AND stageTime() > 0.5.
+      doStage().
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.2.3 20170118").
+pOut("lib_burn.ks v1.2.3 20171024").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -143,7 +143,7 @@ FUNCTION execNode
   LOCAL ok IS TRUE.
   LOCAL n IS NEXTNODE.
   LOCAL n_dv IS nodeDV(n).
-  LOCAL s_dv IS stageDV().
+  LOCAL s_dv IS stageDV(TRUE).
   pOut("Delta-v required: " + ROUND(n_dv,1) + "m/s.").
   pDV().
 
