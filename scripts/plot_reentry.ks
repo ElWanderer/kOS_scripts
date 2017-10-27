@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("plot_reentry.ks v1.0.0 20171018").
+pOut("plot_reentry.ks v1.0.0 20171026").
 
 FOR f IN LIST(
   "lib_reentry.ks",
@@ -19,7 +19,7 @@ FUNCTION addNodeForPeriapsisVelocity {
     SET burn_alt TO (APOAPSIS + PERIAPSIS) / 2.
   }
 
-  LOCAL u_time IS bufferTime().
+  LOCAL u_time IS TIME:SECONDS + 5.
   LOCAL r_pe IS BODY:RADIUS + pe_alt.
   LOCAL r IS BODY:RADIUS + burn_alt.
   // secondsToAlt is in lib_reentry.ks
