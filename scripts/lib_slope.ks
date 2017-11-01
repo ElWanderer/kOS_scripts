@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_slope.ks v1.0.0 20170710").
+pOut("lib_slope.ks v1.0.0 20171101").
 
 FOR f IN LIST(
   "lib_geo.ks"
@@ -13,7 +13,7 @@ FUNCTION spotDetails
   LOCAL spot IS LATLNG(lat, lng).
   LOCAL spot_height IS spot:TERRAINHEIGHT.
   LOCAL spot_v IS spot:ALTITUDEPOSITION(spot_height).
-  LOCAL up_v IS (spot:ALTITUDEPOSITION(spot_height * 2)-spot_v):NORMALIZED.
+  LOCAL up_v IS (spot:ALTITUDEPOSITION(spot_height + 10000)-spot_v):NORMALIZED.
   RETURN LIST(spot_v, up_v, spot_height).
 }
 
