@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderCrew.ks v1.2.0 20170116").
+pOut("KMLanderCrew.ks v1.2.0 20171027").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -17,14 +17,14 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "Endeavour II".
+GLOBAL NEW_NAME IS "Mun Lander 1 - MM".
 GLOBAL CORE_HEIGHT IS 2.3.
 
 GLOBAL LAND_LAT IS 0.
-GLOBAL LAND_LNG IS 20.
+GLOBAL LAND_LNG IS 0.
 GLOBAL SAFETY_ALT IS 2000.
 
-GLOBAL RETURN_ORBIT IS 30000.
+GLOBAL RETURN_ORBIT IS 40000.
 
 FUNCTION validLocalTarget {
   RETURN HASTARGET AND TARGET:OBT:BODY = BODY.
@@ -44,6 +44,9 @@ IF rm < 0 {
   resume().
 
 } ELSE IF rm > 300 AND rm < 350 {
+  resume().
+
+} ELSE IF rm > 400 AND rm < 450 {
   resume().
 
 } ELSE IF MOD(rm,10) = 9 AND rm > 800 AND rm < 999 {
