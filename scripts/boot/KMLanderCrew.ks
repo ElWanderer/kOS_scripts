@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMLanderCrew.ks v1.2.0 20171027").
+pOut("KMLanderCrew.ks v1.2.0 20171101").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -17,7 +17,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "Mun Lander 1 - MM".
+GLOBAL NEW_NAME IS "Minmus Lander 1 - MM".
 GLOBAL CORE_HEIGHT IS 2.3.
 
 GLOBAL LAND_LAT IS 0.
@@ -104,7 +104,7 @@ IF rm < 0 {
   LOCAL launch_time IS launch_details[1].
   warpToLaunch(launch_time).
 
-  store("doLanderAscent("+RETURN_ORBIT+",az,0,851).").
+  store("doLanderAscent("+RETURN_ORBIT+","+az+",0,851).").
   doLanderAscent(RETURN_ORBIT,az,0,851).
 
 } ELSE IF rm = 851 {
