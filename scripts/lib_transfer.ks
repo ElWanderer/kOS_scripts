@@ -366,7 +366,7 @@ UNTIL rm = exit_mode
     runMode(111).
 
   } ELSE IF rm = 131 {
-    IF BODY:ATM:EXISTS AND PERIAPSIS < BODY:ATM:HEIGHT { runMode(133). }
+    IF BODY = SUN OR (BODY:ATM:EXISTS AND PERIAPSIS < BODY:ATM:HEIGHT) { runMode(133). }
     ELSE {
       LOCAL pe_eta IS secondsToTA(SHIP,TIME:SECONDS+1,0) + 1.
       IF (SHIP:OBT:HASNEXTPATCH AND ETA:TRANSITION < pe_eta) OR pe_eta < 0 { SET pe_eta TO 60. }
