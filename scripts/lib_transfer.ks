@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_transfer.ks v1.4.0 20170314").
+pOut("lib_transfer.ks v1.4.0 20171102").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -241,6 +241,7 @@ FUNCTION orbitNeedsCorrection
   IF orb_pe < min_pe { IF pe >= min_pe { RETURN TRUE. } }
   ELSE IF orb_pe < MAX(min_pe * 2, 250000) { SET min_diff TO min_diff * 10. }
   ELSE { SET min_diff TO min_diff * 25. }
+  IF dest = SUN { SET min_diff TO min_diff * 4000. }
   IF pe_diff > min_diff { RETURN TRUE. }
 
   IF orb_count = 0 AND i >= 0 {
@@ -280,9 +281,9 @@ UNTIL rm = exit_mode
     LOCAL t_time IS TIME:SECONDS+600.
     LOCAL node_ok IS FALSE.
     LOCAL n1 IS NODE(0,0,0,0).
-    IF dest:BODY = BODY {
+    IF dest:HASBODY AND dest:BODY = BODY {
       SET n1 TO nodeBodyToMoon(t_time,dest,dest_pe,dest_i,dest_lan).
-    } ELSE IF dest = BODY:OBT:BODY {
+    } ELSE IF BODY:HASBODY AND dest = BODY:BODY {
       SET n1 TO nodeMoonToBody(t_time,BODY,dest_pe,dest_i,dest_lan).
     }
 
