@@ -15,6 +15,7 @@ Letter combinations reserved for future use:
 
 * U - Universal or applicable to no specific body
 * UX - Any body without an atmosphere
+* S - Sun
 * M - Moho
 * E - Eve
 * EM - Eve's Moon (Gilly)
