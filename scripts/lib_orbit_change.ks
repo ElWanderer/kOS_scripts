@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_change.ks v1.0.2 20161206").
+pOut("lib_orbit_change.ks v1.1.0 20171107").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -49,7 +49,7 @@ FUNCTION changeOrbit
 
   IF ok AND NOT doExec AND dv_req > 0 {
     pOut("Delta-v requirement: " + ROUND(dv_req,1) + "m/s.").
-    IF dv_req > limit_dv {
+    IF dv_req > limit_dv AND NOT can_stage {
       SET ok TO FALSE.
       pOut("ERROR: exceeds delta-v allowance ("+ROUND(limit_dv,1)+"m/s).").
     }
