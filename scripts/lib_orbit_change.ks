@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_change.ks v1.1.0 20171107").
+pOut("lib_orbit_change.ks v1.1.0 20171108").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -49,7 +49,7 @@ FUNCTION changeOrbit
 
   IF ok AND NOT doExec AND dv_req > 0 {
     pOut("Delta-v requirement: " + ROUND(dv_req,1) + "m/s.").
-    IF dv_req > limit_dv AND NOT can_stage {
+    IF dv_req > limit_dv AND NOT (can_stage AND moreEngines()) {
       SET ok TO FALSE.
       pOut("ERROR: exceeds delta-v allowance ("+ROUND(limit_dv,1)+"m/s).").
     }
@@ -70,7 +70,7 @@ FUNCTION doOrbitChange
     removeAllNodes().
   }
   LOCAL u_time IS bufferTime().
-  IF ok { SET ok TO changeOrbit(FALSE,FALSE,limit_dv,u_time,ap,pe,w). }
+  IF ok { SET ok TO changeOrbit(FALSE,can_stage,limit_dv,u_time,ap,pe,w). }
   removeAllNodes().
   IF ok { SET ok TO changeOrbit(TRUE,can_stage,0,u_time,ap,pe,w). }
   removeAllNodes().
