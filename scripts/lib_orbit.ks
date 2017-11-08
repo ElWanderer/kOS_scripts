@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.1.0 20171006").
+pOut("lib_orbit.ks v1.1.0 20171108").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
@@ -39,6 +39,7 @@ FUNCTION taAt
 {
   PARAMETER c, u_time.
   LOCAL o IS ORBITAT(c,u_time).
+  IF o:ECCENTRICITY = 0 { RETURN mAngle(o:TRUEANOMALY + (360 * (u_time-TIME:SECONDS) / o:PERIOD)). }
   LOCAL r IS posAt(c,u_time):MAG.
   LOCAL c_ta IS calcTa(o:SEMIMAJORAXIS,o:ECCENTRICITY,r).
   IF posAt(c,u_time+1):MAG < r { SET c_ta TO 360 - c_ta. }
