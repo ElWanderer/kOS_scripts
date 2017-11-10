@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit_match2.ks v1.0.0 20171109").
+pOut("lib_orbit_match2.ks v1.0.0 20171110").
 
 FOR f IN LIST(
   "lib_orbit_match.ks"
@@ -18,42 +18,31 @@ FUNCTION orbitRadiusAtTA
 FUNCTION nodeMatchAtNode2
 {
   PARAMETER u_time, o_normal, ascending, ap, pe, w, i, lan.
-pOut("nodeMatchAtNode2").
 
-  LOCAL n_ta IS taAN(u_time,o_normal).
-  IF NOT ascending { SET n_ta TO mAngle(n_ta + 180). }
-  LOCAL n_time IS u_time + secondsToTA(SHIP,u_time,n_ta).
+  LOCAL s_ta IS taAN(u_time,o_normal).
+  IF NOT ascending { SET s_ta TO mAngle(s_ta + 180). }
+  LOCAL n_time IS u_time + secondsToTA(SHIP,u_time,s_ta).
 
   LOCAL b IS ORBITAT(SHIP,u_time):BODY.
 
   LOCAL s_pos IS posAt(SHIP,n_time).
-  LOCAL r IS s_pos:MAG.
-pOut("Radius at node: " + r + "m.").
-  IF r < (pe+b:RADIUS) OR r > (ap+b:RADIUS) { pOut("Node is inside or outside target orbit."). RETURN NODE(n_time,0,0,999999). }
+  LOCAL s_r IS s_pos:MAG.
 
-  LOCAL new_a IS ((ap+pe) / 2) + b:RADIUS.
-pOut("New semimajoraxis: " + new_a + "m.").
-  LOCAL new_e IS (ap-pe) / (ap+pe + (2*b:RADIUS)).
-pOut("New eccentricity: " + new_e).
+  LOCAL o_a IS ((ap+pe) / 2) + b:RADIUS.
+  LOCAL o_e IS (ap-pe) / (ap+pe + (2*b:RADIUS)).
 
-  LOCAL an_vec IS R(0,-lan,0) * SOLARPRIMEVECTOR:NORMALIZED * r.
+  LOCAL an_vec IS R(0,-lan,0) * SOLARPRIMEVECTOR:NORMALIZED * s_r.
   LOCAL pe_vec IS ANGLEAXIS(w,o_normal) * an_vec.
-  LOCAL new_ta IS VANG(pe_vec,s_pos).
-  IF VDOT(o_normal,VCRS(pe_vec,s_pos)) < 0 { SET new_ta TO 360 - new_ta. }
-pOut("New true anomaly: " + new_ta).
+  LOCAL o_ta IS VANG(pe_vec,s_pos).
+  IF VDOT(o_normal,VCRS(pe_vec,s_pos)) < 0 { SET o_ta TO 360 - o_ta. }
 
-  LOCAL r_should_be IS orbitRadiusAtTA(b, ap, pe, new_ta).
-pOut("Radius of target orbit at this point: " + ROUND(r_should_be) + "m.").
-  LOCAL diff_r IS ABS(r - r_should_be).
-pOut("Difference: " + ROUND(diff_r) + "m.").
+  LOCAL o_r IS orbitRadiusAtTA(b, ap, pe, o_ta).
+  LOCAL diff_r IS ABS(s_r - o_r).
 
-  IF (diff_r > r_should_be/100) { pOut("Too far from target orbit!"). RETURN NODE(n_time,0,0,999999). }
+  IF (diff_r > o_r/100) { pOut("Too far from target orbit!"). RETURN NODE(n_time,0,0,999999). }
 
-  LOCAL new_fang IS ARCTAN2(new_e*SIN(new_ta),(1 + (new_e * COS(new_ta)))).
- 
-pOut("New flight angle: " + new_fang).
-  LOCAL v1 IS SQRT(b:MU * ((2/r)-(1/new_a))).
-pOut("New velocity: " + v1 + "m/s.").
+  LOCAL new_fang IS ARCTAN2(o_e*SIN(o_ta),(1 + (o_e * COS(o_ta)))).
+  LOCAL v1 IS SQRT(b:MU * ((2/s_r)-(1/o_a))).
   LOCAL new_vel IS v1 * (ANGLEAXIS(new_fang,o_normal) * VCRS(s_pos,o_normal)):NORMALIZED.
   RETURN nodeToVector(new_vel, n_time).
 }
@@ -67,7 +56,7 @@ FUNCTION nodeIncMatch2
 
   LOCAL dv_AN is nodeDV(n_AN).
   LOCAL dv_DN is nodeDV(n_DN).
-  IF (2 * ABS(dv_AN-dv_DN) / (dv_AN + dv_DN)) > 0.2 {
+  IF (ABS(dv_AN-dv_DN) / (dv_AN + dv_DN)) > 0.1 {
     IF dv_AN < dv_DN { RETURN n_AN. }
     RETURN n_DN.
   }
