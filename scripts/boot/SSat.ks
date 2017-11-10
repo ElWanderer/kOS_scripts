@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("SSat.ks v1.0.0 20171109").
+pOut("SSat.ks v1.0.0 20171110").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,17 +15,17 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "SunSatTest 20".
+GLOBAL SAT_NAME IS "SunSatTest 21".
 
 GLOBAL SAT_CAN_STAGE IS TRUE.
 
 GLOBAL UNIT_GM IS 1000000000.
 
-GLOBAL SAT_AP IS 25.0.
-GLOBAL SAT_PE IS 10.0.
-GLOBAL SAT_I IS 10.
-GLOBAL SAT_LAN IS 200.
-GLOBAL SAT_W IS 10.
+GLOBAL SAT_AP IS 41.2495.
+GLOBAL SAT_PE IS 30.5737.
+GLOBAL SAT_I IS 174.3.
+GLOBAL SAT_LAN IS 253.9.
+GLOBAL SAT_W IS 293.
 
 // BODY must not be Sun for this to work!
 FUNCTION bodyOrbitRelInc
@@ -122,7 +122,7 @@ FUNCTION determineSolarTransferAP {
 }
 
 // assumes we are not in sphere of influence of the Sun
-FUNCTION determineTimeToNode {
+FUNCTION determineLaunchTimeToSolarNode {
   LOCAL o_normal IS orbitNormal(SUN, SAT_I, SAT_LAN).
   LOCAL u_time IS TIME:SECONDS.
 
@@ -142,7 +142,7 @@ pOut("Ascending node is at " + ROUND(an_ap,2) + "Gm.").
 pOut("Descending node is " + ROUND(dn_time-TIME:SECONDS) + "s away.").
 pOut("Descending node is at " + ROUND(dn_ap,2) + "Gm.").
 
-  IF (2 * ABS(an_ap-dn_ap) / (an_ap+dn_ap)) > 0.2 {
+  IF (ABS(an_ap-dn_ap) / (an_ap+dn_ap)) > 0.1 {
     LOCAL cheapest_node_time IS an_time.
     IF dn_ap > an_ap { SET cheapest_node_time TO dn_time. }
     RETURN cheapest_node_time.
@@ -176,7 +176,7 @@ IF rm < 0 {
   LOCAL ap IS 320000.
   LOCAL launch_details IS calcLaunchDetails(ap,0,-1).
   LOCAL az IS launch_details[0].
-  LOCAL launch_time IS determineTimeToNode() - (3*3600).
+  LOCAL launch_time IS determineLaunchTimeToSolarNode() - (3*3600).
 CLEARVECDRAWS().
   warpToLaunch(launch_time).
 RCS ON.
