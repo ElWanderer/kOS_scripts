@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.3.0 20170116").
+pOut("KSat.ks v1.3.0 20171114").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,12 +14,12 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "Test Sat 1".
-GLOBAL SAT_AP IS 200000.
-GLOBAL SAT_PE IS 150000.
-GLOBAL SAT_I IS 0.
-GLOBAL SAT_LAN IS 0.
-GLOBAL SAT_W IS 0.
+GLOBAL NEW_NAME IS "EXpiSat 2".
+GLOBAL SAT_AP IS 3060027.
+GLOBAL SAT_PE IS 103500.
+GLOBAL SAT_I IS 63.4.
+GLOBAL SAT_LAN IS 93.
+GLOBAL SAT_W IS 270.
 
 IF runMode() > 0 { logOn(). }
 
@@ -33,6 +33,7 @@ IF rm < 0 {
   RUNPATH("0:/lib_launch_geo.ks").
 
   LOCAL ap IS 85000.
+  IF SAT_PE < 125000 { SET ap TO SAT_PE. }
   LOCAL launch_details IS calcLaunchDetails(ap,SAT_I,SAT_LAN).
   LOCAL az IS launch_details[0].
   LOCAL launch_time IS launch_details[1].
