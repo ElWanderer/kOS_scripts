@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("SSat.ks v1.0.0 20171110").
+pOut("SSat.ks v1.0.0 20171114").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,17 +15,19 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_NAME IS "SunSatTest 21".
+GLOBAL SAT_NAME IS "Solar Relay 5".
 
 GLOBAL SAT_CAN_STAGE IS TRUE.
 
 GLOBAL UNIT_GM IS 1000000000.
 
-GLOBAL SAT_AP IS 41.2495.
-GLOBAL SAT_PE IS 30.5737.
-GLOBAL SAT_I IS 174.3.
-GLOBAL SAT_LAN IS 253.9.
-GLOBAL SAT_W IS 293.
+GLOBAL SAT_AP IS 50.
+GLOBAL SAT_PE IS 50.
+GLOBAL SAT_I IS 0.
+GLOBAL SAT_LAN IS -1.
+GLOBAL SAT_W IS -1.
+
+GLOBAL SAT_LAUNCH_AP IS 150000.
 
 // BODY must not be Sun for this to work!
 FUNCTION bodyOrbitRelInc
@@ -122,6 +124,24 @@ FUNCTION determineSolarTransferAP {
 }
 
 // assumes we are not in sphere of influence of the Sun
+// assumes the body we are leaving has an orbit plane that is well-aligned
+// with the target orbit
+FUNCTION determineLaunchTimeToSolarApoapsis {
+  // needs testing
+  LOCAL u_time IS TIME:SECONDS.
+  LOCAL o_normal IS orbitNormal(SUN, SAT_I, SAT_LAN).
+  LOCAL an_vec IS R(0,-SAT_LAN,0) * SOLARPRIMEVECTOR:NORMALIZED.
+  LOCAL pe_vec IS (ANGLEAXIS(-SAT_W,o_normal) * an_vec).
+  LOCAL body_pos IS posAt(BODY,u_time).
+  LOCAL ta_diff IS VANG(body_pos, pe_vec).
+  IF VDOT(o_normal, VCRS(pe_vec,body_pos)) < 0 { SET ta_diff TO 360-ta_diff. }
+
+  LOCAL curr_body_ta IS taAt(BODY, u_time).
+  LOCAL launch_ta IS mAngle(curr_body_ta + ta_diff).
+  RETURN u_time + secondsToTA(BODY, u_time, launch_ta).
+}
+
+// assumes we are not in sphere of influence of the Sun
 FUNCTION determineLaunchTimeToSolarNode {
   LOCAL o_normal IS orbitNormal(SUN, SAT_I, SAT_LAN).
   LOCAL u_time IS TIME:SECONDS.
@@ -153,11 +173,23 @@ pOut("Descending node is at " + ROUND(dn_ap,2) + "Gm.").
   }
 }
 
+FUNCTION determineSolarLaunchTime {
+  LOCAL rel_inc IS bodyOrbitRelInc(TIME:SECONDS, SAT_I, SAT_LAN).
+
+  IF ABS(90-rel_inc) < 89.5 {
+    RETURN determineLaunchTimeToSolarNode().
+  } ELSE IF ((SAT_AP-SAT_PE)/(SAT_AP+SAT_PE)) > 0.1 {
+    RETURN determineLaunchTimeToSolarApoapsis().
+  } ELSE {
+    RETURN TIME:SECONDS.
+  }
+}
+
 //LOCAL ri IS bodyOrbitRelInc(TIME:SECONDS, SAT_I, SAT_LAN).
 //pOut("Relative inclination: " + ROUND(ri,2) + " degrees.").
 CLEARVECDRAWS().
 //UNTIL FALSE {
-determineTBD().
+//determineTBD().
 //  WAIT 60.
 //  CLEARVECDRAWS().
 //}
@@ -173,11 +205,11 @@ IF rm < 0 {
   WAIT UNTIL cOk().
   RUNPATH("0:/lib_launch_geo.ks").
 
-  LOCAL ap IS 320000.
+  LOCAL ap IS SAT_LAUNCH_AP.
   LOCAL launch_details IS calcLaunchDetails(ap,0,-1).
   LOCAL az IS launch_details[0].
-  LOCAL launch_time IS determineLaunchTimeToSolarNode() - (3*3600).
-CLEARVECDRAWS().
+  LOCAL launch_time IS determineSolarLaunchTime() - (3*3600).
+//CLEARVECDRAWS().
   warpToLaunch(launch_time).
 RCS ON.
   store("doLaunch(801," + ap + "," + az + ",0).").
@@ -209,13 +241,13 @@ pOut("Calculated transfer AP: " + transfer_ap + "Gm.").
   IF doOrbitMatch2(SAT_CAN_STAGE,stageDV(),SAT_AP*UNIT_GM,SAT_PE*UNIT_GM,SAT_W,SAT_I,SAT_LAN) { runMode(822). }
   ELSE { runMode(829,821). }
 } ELSE IF rm = 822 {
-  CLEARVECDRAWS().
-  determineTBD().
+  //CLEARVECDRAWS().
+  //determineTBD().
   WAIT UNTIL RCS. // TBD!
   IF doOrbitChange(SAT_CAN_STAGE,stageDV(),SAT_AP*UNIT_GM,SAT_PE*UNIT_GM,SAT_W) { runMode(831,821). }
   ELSE { runMode(829,822). }
-  CLEARVECDRAWS().
-  determineTBD().
+  //CLEARVECDRAWS().
+  //determineTBD().
 
 } ELSE IF rm = 831 {
   hudMsg("Mission complete. Hit abort to switch back to mode: " + abortMode() + ".").
