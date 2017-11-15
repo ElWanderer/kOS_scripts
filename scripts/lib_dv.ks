@@ -8,6 +8,7 @@ GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
 GLOBAL DV_LIMITER IS 1.
 GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
+GLOBAL DV_SF IS "SolidFuel".
 F_POST_STAGE:ADD(setIspFuelRate@).
 F_POST_STAGE:ADD(pDV@).
 
@@ -137,7 +138,7 @@ FUNCTION fuelMassFamily
   FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
   IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
-    IF p:TYPENAME = "Engine" { fl:ADD("SolidFuel"). }
+    IF p:ISTYPE("Engine") AND NOT fl:CONTAINS(DV_SF) { fl:ADD(DV_SF). }
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES, fl).
     IF p:HASPARENT { fuelMassFamily(p:PARENT). }
   }
