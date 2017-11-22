@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171115").
+pOut("lib_dv.ks v1.1.0 20171122").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -7,12 +7,23 @@ GLOBAL DV_FM IS 0.
 GLOBAL DV_ISP IS 0.
 GLOBAL DV_FR IS 0.
 GLOBAL DV_LIMITER IS 1.
-GLOBAL DV_FUELS IS LIST("LiquidFuel","Oxidizer").
-GLOBAL DV_SF IS "SolidFuel".
-F_POST_STAGE:ADD(setIspFuelRate@).
+GLOBAL DV_ACTIVE_ENGINES IS LIST().
+GLOBAL DV_FUELS IS LIST().
+GLOBAL DV_DEFAULT_FUELS IS LIST("LiquidFuel","Oxidizer").
+GLOBAL DV_SF IS LIST("SolidFuel").
+GLOBAL DV_EF_LEX IS LEXICON(
+  "sepMotor1",DV_SF,
+  "MassiveBooster",DV_SF,
+  "solidBooster",DV_SF,
+  "solidbooster1-1",DV_SF,
+  "ionEngine",LIST("XenonGas"),
+  "omsEngine",LIST("Monpropellant"),
+  "nuclearEngine",LIST("LiquidFuel")
+).
+F_POST_STAGE:ADD(resetDVValues@).
 F_POST_STAGE:ADD(pDV@).
 
-setIspFuelRate().
+resetDVValues().
 IF SHIP:AVAILABLETHRUST > 0 { pDV(). }
 
 FUNCTION fuelRate
@@ -53,15 +64,6 @@ FUNCTION moreEngines
   RETURN FALSE.
 }
 
-FUNCTION currentStageEngines
-{
-  LOCAL el IS LIST().
-  LOCAL all_e IS LIST().
-  LIST ENGINES IN all_e.
-  FOR e IN all_e { IF e:IGNITION AND NOT e:FLAMEOUT { el:ADD(e). } }
-  RETURN el.
-}
-
 FUNCTION nextStageBT
 {
   PARAMETER dv.
@@ -94,6 +96,22 @@ FUNCTION nextStageBT
   RETURN bt.
 }
 
+FUNCTION setActiveEngines
+{
+  SET DV_FUELS TO LIST().
+  LOCAL el IS LIST().
+  LOCAL all_e IS LIST().
+  LIST ENGINES IN all_e.
+  FOR e IN all_e { IF e:IGNITION AND NOT e:FLAMEOUT {
+    el:ADD(e).
+    LOCAL fl IS LIST().
+    IF DV_EF_LEX:HASKEY(e:NAME) { SET fl TO DV_EF_LEX[e:NAME]:COPY. }
+    ELSE { SET fl TO DV_DEFAULT_FUELS:COPY. }
+    FOR f IN fl { IF NOT DV_FUELS:CONTAINS(f) { DV_FUELS:ADD(f). } }
+  } }
+  SET DV_ACTIVE_ENGINES TO el:COPY.
+}
+
 FUNCTION setIspFuelRate
 {
   PARAMETER limiter IS 1.
@@ -103,7 +121,7 @@ FUNCTION setIspFuelRate
   LOCAL t IS 0.
   LOCAL t_over_isp IS 0.
 
-  FOR eng IN currentStageEngines() {
+  FOR eng IN DV_ACTIVE_ENGINES {
     LOCAL e_isp IS eng:ISP.
     LOCAL e_t IS eng:AVAILABLETHRUST * limiter.
     SET t TO t + e_t.
@@ -111,6 +129,13 @@ FUNCTION setIspFuelRate
     SET DV_FR TO DV_FR + fuelRate(e_t,e_isp).
   }
   IF t_over_isp > 0 { SET DV_ISP TO t / t_over_isp. }
+}
+
+FUNCTION resetDVValues
+{
+  PARAMETER limiter IS 1.
+  setActiveEngines().
+  setIspFuelRate(limiter).
 }
 
 FUNCTION fuelMass
@@ -134,12 +159,10 @@ FUNCTION fuelMassChildren
 FUNCTION fuelMassFamily
 {
   PARAMETER p.
-  LOCAL fl IS DV_FUELS.
   FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
   IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
-    IF p:ISTYPE("Engine") AND NOT fl:CONTAINS(DV_SF) { fl:ADD(DV_SF). }
-    SET DV_FM TO DV_FM + fuelMass(p:RESOURCES, fl).
+    SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
     IF p:HASPARENT { fuelMassFamily(p:PARENT). }
   }
 }
@@ -147,10 +170,10 @@ FUNCTION fuelMassFamily
 FUNCTION stageDV
 {
   PARAMETER recalc_isp IS FALSE.
-  IF recalc_isp { setIspFuelRate(). }
+  IF recalc_isp { resetDVValues(). }
   DV_PL:CLEAR.
   SET DV_FM TO 0.
-  FOR e IN currentStageEngines() { fuelMassFamily(e). }
+  FOR e IN DV_ACTIVE_ENGINES { fuelMassFamily(e). }
   SET DV_FM TO MAX(DV_FM,fuelMass(STAGE:RESOURCES)).
   IF DV_FM = 0 AND SHIP:AVAILABLETHRUST > 0 { SET DV_FM TO fuelMass(SHIP:RESOURCES). }
   RETURN (g0 * DV_ISP * LN(MASS / (MASS-DV_FM))).
@@ -164,7 +187,7 @@ FUNCTION pDV
 FUNCTION burnTime
 {
   PARAMETER dv, sdv IS stageDV(), limiter IS 1, recalc_isp IS FALSE.
-  IF recalc_isp OR limiter <> DV_LIMITER { setIspFuelRate(limiter). }
+  IF recalc_isp OR limiter <> DV_LIMITER { resetDVValues(limiter). }
   LOCAL bt IS btCalc(dv,MASS,DV_ISP,DV_FR).
   IF dv > sdv {
     LOCAL bt1 IS btCalc(sdv,MASS,DV_ISP,DV_FR).
