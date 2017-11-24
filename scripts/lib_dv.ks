@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171122").
+pOut("lib_dv.ks v1.1.0 20171124").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -13,6 +13,7 @@ GLOBAL DV_DEFAULT_FUELS IS LIST("LiquidFuel","Oxidizer").
 GLOBAL DV_SF IS LIST("SolidFuel").
 GLOBAL DV_EF_LEX IS LEXICON(
   "sepMotor1",DV_SF,
+  "proceduralTankSRB",DV_SF,
   "MassiveBooster",DV_SF,
   "solidBooster",DV_SF,
   "solidbooster1-1",DV_SF,
