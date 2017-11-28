@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171124").
+pOut("lib_dv.ks v1.1.0 20171128").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -18,7 +18,7 @@ GLOBAL DV_EF_LEX IS LEXICON(
   "solidBooster",DV_SF,
   "solidbooster1-1",DV_SF,
   "ionEngine",LIST("XenonGas"),
-  "omsEngine",LIST("Monpropellant"),
+  "omsEngine",LIST("Monopropellant"),
   "nuclearEngine",LIST("LiquidFuel")
 ).
 F_POST_STAGE:ADD(resetDVValues@).
