@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20170120").
+pOut("lib_launch_crew.ks v1.3.0 20171128").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -7,19 +7,19 @@ FOR f IN LIST(
   "lib_parts.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL LCH_LES_ALT IS BODY:ATM:HEIGHT * 0.62.
+GLOBAL LCH_LES_ALT IS BODY:ATM:HEIGHT * 0.72.
 GLOBAL LCH_CHUTE_ALT IS BODY:ATM:HEIGHT * 0.3.
 
 FUNCTION fireLES
 {
-  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
+  FOR p IN LCH_LES_PARTS {
     p:GETMODULE("ModuleEnginesFX"):DOACTION("activate engine",TRUE).
   }
 }
 
 FUNCTION jettisonLES
 {
-  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
+  FOR p IN LCH_LES_PARTS {
     pOut("Jettisoning LES").
     decouplePart(p).
   }
