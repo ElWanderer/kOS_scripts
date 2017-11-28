@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.3.0 20170629").
+pOut("lib_reentry.ks v1.3.0 20171128").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -99,8 +99,8 @@ UNTIL rm = exit_mode
     } ELSE IF SHIP:PARTSTAGGED("FINAL"):LENGTH > 0 {
       IF STAGE:READY { doStage(). }
     } ELSE {
+      WAIT 10.
       steerOff().
-      WAIT 1.
       runMode(70).
     }
   } ELSE IF rm = 70 {
