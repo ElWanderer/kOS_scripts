@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rendezvous.ks v1.3.1 20161214").
+pOut("lib_rendezvous.ks v1.4.0 20171128").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -8,7 +8,8 @@ FOR f IN LIST(
   "lib_burn.ks",
   "lib_orbit_phase.ks",
   "lib_hoh.ks",
-  "lib_ca.ks"
+  "lib_ca.ks",
+  "lib_rcs.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL RDZ_FN IS "rdz.ks".
@@ -137,6 +138,10 @@ FUNCTION rdzOffsetVector
 FUNCTION rdzApproach
 {
   PARAMETER t.
+  LOCAL has_rcs IS SHIP:MODULESNAMED("ModuleRCSFX"):LENGTH > 0 AND SHIP:MONOPROPELLANT > 1.
+  LOCAL max_vel_diff IS 0.35.
+  IF has_rcs { SET max_vel_diff TO 1.2. }
+
   LOCAL ok IS TRUE.
   SET RDZ_THROTTLE TO 0.
   LOCK THROTTLE TO RDZ_THROTTLE.
@@ -147,12 +152,13 @@ FUNCTION rdzApproach
   pDV().
   LOCAL offset_vec IS rdzOffsetVector(t).
 
+  LOCAL LOCK v_diff TO SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
+
   UNTIL NOT ok {
     IF t:POSITION:MAG > MAX(500,RDZ_DIST * 5) { SET offset_vec TO rdzOffsetVector(t). }
     LOCAL p_offset IS t:POSITION + offset_vec.
-    LOCAL v_diff IS SHIP:VELOCITY:ORBIT - t:VELOCITY:ORBIT.
 
-    IF p_offset:MAG < 25 AND v_diff:MAG < 0.15 { SET RDZ_THROTTLE TO 0. BREAK. }
+    IF p_offset:MAG < 25 AND v_diff:MAG < max_vel_diff { SET RDZ_THROTTLE TO 0. BREAK. }
 
     LOCAL sdv IS stageDV().
     LOCAL ideal_v_diff IS rdzBestSpeed(p_offset:MAG,v_diff:MAG,sdv) * p_offset:NORMALIZED.
@@ -186,9 +192,24 @@ FUNCTION rdzApproach
     CLEARVECDRAWS().
   }
 
-  LOCK THROTTLE TO 0. WAIT 0.
-  pDV().
+  LOCK THROTTLE TO 0.
+  dampSteering().
+  LOCAL prev_RCS IS RCS.
+  toggleRCS(TRUE). WAIT 0.
+  IF has_rcs {
+    pOut("Killing velocity difference with RCS.").
+    UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.2 {
+      VECDRAW(V(0,0,0),10 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
+      doTranslation(-v_diff).
+      WAIT 0.
+      CLEARVECDRAWS().
+    }
+    stopTranslation().
+  }
+  toggleRCS(prev_RCS).
+
   pOut("Ending rendezvous approach.").
+  pDV().
   dampSteering().
   RETURN ok.
 }
