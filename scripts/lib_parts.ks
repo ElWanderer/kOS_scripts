@@ -1,10 +1,12 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.2.0 20170116").
+pOut("lib_parts.ks v1.2.0 20171129").
 
 GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleDockingNode", "decouple node",
   "ModuleDecouple", "decouple",
   "ModuleAnchoredDecoupler", "decouple").
+
+IF SHIP:PARTSTAGGED("FINAL"):LENGTH = 0 { tagFinalParts(). }
 
 FUNCTION canEvent
 {
@@ -62,4 +64,21 @@ FUNCTION decoupleByTag
 {
   PARAMETER t.
   FOR p IN SHIP:PARTSTAGGED(t) { decouplePart(p). }
+}
+
+FUNCTION isHeatShield
+{
+  PARAMETER p.
+  IF p:NAME:TOLOWER:CONTAINS("heatshield") OR p:MODULES:CONTAINS("ModuleAblator") { RETURN TRUE. }
+  RETURN FALSE.
+}
+
+FUNCTION tagFinalParts
+{
+  FOR p IN SHIP:PARTS {
+    IF isDecoupler(p) AND p:HASPARENT AND isHeatShield(p:PARENT) {
+      IF p:TAG = "" { SET p:TAG TO "FINAL". pOut("Adding tag FINAL to " + p:TITLE). }
+      ELSE pOut("WARNING: think " + p:TITLE + " should be tagged FINAL, but it already has tag: " + p:TAG).
+    }
+  }
 }
