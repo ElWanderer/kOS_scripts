@@ -1,9 +1,10 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20171128").
+pOut("lib_launch_common.ks v1.4.0 20171130").
 
 FOR f IN LIST(
   "lib_burn.ks",
-  "lib_runmode.ks"
+  "lib_runmode.ks",
+  "lib_parts.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL LCH_AP IS 0.
@@ -19,6 +20,8 @@ GLOBAL LCH_LES_NAMES IS LIST("LaunchEscapeSystem","NBLAStower").
 GLOBAL LCH_LES_PARTS IS LIST().
 GLOBAL LCH_HAS_LES IS FALSE.
 GLOBAL LCH_HAS_FAIRING IS FALSE.
+GLOBAL LCH_CLAMP_PARTS IS LIST().
+GLOBAL LCH_HAS_CLAMPS IS FALSE.
 
 FUNCTION killThrot
 {
@@ -43,6 +46,11 @@ FUNCTION hasLES
   RETURN LCH_HAS_LES.
 }
 
+FUNCTION hasClamps
+{
+  RETURN LCH_HAS_CLAMPS.
+}
+
 FUNCTION disableLES
 {
   SET LCH_HAS_LES TO FALSE.
@@ -64,6 +72,21 @@ FUNCTION checkLES
   SET LCH_HAS_LES TO (LCH_LES_PARTS:LENGTH > 0 AND CAREER():CANDOACTIONS).
 }
 
+FUNCTION checkClamps
+{
+  LCH_CLAMP_PARTS:CLEAR().
+  SET LCH_HAS_CLAMPS TO FALSE.
+  FOR m IN SHIP:MODULESNAMED("LaunchClamp") { IF m:HASEVENT("Release Clamp") {
+    LCH_CLAMP_PARTS:ADD(m:PART).
+    SET LCH_HAS_CLAMPS TO TRUE.
+  }}
+}
+
+FUNCTION releaseClamps
+{
+  FOR c IN LCH_CLAMP_PARTS { partEvent("Release Clamp", "LaunchClamp", c). }
+}
+
 FUNCTION launchAP
 {
   parameter ap.
@@ -81,6 +104,7 @@ FUNCTION launchInit
 
   checkFairing().
   checkLES().
+  checkClamps().
 
   IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_ON_ALT") {
     IF ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_ON_ALT"] { RCS ON. }
@@ -114,6 +138,7 @@ FUNCTION launchStaging
     mThrust(mt).
     IF hasFairing() { checkFairing(). }
     IF hasLES() { checkLES(). }
+    IF hasClamps() { checkClamps(). }
   }
 }
 
@@ -211,9 +236,36 @@ FUNCTION launchLiftOff
 {
   PARAMETER next_mode.
   IF NOT isSteerOn() { steerLaunch(). }
+  IF hasClamps() {
+    LOCAL total_thrust IS 0.
+    LOCAL all_engines_go IS TRUE.
+    FOR e IN DV_ACTIVE_ENGINES {
+      SET total_thrust TO total_thrust + e:THRUST.
+      IF e:THRUST < (0.9 * e:AVAILABLETHRUST) { SET all_engines_go TO FALSE. }
+    }
+    IF all_engines_go {
+      IF total_thrust / (g0 * SHIP:MASS) > 1.05 {
+        WAIT 0.
+        releaseClamps().
+        WAIT 0.
+        checkClamps().
+      }
+      ELSE IF stageTime() > 0.1 AND STAGE:READY { doStage(). checkClamps(). }
+    }
+  } ELSE {
+    hudMsg("Liftoff!").
+    runMode(next_mode).
+  }
+}
+
+FUNCTION launchIgnition
+{
+  PARAMETER next_mode.
+  IF NOT isSteerOn() { steerLaunch(). }
   IF modeTime() > 3 {
     doStage().
-    hudMsg("Liftoff!").
+    If hasClamps() { checkClamps(). }
+    hudMsg("Ignition!").
     runMode(next_mode).
   }
 }

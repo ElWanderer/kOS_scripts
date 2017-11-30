@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20171128").
+pOut("lib_launch_crew.ks v1.3.0 20171130").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -49,6 +49,8 @@ UNTIL rm = exit_mode
     launchLocks().
     runMode(2,21).
   } ELSE IF rm = 2 {
+    launchIgnition(3).
+  } ELSE IF rm = 3 {
     launchLiftOff(11).
   } ELSE IF rm = 11 {
     launchFlight(12).

@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_nocrew.ks v1.3.0 20170112").
+pOut("lib_launch_nocrew.ks v1.3.0 20171130").
 
 RUNONCEPATH(loadScript("lib_launch_common.ks")).
 
@@ -18,6 +18,8 @@ UNTIL rm = exit_mode
     launchLocks().
     runMode(2).
   } ELSE IF rm = 2 {
+    launchIgnition(3).
+  } ELSE IF rm = 3 {
     launchLiftOff(11).
   } ELSE IF rm = 11 {
     launchFlight(12).
