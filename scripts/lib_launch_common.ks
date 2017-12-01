@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20171130").
+pOut("lib_launch_common.ks v1.4.0 20171201").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -68,8 +68,10 @@ FUNCTION checkFairing
 FUNCTION checkLES
 {
   LCH_LES_PARTS:CLEAR().
-  FOR ln IN LCH_LES_NAMES { FOR p IN SHIP:PARTSNAMED(ln) { LCH_LES_PARTS:ADD(p). } }
-  SET LCH_HAS_LES TO (LCH_LES_PARTS:LENGTH > 0 AND CAREER():CANDOACTIONS).
+  FOR ln IN LCH_LES_NAMES { FOR p IN SHIP:PARTSNAMED(ln) {
+    LCH_LES_PARTS:ADD(p).
+    SET LCH_HAS_LES TO TRUE.
+  } }
 }
 
 FUNCTION checkClamps
@@ -145,9 +147,7 @@ FUNCTION launchStaging
 FUNCTION launchFairing
 {
   IF ALTITUDE > LCH_FAIRING_ALT {
-    FOR f IN SHIP:MODULESNAMED("ModuleProceduralFairing") {
-      IF f:HASEVENT("deploy") { f:DOEVENT("deploy"). }
-    }
+    FOR f IN SHIP:MODULESNAMED("ModuleProceduralFairing") { modDo("deploy", f). }
     SET LCH_HAS_FAIRING TO FALSE.
   }
 }
@@ -155,9 +155,7 @@ FUNCTION launchFairing
 FUNCTION launchExtend
 {
   PANELS ON.
-  FOR a IN SHIP:MODULESNAMED("ModuleDeployableAntenna") {
-    IF a:HASEVENT("Extend Antenna") { a:DOEVENT("Extend Antenna"). }
-  }
+  FOR a IN SHIP:MODULESNAMED("ModuleDeployableAntenna") { modDo("Extend Antenna", a). }
 }
 
 FUNCTION sepLauncher

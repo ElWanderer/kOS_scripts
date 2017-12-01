@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.2.0 20171129").
+pOut("lib_parts.ks v1.2.0 20171201").
 
 GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleDockingNode", "decouple node",
@@ -21,13 +21,17 @@ FUNCTION modEvent
   pOut(m:PART:TITLE + ": " + e).
 }
 
+FUNCTION modDo
+{
+  PARAMETER e, m.
+  IF canEvent(e,m) { modEvent(e,m). RETURN TRUE. }
+  RETURN FALSE.
+}
+
 FUNCTION partEvent
 {
   PARAMETER e, mn, p.
-  IF p:MODULES:CONTAINS(mn) {
-    LOCAL m IS p:GETMODULE(mn).
-    IF canEvent(e,m) { modEvent(e,m). RETURN TRUE. }
-  }
+  IF p:MODULES:CONTAINS(mn) { RETURN modDo(e, p:GETMODULE(mn)). }
   RETURN FALSE.
 }
 
@@ -69,8 +73,25 @@ FUNCTION decoupleByTag
 FUNCTION isHeatShield
 {
   PARAMETER p.
-  IF p:NAME:TOLOWER:CONTAINS("heatshield") OR p:MODULES:CONTAINS("ModuleAblator") { RETURN TRUE. }
-  RETURN FALSE.
+  RETURN p:NAME:TOLOWER:CONTAINS("heatshield") OR p:MODULES:CONTAINS("ModuleAblator").
+}
+
+FUNCTION isEngine
+{
+  PARAMETER p.
+  RETURN p:MODULES:CONTAINS("ModuleEnginesFX") OR p:MODULES:CONTAINS("ModuleEngines").
+}
+
+FUNCTION fireEngine
+{
+  PARAMETER p.
+  RETURN partEvent("Activate Engine", "ModuleEngines", p) OR partEvent("Activate Engine", "ModuleEnginesFX", p).
+}
+
+FUNCTION shutdownEngine
+{
+  PARAMETER p.
+  RETURN partEvent("Shutdown Engine", "ModuleEngines", p) OR partEvent("Shutdown Engine", "ModuleEnginesFX", p).
 }
 
 FUNCTION tagFinalParts

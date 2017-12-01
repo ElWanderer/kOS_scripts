@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.3.0 20171130").
+pOut("lib_launch_crew.ks v1.3.0 20171201").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -13,7 +13,8 @@ GLOBAL LCH_CHUTE_ALT IS BODY:ATM:HEIGHT * 0.3.
 FUNCTION fireLES
 {
   FOR p IN LCH_LES_PARTS {
-    p:GETMODULE("ModuleEnginesFX"):DOACTION("activate engine",TRUE).
+    pOut("Firing LES").
+    fireEngine(p).
   }
 }
 

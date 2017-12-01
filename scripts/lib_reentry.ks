@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.3.0 20171128").
+pOut("lib_reentry.ks v1.3.0 20171201").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -24,17 +24,13 @@ FUNCTION deorbitNode
 FUNCTION reentryExtend
 {
   PANELS ON.
-  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") {
-    IF canEvent("Extend Antenna",m) { modEvent("Extend Antenna",m). } 
-  }
+  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") { modDo("Extend Antenna", m). }
 }
 
 FUNCTION reentryRetract
 {
   PANELS OFF.
-  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") {
-    IF canEvent("Retract Antenna",m) { modEvent("Retract Antenna",m). } 
-  }
+  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") { modDo("Retract Antenna", m). }
 }
 
 FUNCTION doReentry
@@ -157,7 +153,6 @@ UNTIL rm = exit_mode
     IF hasChutes() { deployChutes(). }
     IF LIST("LANDED","SPLASHED"):CONTAINS(STATUS) {
       hudMsg("Touchdown.").
-      pOut("Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),1) + " degrees.").
       runMode(exit_mode).
     }
   } ELSE {
