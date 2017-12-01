@@ -86,7 +86,30 @@ FUNCTION checkClamps
 
 FUNCTION releaseClamps
 {
-  FOR c IN LCH_CLAMP_PARTS { partEvent("Release Clamp", "LaunchClamp", c). }
+  LOCAL can_stage IS TRUE.
+  FOR c IN LCH_CLAMP_PARTS { IF c:STAGE <> STAGE:NUMBER-1 { SET can_stage TO FALSE. BREAK. } }
+
+  IF can_stage { IF STAGE:READY { doStage(). } }
+  ELSE { FOR c IN LCH_CLAMP_PARTS { partEvent("Release Clamp", "LaunchClamp", c). } }
+}
+
+FUNCTION verifyClamps
+{
+  PARAMETER loud IS TRUE.
+
+  LOCAL clamps_in_first_stage IS FALSE.
+  LOCAL engines_in_first_stage IS FALSE.
+
+  FOR c IN LCH_CLAMP_PARTS { IF c:STAGE = STAGE:NUMBER-1 { SET clamps_in_first_stage TO TRUE. BREAK. } }
+
+  LOCAL el IS LIST().
+  LIST ENGINES IN el.
+  FOR e IN el { IF e:STAGE = STAGE:NUMBER-1 { SET engines_in_first_stage TO TRUE. } }
+
+  IF NOT clamps_in_first_stage OR engines_in_first_stage { RETURN TRUE. }
+
+  IF loud { hudMsg("Check yo' stagin'!", RED, 50). }
+  RETURN FALSE.
 }
 
 FUNCTION launchAP
@@ -107,6 +130,7 @@ FUNCTION launchInit
   checkFairing().
   checkLES().
   checkClamps().
+  IF NOT verifyClamps() { WAIT UNTIL verifyClamps(FALSE). }
 
   IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_ON_ALT") {
     IF ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_ON_ALT"] { RCS ON. }

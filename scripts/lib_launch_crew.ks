@@ -67,7 +67,6 @@ UNTIL rm = exit_mode
     runMode(22).
   } ELSE IF rm = 22 {
     IF modeTime() > 2 AND SHIP:AVAILABLETHRUST = 0 {
-      IF hasLES() { JettisonLES(). }
       steerSurf(FALSE).
       runMode(23).
     }
@@ -75,6 +74,7 @@ UNTIL rm = exit_mode
     IF ALT:RADAR > 1000 { IF modeTime() > 5 { runMode(31). } }
     ELSE IF modeTime() > 2 { runMode(31). }
   } ELSE IF rm = 31 {
+    IF hasLES() { JettisonLES(). }
     IF ALTITUDE < LCH_CHUTE_ALT {
       steerOff().
       IF hasChutes() { hudMsg("Will deploy parachutes once safe."). }
