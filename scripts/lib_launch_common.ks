@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20171201").
+pOut("lib_launch_common.ks v1.4.0 20171204").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -271,8 +271,16 @@ FUNCTION launchLiftOff
         releaseClamps().
         WAIT 0.
         checkClamps().
+      } ELSE IF stageTime() > 0.1 AND STAGE:READY AND verifyClamps(FALSE) {
+        doStage().
+        checkClamps().
+      } ELSE IF modeTime() > 30 {
+        hudMsg("Not enough thrust to launch!", RED, 40).
+        hudMsg("Shutting down engines.", RED, 50).
+        LOCK THROTTLE TO 0.
+        WAIT 0.
+        runMode(99).
       }
-      ELSE IF stageTime() > 0.1 AND STAGE:READY { doStage(). checkClamps(). }
     }
   } ELSE {
     hudMsg("Liftoff!").
