@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171128").
+pOut("lib_dv.ks v1.1.0 20171206").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -12,11 +12,6 @@ GLOBAL DV_FUELS IS LIST().
 GLOBAL DV_DEFAULT_FUELS IS LIST("LiquidFuel","Oxidizer").
 GLOBAL DV_SF IS LIST("SolidFuel").
 GLOBAL DV_EF_LEX IS LEXICON(
-  "sepMotor1",DV_SF,
-  "proceduralTankSRB",DV_SF,
-  "MassiveBooster",DV_SF,
-  "solidBooster",DV_SF,
-  "solidbooster1-1",DV_SF,
   "ionEngine",LIST("XenonGas"),
   "omsEngine",LIST("Monopropellant"),
   "nuclearEngine",LIST("LiquidFuel")
@@ -53,15 +48,16 @@ FUNCTION partMass
 
 FUNCTION engCanFire
 {
-  PARAMETER e.
-  RETURN NOT e:IGNITION AND e:ALLOWRESTART AND e:ALLOWSHUTDOWN.
+  PARAMETER e, as IS FALSE.
+  RETURN (NOT e:IGNITION) AND (as OR (e:ALLOWRESTART AND e:ALLOWSHUTDOWN)).
 }
 
 FUNCTION moreEngines
 {
+  PARAMETER as IS FALSE.
   LOCAL all_e IS LIST().
   LIST ENGINES IN all_e.
-  FOR e IN all_e { IF engCanFire(e) { RETURN TRUE. } }
+  FOR e IN all_e { IF engCanFire(e,as) AND e:STAGE < STAGE:NUMBER AND NOT stageIsFinal(e:STAGE) { RETURN TRUE. } }
   RETURN FALSE.
 }
 
@@ -107,6 +103,7 @@ FUNCTION setActiveEngines
     el:ADD(e).
     LOCAL fl IS LIST().
     IF DV_EF_LEX:HASKEY(e:NAME) { SET fl TO DV_EF_LEX[e:NAME]:COPY. }
+    ELSE IF fuelMass(e:RESOURCES, DV_SF) > 0 { SET fl TO DV_SF:COPY. }
     ELSE { SET fl TO DV_DEFAULT_FUELS:COPY. }
     FOR f IN fl { IF NOT DV_FUELS:CONTAINS(f) { DV_FUELS:ADD(f). } }
   } }

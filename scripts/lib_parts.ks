@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.2.0 20171201").
+pOut("lib_parts.ks v1.2.0 20171206").
 
 GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleDockingNode", "decouple node",
@@ -92,6 +92,13 @@ FUNCTION shutdownEngine
 {
   PARAMETER p.
   RETURN partEvent("Shutdown Engine", "ModuleEngines", p) OR partEvent("Shutdown Engine", "ModuleEnginesFX", p).
+}
+
+FUNCTION stageIsFinal
+{
+  PARAMETER sn.
+  FOR p IN SHIP:PARTSTAGGED("FINAL") { IF p:STAGE = sn { RETURN TRUE. } }
+  RETURN FALSE.
 }
 
 FUNCTION tagFinalParts

@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20171204").
+pOut("lib_launch_common.ks v1.4.0 20171206").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -154,8 +154,13 @@ FUNCTION launchStaging
   LOCAL prev_mt IS mThrust().
   IF mt = 0 OR mt < prev_mt {
     IF STAGE:READY AND stageTime() > 0.5 {
-      mThrust(0).
-      doStage().
+      IF moreEngines(TRUE) {
+        mThrust(0).
+        doStage().
+      } ELSE {
+        hudMsg("No more engines to fire.").
+        SET ABORT TO NOT ABORT.
+      }
     }
   } ELSE IF prev_mt = 0 AND mt > 0 AND stageTime() > 0.1 {
     LOCAL at IS SHIP:AVAILABLETHRUST.
