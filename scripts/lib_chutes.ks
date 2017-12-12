@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_chutes.ks v1.3.0 20161110").
+pOut("lib_chutes.ks v1.4.0 20171212").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
@@ -28,7 +28,7 @@ FUNCTION listChutes
   CHUTE_LIST:CLEAR.
   pOut("Counting parachutes:").
   FOR m IN SHIP:MODULESNAMED("ModuleParachute") {
-    pOut(m:PART:TITLE + ". Deployable: " + canDeploy(m),FALSE).
+    pOut(m:PART:TITLE + ". Deployable: " + canDeploy(m) + ". Disarmable: " + canDisarm(m),FALSE).
     IF all OR canDeploy(m) { CHUTE_LIST:ADD(m). }
   }
 }
@@ -44,8 +44,9 @@ FUNCTION deployChutes
 
 FUNCTION disarmChutes
 {
+  PARAMETER do_all IS TRUE.
   listChutes(TRUE).
-  FOR m IN CHUTE_LIST { IF canDisarm(m) { doDisarm(m). } }
+  FOR m IN CHUTE_LIST { IF canDisarm(m) AND (do_all OR modField("Deploy Mode", m) <> "0") { doDisarm(m). } }
   listChutes().
 }
 

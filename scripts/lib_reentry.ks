@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.3.0 20171201").
+pOut("lib_reentry.ks v1.3.0 20171212").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -100,7 +100,7 @@ UNTIL rm = exit_mode
       runMode(70).
     }
   } ELSE IF rm = 70 {
-    disarmChutes().
+    disarmChutes(FALSE).
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_atm,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_atm {
       pOut("Warping until altitude " + alt_atm + "m.").
