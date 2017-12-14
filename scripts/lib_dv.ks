@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171206").
+pOut("lib_dv.ks v1.1.0 20171214").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -108,6 +108,23 @@ FUNCTION setActiveEngines
     FOR f IN fl { IF NOT DV_FUELS:CONTAINS(f) { DV_FUELS:ADD(f). } }
   } }
   SET DV_ACTIVE_ENGINES TO el:COPY.
+}
+
+FUNCTION currentThrust
+{
+  LOCAL t IS 0.
+  FOR eng IN DV_ACTIVE_ENGINES { SET t TO t + eng:THRUST. }
+  RETURN t.
+}
+
+FUNCTION currentTWR
+{
+  RETURN currentThrust() / (g0 * SHIP:MASS).
+}
+
+FUNCTION pTWR
+{
+  pOut("Current TWR: " + ROUND(currentTWR(),2)).
 }
 
 FUNCTION setIspFuelRate

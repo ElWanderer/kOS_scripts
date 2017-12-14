@@ -165,9 +165,7 @@ FUNCTION launchStaging
       }
     }
   } ELSE IF prev_mt = 0 AND mt > 0 AND stageTime() > 0.1 {
-    LOCAL at IS SHIP:AVAILABLETHRUST.
-    LOCAL twr IS at / (g0 * SHIP:MASS).
-    pOut("Current TWR: " + ROUND(twr,2)).
+    pTWR().
     mThrust(mt).
     IF hasFairing() { checkFairing(). }
     IF hasLES() { checkLES(). }
@@ -177,7 +175,7 @@ FUNCTION launchStaging
 
 FUNCTION launchFairing
 {
-  IF ALTITUDE > LCH_FAIRING_ALT {
+  IF (ALTITUDE > LCH_FAIRING_ALT AND currentThrust() > 0) OR ALTITUDE > (BODY:ATM:HEIGHT * 0.98) {
     FOR f IN SHIP:MODULESNAMED("ModuleProceduralFairing") { modDo("deploy", f). }
     SET LCH_HAS_FAIRING TO FALSE.
   }
@@ -339,7 +337,7 @@ FUNCTION launchPitch
 
 FUNCTION launchMaxSteer
 {
-  IF ALTITUDE > LCH_FAIRING_ALT / 3 { RETURN (60 * ALTITUDE / LCH_FAIRING_ALT)-15. }
+  IF ALTITUDE > BODY:ATM:HEIGHT / 3 { RETURN (120 * ALTITUDE / BODY:ATM:HEIGHT)-35. }
   IF SHIP:VELOCITY:SURFACE:MAG < 99 { RETURN 15. }
   RETURN 5.
 }
