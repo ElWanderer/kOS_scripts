@@ -1,9 +1,10 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.2.0 20161108").
+pOut("lib_dock.ks v1.3.0 20180102").
 
 FOR f IN LIST(
   "lib_rcs.ks",
-  "lib_steer.ks"
+  "lib_steer.ks",
+  "lib_draw.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL DOCK_VEL IS 1.
@@ -101,7 +102,7 @@ FUNCTION activeDockingPoint
   PARAMETER t, do_draw IS TRUE, wait_then_blank IS -1.
   
   LOCAL ok IS TRUE.
-  IF do_draw { CLEARVECDRAWS(). }
+  IF do_draw { wipeVectors(). }
 
   LOCAL pos IS T_NODE.
   LOCAL count IS 1.
@@ -109,18 +110,18 @@ FUNCTION activeDockingPoint
   FOR p IN DOCK_POINTS {
     IF count = 1 OR checkRouteStep(t,pos+p,pos) { SET vec_colour TO RGB(0,0,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
-    IF do_draw { VECDRAW(pos + p,-p,vec_colour,"Waypoint " +  count,1,TRUE). }
+    IF do_draw { drawVector("Way" + count,pos + p,-p,"Waypoint " +  count,vec_colour). }
     SET pos TO pos + p.
     SET count TO count + 1.
   }
   IF do_draw {
     IF count = 1 OR checkRouteStep(t,S_NODE,pos) { SET vec_colour TO RGB(0,1,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
-    VECDRAW(S_NODE,pos - S_NODE,vec_colour,"Waypoint " + count + " (ACTIVE)",1,TRUE).
+    drawVector("Way" + count,S_NODE,pos - S_NODE,"Waypoint " + count + " (ACTIVE)",vec_colour).
   }
   IF do_draw AND wait_then_blank >= 0 {
     WAIT wait_then_blank.
-    CLEARVECDRAWS().
+    wipeVectors().
   }
   IF ok { SET DOCK_ACTIVE_WP TO pos. }
   RETURN ok.
@@ -252,8 +253,9 @@ FUNCTION followDockingRoute
     LOCAL rcs_vec IS (dockingVelForDist(pos_diff:MAG) * pos_diff:NORMALIZED) - v_diff.
 
     IF do_draw {
-      VECDRAW(S_NODE,5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
-      VECDRAW(S_NODE,5 * rcs_vec,RGB(0,1,0),"Translate",1,TRUE).
+      drawVector("relv", S_NODE,5 * v_diff,"Relative velocity",RGB(1,0,0)).
+      IF rcs_vec:MAG > RCS_DEADBAND { drawVector("trans", S_NODE,10 * rcs_vec,"Translate",RGB(0,1,0)). }
+      ELSE { hideVector("trans"). }
     }
 
     IF v_diff:MAG < 0.1 AND pos_diff:MAG < 0.1 AND DOCK_POINTS:LENGTH > 0 {
@@ -271,7 +273,7 @@ FUNCTION followDockingRoute
     UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.2 { doTranslation(-v_diff). }
   }
   stopTranslation().
-  IF do_draw { CLEARVECDRAWS(). }
+  IF do_draw { wipeVectors(). }
   RETURN ok.
 }
 

@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rendezvous.ks v1.4.0 20171128").
+pOut("lib_rendezvous.ks v1.4.0 20180102").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -9,7 +9,8 @@ FOR f IN LIST(
   "lib_orbit_phase.ks",
   "lib_hoh.ks",
   "lib_ca.ks",
-  "lib_rcs.ks"
+  "lib_rcs.ks",
+  "lib_draw.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL RDZ_FN IS "rdz.ks".
@@ -165,14 +166,15 @@ FUNCTION rdzApproach
     SET RDZ_VEC TO ideal_v_diff - v_diff.
 
     LOCAL throt_on IS (RDZ_THROTTLE > 0).
+    LOCAL rv_n IS RDZ_VEC:NORMALIZED.
 
-    LOCAL rdz_dot IS VDOT(FACING:FOREVECTOR,RDZ_VEC:NORMALIZED).
+    LOCAL rdz_dot IS VDOT(FACING:FOREVECTOR,rv_n).
     IF NOT throt_on AND RDZ_VEC:MAG > ideal_v_diff:MAG / 3 AND rdz_dot >= 0.995 { SET throt_on TO TRUE. }
     ELSE IF throt_on AND rdz_dot < 0.95 { SET throt_on TO FALSE. }
 
-    VECDRAW(V(0,0,0),p_offset,RGB(0,0,1),"To target (offset)",1,TRUE).
-    VECDRAW(V(0,0,0),5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
-    VECDRAW(V(0,0,0),5 * ideal_v_diff,RGB(1,0,1),"Ideal relative velocity",1,TRUE).
+    drawVector("tgto", V(0,0,0),p_offset,"To target (offset)",RGB(0,0,1)).
+    drawVector("relv", V(0,0,0),5 * v_diff,"Relative velocity",RGB(1,0,0)).
+    drawVector("irel", V(0,0,0),5 * ideal_v_diff,"Ideal relative velocity",RGB(1,0,1)).
 
     IF throt_on {
       IF sdv < RDZ_VEC:MAG {
@@ -182,15 +184,16 @@ FUNCTION rdzApproach
       } ELSE {
         SET RDZ_THROTTLE TO burnThrottle(burnTime(RDZ_VEC:MAG, sdv)).
       }
-      VECDRAW(V(0,0,0),5 * RDZ_VEC,RGB(0,1,0),"Thrust vector",1,TRUE).
+      drawVector("steer", V(0,0,0),10 * rv_n,"Thrust vector",RGB(0,1,0)).
     } ELSE {
       SET RDZ_THROTTLE TO 0.
-      VECDRAW(V(0,0,0),5 * RDZ_VEC,RGB(0.5,0.5,0.5),"Steer vector",1,TRUE).
+      drawVector("steer", V(0,0,0),10 * rv_n,"Steer vector",RGB(0.5,0.5,0.5)).
     }
 
     WAIT 0.
-    CLEARVECDRAWS().
   }
+
+  wipeVectors().
 
   LOCK THROTTLE TO 0.
   dampSteering().
@@ -199,12 +202,12 @@ FUNCTION rdzApproach
   IF has_rcs {
     pOut("Killing velocity difference with RCS.").
     UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.2 {
-      VECDRAW(V(0,0,0),10 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
+      drawVector("relv", V(0,0,0),10 * v_diff,"Relative velocity",RGB(1,0,0)).
       doTranslation(-v_diff).
       WAIT 0.
-      CLEARVECDRAWS().
     }
     stopTranslation().
+    wipeVectors().
   }
   toggleRCS(prev_RCS).
 
