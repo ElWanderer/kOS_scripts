@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180103").
+pOut("lib_lander_descent.ks v1.2.0 20180104").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -331,15 +331,20 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
   LOCAL des_speed IS SQRT(h_dist * LND_THRUST_ACC) / 2.
   IF h_dist < 150 { SET des_speed TO (SQRT(h_dist) / 2). }
 
-  IF NOT LND_OVERSHOOT AND VDOT(des_h_v, cur_h_v) < 0 AND
-     (h_dist > LND_ALLOWED_DIST OR GROUNDSPEED > LND_ALLOWED_DRIFT) {
-    hudMsg("OVERSHOOT mode.").
-    SET LND_OVERSHOOT TO TRUE.
+  IF NOT LND_OVERSHOOT AND VDOT(des_h_v, cur_h_v) < 0 {
+    IF h_dist < LND_ALLOWED_DIST AND GROUNDSPEED >= LND_ALLOWED_DRIFT AND GROUNDSPEED < (2 * LND_ALLOWED_DRIFT) { 
+      // passing point or moving away slowly, but close enough we may as well attempt to land
+      SET LND_ALLOWED_DRIFT TO 2 * LND_ALLOWED_DRIFT.
+      hudMsg("Bounce").
+    } ELSE IF h_dist > LND_ALLOWED_DIST OR GROUNDSPEED >= (2 * LND_ALLOWED_DRIFT) {
+      hudMsg("OVERSHOOT mode.").
+      SET LND_OVERSHOOT TO TRUE.
+    }
   } ELSE IF LND_OVERSHOOT AND VDOT(des_h_v:NORMALIZED, cur_h_v) > des_speed {
     hudMsg("Ending OVERSHOOT mode.").
     SET LND_OVERSHOOT TO FALSE.
-    SET LND_ALLOWED_DRIFT TO LND_ALLOWED_DRIFT * 1.5.
-    SET LND_ALLOWED_DIST TO LND_ALLOWED_DIST * 1.5.
+    SET LND_ALLOWED_DRIFT TO LND_ALLOWED_DRIFT * 1.25.
+    SET LND_ALLOWED_DIST TO LND_ALLOWED_DIST * 1.25.
   }
 
   LOCAL h_thrust_v IS V(0,0,0).
@@ -625,6 +630,8 @@ FUNCTION doSetDown
   WAIT UNTIL isLanded().
   hudMsg("Touchdown.").
   pOut("Landed at LAT: " + ROUND(LATITUDE,2) + " LNG: " + ROUND(LONGITUDE,2)).
+  LOCAL site_dist IS greatCircleDistance(BODY, SHIP:GEOPOSITION, LATLNG(LND_LAT,LND_LNG)).
+  pOut("Distance from landing site: " + ROUND(site_dist) + "m.").
   drawVector("Site", V(0,0,0),LATLNG(LND_LAT,LND_LNG):POSITION,"Landing site aim point",RED).
   dampSteering().
   WAIT 10. PANELS ON.
