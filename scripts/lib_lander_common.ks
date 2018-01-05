@@ -1,10 +1,9 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20170915").
+pOut("lib_lander_common.ks v1.1.0 20180105").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
-GLOBAL LND_G_ACC IS 0.
 GLOBAL LND_MIN_VS IS 0.
 
 setTime("LND").
@@ -27,7 +26,7 @@ FUNCTION landerMinVSpeed
 
 FUNCTION gravAcc
 {
-  RETURN LND_G_ACC.
+  RETURN BODY:MU / (BODY:RADIUS+ALTITUDE)^2.
 }
 
 FUNCTION landerPitch
@@ -38,7 +37,7 @@ FUNCTION landerPitch
   IF SHIP:AVAILABLETHRUST > 0 {
     LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
     LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
-    LOCAL ship_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
+    LOCAL ship_acc IS gravAcc() - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
     LOCAL acc_ratio IS ship_acc * lp_throt * MASS / SHIP:AVAILABLETHRUST.
     IF acc_ratio < 0 { SET p_ang TO 0. }
     ELSE IF acc_ratio < 1 { SET p_ang TO ARCSIN(acc_ratio). }
@@ -123,7 +122,7 @@ FUNCTION stepTerrainVS
     IF time_ahead > 0 {
       LOCAL terrain_alt IS terrainAltAtTime(u_time).
       LOCAL imp_vs IS (50 + terrain_alt - ALTITUDE) / time_ahead.
-      SET min_vs TO MAX(min_vs, imp_vs+(2*LND_G_ACC)).
+      SET min_vs TO MAX(min_vs, imp_vs+(2*gravAcc())).
     }
 
     SET s_count TO s_count + 1.
@@ -144,13 +143,6 @@ FUNCTION findMinVSpeed
 
 FUNCTION initLanderValues
 {
-  LOCK LND_G_ACC TO BODY:MU / (BODY:RADIUS+ALTITUDE)^2.
   landerResetTimer().
-  WAIT 0.
-}
-
-FUNCTION stopLanderValues
-{
-  UNLOCK LND_G_ACC.
   WAIT 0.
 }

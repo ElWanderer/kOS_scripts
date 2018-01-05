@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180104").
+pOut("lib_lander_descent.ks v1.2.0 20180105").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -15,7 +15,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // needs tuning...
-GLOBAL LND_PID IS PIDLOOP(1, 0, 5, 0, 999).
+GLOBAL LND_PID IS PIDLOOP(1, 0, 5, -999, 999).
 
 GLOBAL LND_THRUST_ACC IS 0.
 GLOBAL LND_RADAR_ADJUST IS 0.
@@ -69,7 +69,6 @@ FUNCTION stopDescentValues
 {
   UNLOCK LND_THRUST_ACC.
   UNLOCK THROTTLE.
-  stopLanderValues().
 }
 
 FUNCTION isLanded
@@ -280,23 +279,22 @@ FUNCTION warpToDescentBurn
 
 FUNCTION constantAltitudeVec
 {
-pOut("constantAltitudeVec").
+//pOut("***___constantAltitudeVec___***").
 
   LOCAL final_vector IS UP:VECTOR.
   IF LND_THRUST_ACC = 0 { RETURN final_vector. }
 
-pOut("***___constantAltitudeVec___***").
-pOut("Radar altitude: " + ROUND(adjustedAltitude()) + "m.").
+//pOut("Radar altitude: " + ROUND(adjustedAltitude()) + "m.").
 
   LOCAL max_ang IS 15.
 
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
   LOCAL h_dist IS des_h_v:MAG.
-pOut("Distance to landing site: "+ROUND(h_dist)+"m.").
+//pOut("Distance to landing site: "+ROUND(h_dist)+"m.").
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
-pOut("Horizontal velocity: " + ROUND(GROUNDSPEED,1) + "m/s.").
-pOut("Vertical velocity: " + ROUND(SHIP:VERTICALSPEED,1) + "m/s.").
+//pOut("Horizontal velocity: " + ROUND(GROUNDSPEED,1) + "m/s.").
+//pOut("Vertical velocity: " + ROUND(SHIP:VERTICALSPEED,1) + "m/s.").
 
   // display-only code
   LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
@@ -315,19 +313,20 @@ pOut("Vertical velocity: " + ROUND(SHIP:VERTICALSPEED,1) + "m/s.").
   IF LND_THROTTLE > 0 {
     LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
     LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
-    SET ship_v_acc TO MAX(0,LND_PID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED) + (LND_G_ACC - cent_acc)).
+    SET ship_v_acc TO MAX(0,LND_PID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED) + (gravAcc() - cent_acc)).
+//pOut("PID output: " + ROUND(LND_PID:OUTPUT,2) + "m/s^2.").
   }
-pOut("ship_v_acc: " + ROUND(ship_v_acc,2) + "m/s^2.").
+//pOut("ship_v_acc: " + ROUND(ship_v_acc,2) + "m/s^2.").
 
   LOCAL worst_p_ang IS 90.
   LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
-  IF ship_v_acc < 0 { SET worst_p_ang TO 0. }
+  IF ship_v_acc < 0 { SET worst_p_ang TO 0. SET ship_v_acc TO 0. }
   ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
   LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
-pOut("max_h_acc: " + ROUND(max_h_acc,2) + "m/s^2.").
+//pOut("max_h_acc: " + ROUND(max_h_acc,2) + "m/s^2.").
   LOCAL ship_h_acc IS v_xs2 / (2 * h_dist).
   IF h_dist < LND_ALLOWED_DIST AND VDOT(cur_h_v,des_h_v) > 0 { SET ship_h_acc TO 5 * cur_h_v:MAG. }
-pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
+//pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
   LOCAL des_speed IS SQRT(h_dist * LND_THRUST_ACC) / 2.
   IF h_dist < 150 { SET des_speed TO (SQRT(h_dist) / 2). }
 
@@ -349,30 +348,30 @@ pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
 
   LOCAL h_thrust_v IS V(0,0,0).
   IF LND_OVERSHOOT {
-pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
+//pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
     SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
     LOCAL des_h_acc IS MIN(max_h_acc, h_thrust_v:MAG * 5).
-pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
+//pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
     LOCAL total_acc IS SQRT(ship_v_acc^2 + des_h_acc^2).
     LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
     LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(des_h_acc/total_acc))).
     IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
     SET LND_PITCH TO des_pitch.
-pOut("Pitch (overshoot case): " + LND_PITCH).
+//pOut("Pitch (overshoot case): " + LND_PITCH).
 
   } ELSE {
     IF ABS(max_h_acc) < ABS(ship_h_acc) {
       IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
       SET LND_PITCH TO worst_p_ang.
-pOut("Pitch (worst case): " + LND_PITCH).
+//pOut("Pitch (worst case): " + LND_PITCH).
     } ELSE {
       LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
-pOut("total_acc: " + ROUND(total_acc,2) + "m/s^2.").
+//pOut("total_acc: " + ROUND(total_acc,2) + "m/s^2.").
       LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
       LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
       IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
       SET LND_PITCH TO des_pitch.
-pOut("Pitch (normal): " + LND_PITCH).
+//pOut("Pitch (normal): " + LND_PITCH).
     }
 
     // if we're going to pass close, stop worrying about any radial component and burn retrograde
@@ -384,26 +383,26 @@ pOut("Pitch (normal): " + LND_PITCH).
   }
 
   IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
-    drawVector("hthv", V(0,0,0), 5 * h_thrust_v:NORMALIZED, "Horizontal thrust vector ", RGB(0.3,0.3,1)).
+//    drawVector("hthv", V(0,0,0), 5 * h_thrust_v:NORMALIZED, "Horizontal thrust vector ", RGB(0.3,0.3,1)).
     SET final_vector TO ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
   } ELSE { hideVector("hthv"). }
 
-  drawVector("face", V(0,0,0), 5 * FACING:VECTOR, "Current facing", RGB(0,1,0)).
-  drawVector("dfac", V(0,0,0), 5 * final_vector:NORMALIZED, "Desired facing", RGB(0,0,1)).
+//  drawVector("face", V(0,0,0), 5 * FACING:VECTOR, "Current facing", RGB(0,1,0)).
+//  drawVector("dfac", V(0,0,0), 5 * final_vector:NORMALIZED, "Desired facing", RGB(0,0,1)).
 
   IF LND_THROTTLE > 0 {
     LOCAL facing_dot IS VDOT(final_vector:NORMALIZED,FACING:VECTOR).
-pOut("Facing VDOT: " + ROUND(facing_dot,2)).
+//pOut("Facing VDOT: " + ROUND(facing_dot,2)).
     IF facing_dot < 0.8 { SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * facing_dot). }
 
     // actual pitch
     LOCAL actual_pitch IS 90 - VANG(UP:VECTOR,FACING:VECTOR).
-pOut("actual_pitch: " + ROUND(actual_pitch,2) + " degrees.").
+//pOut("actual_pitch: " + ROUND(actual_pitch,2) + " degrees.").
     IF h_dist < LND_ALLOWED_DIST * 3 AND actual_pitch < 90 {
       SET max_ang TO 1.
       // if close to the target site, use the throttle setting that gives us the 
       // horizontal acceleration we want
-pOut("Horizontal throttle override").
+//pOut("Horizontal throttle override").
       LOCAL h_throttle IS MAX(0,MIN(1,(ship_h_acc / LND_THRUST_ACC) / COS(actual_pitch))).
       SET LND_THROTTLE TO h_throttle.
     }
@@ -412,14 +411,14 @@ pOut("Horizontal throttle override").
       IF actual_pitch > 20 {
         // if a higher throttle setting would maintain the v_acc we want, use it
         // this is to prevent catastrophic loss of altitude whilst manoeuvring
-pOut("Vertical throttle override").
+//pOut("Vertical throttle override").
         LOCAL min_throttle IS MIN(1,(ship_v_acc / LND_THRUST_ACC) / SIN(actual_pitch)).
         SET LND_THROTTLE TO MAX(min_throttle, LND_THROTTLE).
       }
     }
-pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
-pOut("Estimated v_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*SIN(actual_pitch),2) + "m/s^2.").
-pOut("Estimated h_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*COS(actual_pitch),2) + "m/s^2.").
+//pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
+//pOut("Estimated v_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*SIN(actual_pitch),2) + "m/s^2.").
+//pOut("Estimated h_acc: " + ROUND(LND_THROTTLE*LND_THRUST_ACC*COS(actual_pitch),2) + "m/s^2.").
   } ELSE { SET max_ang TO 45. }
 
   IF LND_OVERSHOOT { SET max_ang TO MAX(max_ang,45). }
@@ -466,6 +465,7 @@ FUNCTION doConstantAltitudeBurn
       ELSE IF h_dist < LND_ALLOWED_DIST * 1000 { SET vs_limit TO LND_VS_LIMIT * h_dist / (LND_ALLOWED_DIST * 1000). }
       ELSE { SET vs_limit TO LND_VS_LIMIT. }
       LOCAL safety_factor IS min_safety_factor.
+
       LOCAL burn_time IS 20.
       LOCAL step IS 1.
 
@@ -482,6 +482,7 @@ FUNCTION doConstantAltitudeBurn
       findMinVSpeed2(vs_limit,burn_time,step,safety_factor).
       SET LND_PID:SETPOINT TO LND_MIN_VS.
       SET LND_PID:MAXOUTPUT TO land_acc.
+      SET LND_PID:MINOUTPUT TO -land_acc.
 
       LOCAL des_h_v IS VXCL(UP:VECTOR,LATLNG(LND_LAT,LND_LNG):POSITION).
       LOCAL correction_dv IS 2 * cur_h_v:MAG * SIN(VANG(des_h_v, cur_h_v)/2).
@@ -650,14 +651,16 @@ FUNCTION doLanding
   PARAMETER radar_adjust. // deprecated - has no effect
   PARAMETER pe_safety_factor, max_dist. // both m
   PARAMETER days_limit, exit_mode.
-  PARAMETER max_slope IS 3. // degrees
+  PARAMETER max_slope IS 5. // degrees
   PARAMETER lander_radius IS 2.5. // metres
   PARAMETER vs_limit IS LND_VS_LIMIT. // m/s
 
   LOCAL LOCK rm TO runMode().
 
   IF rm < 201 OR rm > 249 { runMode(201). }
+
   initDescentValues(l_lat, l_lng, vs_limit).
+  refineLandingSite(max_slope, lander_radius).
 
 UNTIL rm = exit_mode
 {
@@ -674,6 +677,7 @@ UNTIL rm = exit_mode
 
   } ELSE IF rm = 212 {
     // TBD - phasing hasn't worked so plot a direct intercept?
+    //     - might now happen if the landing site is 'improved' to a point we don't overfly
     runMode(221).
 
   } ELSE IF rm = 215 {
@@ -697,15 +701,13 @@ UNTIL rm = exit_mode
     // wait
 
   } ELSE IF rm = 231 {
-    refineLandingSite(max_slope, lander_radius).
     calcDescentBurnTime().
     warpToDescentBurn(-120).
     runMode(232).
   } ELSE IF rm = 232 {
-    refineLandingSite(max_slope, lander_radius).
     calcDescentBurnTime().
     warpToDescentBurn().
-    runMode(233).
+    runMode(233,234).
   } ELSE IF rm = 233 {
     steerTo(constantAltitudeVec@).
     LOCAL ok IS doConstantAltitudeBurn().
