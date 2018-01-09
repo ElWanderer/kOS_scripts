@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180105").
+pOut("lib_lander_descent.ks v1.2.0 20180109").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -436,8 +436,17 @@ FUNCTION constantAltitudeVec
   RETURN final_vector.
 }
 
+FUNCTION switchBurnType
+{
+  hudMsg("Switching to non-precision landing.").
+  steerSurf(FALSE).
+  SET LND_THROTTLE TO 0.
+  RETURN FALSE.
+}
+
 FUNCTION doConstantAltitudeBurn
 {
+  PARAMETER initial_abort.
   pOut("Preparing for constant altitude burn.").
 
   SET LND_THROTTLE TO 0.
@@ -446,7 +455,13 @@ FUNCTION doConstantAltitudeBurn
 
   LOCAL min_safety_factor IS MAX(50,(20 * LND_SURF_G)).
 
-  WAIT UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT.
+  UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT {
+    IF ABORT <> initial_abort {
+      hudMsg("ABORT OVERRIDE").
+      RETURN switchBurnType().
+    }
+    WAIT 0.
+  }
   pOut("Executing constant altitude burn.").
   landerResetTimer().
   LND_PID:RESET().
@@ -489,11 +504,14 @@ FUNCTION doConstantAltitudeBurn
       LOCAL velocity_dv IS (VELOCITY:SURFACE:MAG * 1.1) + (LND_SURF_G * 15).
       SET precision_dv TO correction_dv + velocity_dv + land_acc.
       IF stageDV() < precision_dv {
-        hudMsg("FUEL LOW: switching to non-precision landing.").
-        steerSurf(FALSE).
-        SET LND_THROTTLE TO 0.
-        RETURN FALSE.
+        hudMsg("FUEL LOW").
+        RETURN switchBurnType().
       }
+    }
+
+    IF ABORT <> initial_abort {
+      hudMsg("ABORT OVERRIDE").
+      RETURN switchBurnType().
     }
 
     WAIT 0.
@@ -707,10 +725,10 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 232 {
     calcDescentBurnTime().
     warpToDescentBurn().
-    runMode(233,234).
+    runMode(233).
   } ELSE IF rm = 233 {
     steerTo(constantAltitudeVec@).
-    LOCAL ok IS doConstantAltitudeBurn().
+    LOCAL ok IS doConstantAltitudeBurn(ABORT).
     IF ok { runMode(235). } ELSE { runMode(234). }
   } ELSE IF rm = 234 {
     steerTo(nonPrecisionConstantAltitudeVec@).
