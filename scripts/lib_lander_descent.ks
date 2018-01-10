@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180109").
+pOut("lib_lander_descent.ks v1.2.0 20180110").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -146,6 +146,7 @@ FUNCTION checkPeriapsis
 
   LOCAL start_time IS TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
   LOCAL end_time IS TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0) + 30.
+  IF start_time > (end_time - 1) { SET start_time TO MIN(TIME:SECONDS, end_time - 30). }
   LOCAL clearance IS pathClearance(start_time, end_time,0.1).
   UNTIL clearance > safety_factor {
     LOCAL new_pe IS PERIAPSIS + (safety_factor - clearance).
@@ -156,6 +157,7 @@ FUNCTION checkPeriapsis
     WAIT 1.
     SET start_time TO TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
     SET end_time TO TIME:SECONDS + secondsToTa(SHIP,TIME:SECONDS,0) + 30.
+    IF start_time > (end_time - 1) { SET start_time TO MIN(TIME:SECONDS, end_time - 30). }
     SET clearance TO pathClearance(start_time, end_time,0.1).
   }
 
@@ -169,7 +171,7 @@ FUNCTION refineLandingSite
 LOCAL slope_details IS slopeDetails(LND_LAT, LND_LNG, radius).
 LOCAL th IS ROUND(slope_details[2],1).
 LOCAL sa IS ROUND(slope_details[4],2).
-hudMsg("Initial site " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + " with terrain height: " + th + "m, slope angle: " + sa + " degrees.").
+hudMsg("Initial site " + ROUND(LND_LAT,4) + " / " + ROUND(LND_LNG,4) + " with terrain height: " + th + "m, slope angle: " + sa + " degrees.", YELLOW, 20).
 
   LOCAL low_slope_spot IS findLowSlope(max_slope, LND_LAT, LND_LNG, radius).
 
@@ -180,8 +182,7 @@ SET slope_details TO slopeDetails(LND_LAT, LND_LNG, radius).
 SET th TO ROUND(slope_details[2],1).
 SET sa TO ROUND(slope_details[4],2).
 
-//hudMsg("Landing site chosen: " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + ".").
-hudMsg("Improved site " + ROUND(LND_LAT,5) + " / " + ROUND(LND_LNG,5) + " with terrain height: " + th + "m, slope angle: " + sa + " degrees.").
+hudMsg("Improved site " + ROUND(LND_LAT,4) + " / " + ROUND(LND_LNG,4) + " with terrain height: " + th + "m, slope angle: " + sa + " degrees.", YELLOW, 20).
 }
 
 FUNCTION burnDist
@@ -262,6 +263,7 @@ pOut("Start descent burn at " + formatTS(TIMES["LND_BURN_TIME"],TIME:SECONDS-MIS
 
   LOCAL start_time IS TIME:SECONDS + secondsToAlt(SHIP, TIME:SECONDS, 10000, FALSE).
   LOCAL end_time IS TIMES["LND_BURN_TIME"] + 30.
+  IF start_time > (end_time - 1) { SET start_time TO MIN(TIME:SECONDS, end_time - 30). }
   pathClearance(start_time, end_time,0.1).
 
   RETURN burn_time.
@@ -377,8 +379,10 @@ FUNCTION constantAltitudeVec
     // if we're going to pass close, stop worrying about any radial component and burn retrograde
     IF h_dist < LND_ALLOWED_DIST OR (h_dist * SIN(VANG(des_h_v,cur_h_v))) < LND_ALLOWED_DIST/2 {
       SET h_thrust_v TO -cur_h_v.
-    } ELSE {
+    } ELSE IF h_dist < (LND_ALLOWED_DIST * 1000) {
       SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+    } ELSE {
+      SET h_thrust_v TO ((cur_h_v:MAG * 0.9) * des_h_v:NORMALIZED) - cur_h_v.
     }
   }
 
@@ -447,7 +451,7 @@ FUNCTION switchBurnType
 FUNCTION doConstantAltitudeBurn
 {
   PARAMETER initial_abort.
-  pOut("Preparing for constant altitude burn.").
+  hudMsg("Preparing for precision landing burn.", YELLOW, 25).
 
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
@@ -455,9 +459,10 @@ FUNCTION doConstantAltitudeBurn
 
   LOCAL min_safety_factor IS MAX(50,(20 * LND_SURF_G)).
 
+  hudMsg("Hit ABORT to switch to non-precision landing", YELLOW, 25).
   UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT {
     IF ABORT <> initial_abort {
-      hudMsg("ABORT OVERRIDE").
+      hudMsg("ABORT OVERRIDE", RED, 40).
       RETURN switchBurnType().
     }
     WAIT 0.
@@ -476,8 +481,9 @@ FUNCTION doConstantAltitudeBurn
       landerResetTimer().
       LOCAL land_acc IS LND_THRUST_ACC.
 
-      IF LND_OVERSHOOT { SET vs_limit TO 0. }
-      ELSE IF h_dist < LND_ALLOWED_DIST * 1000 { SET vs_limit TO LND_VS_LIMIT * h_dist / (LND_ALLOWED_DIST * 1000). }
+      IF LND_VS_LIMIT > 0 { SET vs_limit TO LND_VS_LIMIT. }
+      ELSE IF LND_OVERSHOOT OR h_dist < 1000 { SET vs_limit TO 0. }
+      ELSE IF h_dist < (LND_ALLOWED_DIST+1) * 1000 { SET vs_limit TO LND_VS_LIMIT * (h_dist-1000) / (LND_ALLOWED_DIST * 1000). }
       ELSE { SET vs_limit TO LND_VS_LIMIT. }
       LOCAL safety_factor IS min_safety_factor.
 
@@ -487,7 +493,7 @@ FUNCTION doConstantAltitudeBurn
       LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
       LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * land_acc * LND_THROTTLE).
       LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
-      IF acc_dot > 0 { SET burn_time TO MIN(60,MAX(1,ROUND(cur_h_v:MAG / acc_dot))). }
+      IF acc_dot > 0 { SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))). }
       LOCAL mod_vs IS SHIP:VERTICALSPEED - (LND_SURF_G *0.5).
       IF mod_vs < 0 {
         LOCAL max_acc IS land_acc - LND_SURF_G.
@@ -504,13 +510,13 @@ FUNCTION doConstantAltitudeBurn
       LOCAL velocity_dv IS (VELOCITY:SURFACE:MAG * 1.1) + (LND_SURF_G * 15).
       SET precision_dv TO correction_dv + velocity_dv + land_acc.
       IF stageDV() < precision_dv {
-        hudMsg("FUEL LOW").
+        hudMsg("FUEL LOW", RED, 40).
         RETURN switchBurnType().
       }
     }
 
     IF ABORT <> initial_abort {
-      hudMsg("ABORT OVERRIDE").
+      hudMsg("ABORT OVERRIDE", RED, 40).
       RETURN switchBurnType().
     }
 
@@ -518,8 +524,7 @@ FUNCTION doConstantAltitudeBurn
   }
   steerSurf(FALSE).
   SET LND_THROTTLE TO 0.
-  pOut("Groundspeed close to zero and near landing site.").
-  pOut("Ending constant altitude burn.").
+  pOut("Groundspeed close to zero, near landing site; ending landing burn.").
   RETURN TRUE.
 }
 
@@ -535,7 +540,7 @@ FUNCTION doNonPrecisionConstantAltitudeBurn
   SET LND_THROTTLE TO 0.
   LOCK THROTTLE TO LND_THROTTLE.
   WAIT UNTIL steerOk(5,1).
-  pOut("Executing non-precision constant altitude burn.").
+  hudMsg("Executing non-precision landing burn.").
   landerResetTimer().
   SET LND_THROTTLE TO 1.
   LOCAL done IS FALSE.
@@ -547,7 +552,7 @@ FUNCTION doNonPrecisionConstantAltitudeBurn
 
     IF GROUNDSPEED < LND_ALLOWED_DRIFT {
       SET done TO TRUE.
-      pOut("Groundspeed close to zero; ending constant altitude burn.").
+      pOut("Groundspeed close to zero; ending landing burn.").
       SET LND_THROTTLE TO 0.
     } ELSE IF GROUNDSPEED < (LND_THRUST_ACC-LND_SURF_G) {
       LOCAL v_acc IS LND_SURF_G + LND_MIN_VS - SHIP:VERTICALSPEED.
