@@ -15,7 +15,9 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // needs tuning...
-GLOBAL LND_PID IS PIDLOOP(1, 0, 5, -999, 999).
+GLOBAL LND_PID IS PIDLOOP(1, 0, 3, -999, 999).
+//GLOBAL LND_PID IS PIDLOOP(1, 0, 5, -999, 999).
+GLOBAL LND_HOV_PID IS PIDLOOP(2.7, 4.4, 0.12, 0, 0).
 
 GLOBAL LND_THRUST_ACC IS 0.
 GLOBAL LND_RADAR_ADJUST IS 0.
@@ -428,6 +430,9 @@ FUNCTION constantAltitudeVec
   IF LND_OVERSHOOT { SET max_ang TO MAX(max_ang,45). }
   ELSE IF VDOT(FACING:VECTOR,final_vector:NORMALIZED) < 0 { SET max_ang TO 60. }
 
+// test line
+//SET max_ang TO 90.
+
   // restrict how far we try to move our facing at any one time
   LOCAL cv IS FACING:VECTOR.
   IF VANG(cv,final_vector) > max_ang {
@@ -476,8 +481,10 @@ FUNCTION doConstantAltitudeBurn
   LOCAL vs_limit IS LND_VS_LIMIT.
   LOCAL precision_dv IS 0.
   LOCAL LOCK h_dist TO VXCL(UP:VECTOR,spot:POSITION):MAG.
-  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
+//  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
+  UNTIL GROUNDSPEED < (5 * LND_THRUST_ACC) AND h_dist < LND_ALLOWED_DIST*100 {
     IF landerHeartbeat() > 0.5 {
+pOut("Heartbeat").
       landerResetTimer().
       LOCAL land_acc IS LND_THRUST_ACC.
 
@@ -522,10 +529,81 @@ FUNCTION doConstantAltitudeBurn
 
     WAIT 0.
   }
-  steerSurf(FALSE).
-  SET LND_THROTTLE TO 0.
-  pOut("Groundspeed close to zero, near landing site; ending landing burn.").
+  //steerSurf(FALSE).
+  //SET LND_THROTTLE TO 0.
+  //pOut("Groundspeed close to zero, near landing site; ending landing burn.").
+  pOut("Near site - hover").
   RETURN TRUE.
+}
+
+FUNCTION precisionHoverVec
+{
+  LOCAL final_vector IS UP:VECTOR.
+  IF LND_THRUST_ACC = 0 { RETURN final_vector. }
+
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL h_v IS VXCL(UP:VECTOR,spot:ALTITUDEPOSITION(ALTITUDE)).
+  LOCAL h_dist IS h_v:MAG.
+  LOCAL des_v IS MAX(0,MIN(LND_THRUST_ACC*5,MIN(GROUNDSPEED+2,h_dist/4))) * h_v:NORMALIZED.
+
+  SET final_vector TO (UP:VECTOR * gravAcc()) + (UP:VECTOR * LND_HOV_PID:SETPOINT) + des_v - VELOCITY:SURFACE.
+
+  // display-only code
+  LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
+  LOCAL spot_dist_string IS ROUND(h_dist/1000,1)+"km".
+  IF h_dist < 1000 {
+    SET spot_dist_string TO ROUND(h_dist)+"m".
+  }
+  drawVector("land", V(0,0,0), spot_draw_v, "Landing site "+spot_dist_string, RGB(1,0,0)).
+  drawVector("spot", spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, "", RGB(1,0,0)).
+  drawVector("svel", V(0,0,0), VELOCITY:SURFACE, "Current vel", RGB(1,1,0)).
+  drawVector("steer", V(0,0,0), 10 * final_vector:NORMALIZED, "Steer vector", RGB(0,1,1)).
+  // end of display
+
+  RETURN final_vector.
+}
+
+FUNCTION hoverSafetyAdjust
+{
+  PARAMETER h_dist.
+  IF GROUNDSPEED < (5 * LND_ALLOWED_DRIFT) AND h_dist < (5 * LND_ALLOWED_DIST) { RETURN 0.25. }
+  ELSE IF GROUNDSPEED < (10 * LND_ALLOWED_DRIFT) AND h_dist < (10 * LND_ALLOWED_DIST) { RETURN 0.5. }
+  ELSE IF GROUNDSPEED < (20 * LND_ALLOWED_DRIFT) AND h_dist < (20 * LND_ALLOWED_DIST) { RETURN 0.75. }
+  RETURN 1.
+}
+
+FUNCTION doPrecisionHover
+{
+  PARAMETER initial_abort.
+
+  hudMsg("On final approach.", YELLOW, 25).
+
+  LOCK THROTTLE TO LND_THROTTLE.
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL LOCK h_dist TO VXCL(UP:VECTOR,spot:ALTITUDEPOSITION(ALTITUDE)):MAG.
+
+  LOCAL safety_alt IS MAX(50,(20 * LND_SURF_G)).
+
+  LOCAL target_twr is 0.
+  LOCAL LOCK max_twr TO MAX(1, SHIP:AVAILABLETHRUST / (gravAcc() * MASS)).
+
+  SET LND_HOV_PID:SETPOINT TO 0.
+
+  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
+    LOCAL safety_adjust IS hoverSafetyAdjust(h_dist).
+    SET LND_HOV_PID:SETPOINT TO MAX(((safety_alt * safety_adjust) - ALT:RADAR)/2, -gravAcc()/2).
+    SET LND_HOV_PID:MAXOUTPUT TO max_twr.
+    SET target_twr TO LND_HOV_PID:UPDATE(TIME:SECONDS, VERTICALSPEED) / COS(VANG(UP:VECTOR, FACING:VECTOR)).
+    SET LND_THROTTLE TO MIN(target_twr / max_twr, 1).
+
+    IF ABORT <> initial_abort {
+      hudMsg("ABORT OVERRIDE", RED, 40).
+      RETURN switchBurnType().
+    }
+  }
+
+  pOut("Groundspeed close to zero, near landing site; ending landing burn.").
+  SET LND_THROTTLE TO 0.
 }
 
 // cut-down versions of the old constant-altitude-burn code:
@@ -688,7 +766,7 @@ FUNCTION doLanding
 UNTIL rm = exit_mode
 {
   IF rm = 201 {
-    pOut("Beginning landing program.").
+    hudMsg("Beginning landing program.",YELLOW,25).
     runMode(202).
   } ELSE IF rm = 202 {
     cycleLandingGear().
@@ -734,18 +812,27 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 233 {
     steerTo(constantAltitudeVec@).
     LOCAL ok IS doConstantAltitudeBurn(ABORT).
-    IF ok { runMode(235). } ELSE { runMode(234). }
+    IF ok { runMode(234). } ELSE { runMode(237). }
   } ELSE IF rm = 234 {
+    // do precision hover thing
+    steerTo(precisionHoverVec@).
+    wipeVectors().
+    doPrecisionHover(ABORT).
+    runMode(241).
+
+  } ELSE IF rm = 237 {
     steerTo(nonPrecisionConstantAltitudeVec@).
     wipeVectors().
     doNonPrecisionConstantAltitudeBurn().
-    runMode(235).
-  } ELSE IF rm = 235 {
+    // TBD - do a hover towards a flat slope here first?
+    runMode(241).
+
+  } ELSE IF rm = 241 {
     steerTo(retrogradeVec@).
     wipeVectors().
     doSuicideBurn().
-    runMode(236).
-  } ELSE IF rm = 236 {
+    runMode(242).
+  } ELSE IF rm = 242 {
     IF NOT isSteerOn() { steerSurf(FALSE). }
     doSetDown().
     runMode(exit_mode).
