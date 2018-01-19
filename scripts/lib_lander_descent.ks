@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180110").
+pOut("lib_lander_descent.ks v1.2.0 20180119").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -25,7 +25,7 @@ GLOBAL LND_LAT IS 0.
 GLOBAL LND_LNG IS 0.
 GLOBAL LND_SET_DOWN IS LIST(30,6,8,2).
 GLOBAL LND_OVERSHOOT IS FALSE.
-GLOBAL LND_ALLOWED_DRIFT IS 0.5.
+GLOBAL LND_ALLOWED_DRIFT IS 0.1.
 GLOBAL LND_ALLOWED_DIST IS 4.
 GLOBAL LND_VS_LIMIT IS -99.
 GLOBAL LND_SURF_G IS BODY:MU / BODY:RADIUS^2.
@@ -230,7 +230,8 @@ FUNCTION stepBurnScore
     LOCAL correction_dist IS correction_time * v_h:MAG.
 
     LOCAL est_burn_dist IS burnDist(v_h:MAG).
-    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.05.
+//    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.05.
+    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.2. // TBD - test line!
 
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
@@ -302,12 +303,13 @@ FUNCTION constantAltitudeVec
 
   // display-only code
   LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
+  LOCAL spot_ground_v IS spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT).
   LOCAL spot_dist_string IS ROUND(h_dist/1000,1)+"km".
   IF h_dist < 1000 {
     SET spot_dist_string TO ROUND(h_dist)+"m".
   }
   drawVector("land", V(0,0,0), spot_draw_v, "Landing site "+spot_dist_string, RGB(1,0,0)).
-  drawVector("spot", spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, "", RGB(1,0,0)).
+  drawVector("spot", spot_draw_v, spot_ground_v-spot_draw_v, "", RGB(1,0,0)).
   drawVector("svel", V(0,0,0), VELOCITY:SURFACE, "Current vel", RGB(1,1,0)).
   // end of display
 
@@ -489,8 +491,8 @@ pOut("Heartbeat").
       LOCAL land_acc IS LND_THRUST_ACC.
 
       IF LND_VS_LIMIT > 0 { SET vs_limit TO LND_VS_LIMIT. }
-      ELSE IF LND_OVERSHOOT OR h_dist < 1000 { SET vs_limit TO 0. }
-      ELSE IF h_dist < (LND_ALLOWED_DIST+1) * 1000 { SET vs_limit TO LND_VS_LIMIT * (h_dist-1000) / (LND_ALLOWED_DIST * 1000). }
+      ELSE IF LND_OVERSHOOT OR h_dist < 1000 { SET vs_limit TO -gravAcc(). }
+      ELSE IF h_dist < LND_ALLOWED_DIST * 1000 { SET vs_limit TO MAX(-gravAcc(),LND_VS_LIMIT * h_dist / (LND_ALLOWED_DIST * 1000)). }
       ELSE { SET vs_limit TO LND_VS_LIMIT. }
       LOCAL safety_factor IS min_safety_factor.
 
@@ -501,12 +503,12 @@ pOut("Heartbeat").
       LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * land_acc * LND_THROTTLE).
       LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
       IF acc_dot > 0 { SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))). }
-      LOCAL mod_vs IS SHIP:VERTICALSPEED - (LND_SURF_G *0.5).
-      IF mod_vs < 0 {
-        LOCAL max_acc IS land_acc - LND_SURF_G.
-        LOCAL min_burn_dist IS mod_vs^2 / (2 * max_acc).
-        SET safety_factor TO MAX(min_burn_dist, safety_factor).
-      }
+//      LOCAL mod_vs IS SHIP:VERTICALSPEED - (LND_SURF_G *0.5).
+//      IF mod_vs < 0 {
+//        LOCAL max_acc IS land_acc - LND_SURF_G.
+//        LOCAL min_burn_dist IS mod_vs^2 / (2 * max_acc).
+//        SET safety_factor TO MAX(min_burn_dist, safety_factor).
+//      }
       findMinVSpeed2(vs_limit,burn_time,step,safety_factor).
       SET LND_PID:SETPOINT TO LND_MIN_VS.
       SET LND_PID:MAXOUTPUT TO land_acc.
@@ -566,9 +568,9 @@ FUNCTION precisionHoverVec
 FUNCTION hoverSafetyAdjust
 {
   PARAMETER h_dist.
-  IF GROUNDSPEED < (5 * LND_ALLOWED_DRIFT) AND h_dist < (5 * LND_ALLOWED_DIST) { RETURN 0.25. }
-  ELSE IF GROUNDSPEED < (10 * LND_ALLOWED_DRIFT) AND h_dist < (10 * LND_ALLOWED_DIST) { RETURN 0.5. }
-  ELSE IF GROUNDSPEED < (20 * LND_ALLOWED_DRIFT) AND h_dist < (20 * LND_ALLOWED_DIST) { RETURN 0.75. }
+  IF GROUNDSPEED < (25 * LND_ALLOWED_DRIFT) AND h_dist < (5 * LND_ALLOWED_DIST) { RETURN 0.25. }
+  ELSE IF GROUNDSPEED < (50 * LND_ALLOWED_DRIFT) AND h_dist < (10 * LND_ALLOWED_DIST) { RETURN 0.5. }
+  ELSE IF GROUNDSPEED < (99 * LND_ALLOWED_DRIFT) AND h_dist < (20 * LND_ALLOWED_DIST) { RETURN 0.75. }
   RETURN 1.
 }
 

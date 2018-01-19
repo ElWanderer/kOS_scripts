@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20180105").
+pOut("lib_lander_common.ks v1.1.0 20180119").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
@@ -13,9 +13,10 @@ GLOBAL landerResetTimer IS setTime@:BIND("LND").
 FUNCTION landerSetMinVSpeed
 {
   PARAMETER s.
-  IF ROUND(s,1) <> ROUND(LND_MIN_VS,1) {
+  SET s TO ROUND(MIN(s,LND_MIN_VS+25),1).
+  IF ABS(s - LND_MIN_VS) >= 0.5 {
     SET LND_MIN_VS TO s.
-    pOut("LND_MIN_VS now: " + ROUND(s,1) + "m/s").
+    pOut("LND_MIN_VS now: " + s + "m/s").
   }
 }
 
@@ -88,6 +89,8 @@ FUNCTION findMinVSpeed2
   LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
   LOCAL pos_v IS V(0,0,0).
 
+  LOCAL count IS 1.
+
   UNTIL u_time > end_time {
     SET cur_h_v TO cur_h_v + (acc_v * step).
     SET pos_v TO pos_v + (cur_h_v * step).
@@ -102,6 +105,10 @@ FUNCTION findMinVSpeed2
     }
 
     SET u_time TO u_time + step.
+    IF count > 10 {
+      SET step TO step * 2.
+      SET count TO 1.
+    } ELSE { SET count TO count + 1. }
   }
 
   landerSetMinVSpeed(min_vs).
