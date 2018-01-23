@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180119").
+pOut("lib_lander_descent.ks v1.2.0 20180123").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -393,7 +393,7 @@ FUNCTION constantAltitudeVec
   IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
 //    drawVector("hthv", V(0,0,0), 5 * h_thrust_v:NORMALIZED, "Horizontal thrust vector ", RGB(0.3,0.3,1)).
     SET final_vector TO ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
-  } ELSE { hideVector("hthv"). }
+  }// ELSE { hideVector("hthv"). }
 
 //  drawVector("face", V(0,0,0), 5 * FACING:VECTOR, "Current facing", RGB(0,1,0)).
 //  drawVector("dfac", V(0,0,0), 5 * final_vector:NORMALIZED, "Desired facing", RGB(0,0,1)).
@@ -401,19 +401,19 @@ FUNCTION constantAltitudeVec
   IF LND_THROTTLE > 0 {
     LOCAL facing_dot IS VDOT(final_vector:NORMALIZED,FACING:VECTOR).
 //pOut("Facing VDOT: " + ROUND(facing_dot,2)).
-    IF facing_dot < 0.8 { SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * facing_dot). }
+    IF facing_dot < 0.5 { SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * facing_dot). }
 
     // actual pitch
     LOCAL actual_pitch IS 90 - VANG(UP:VECTOR,FACING:VECTOR).
 //pOut("actual_pitch: " + ROUND(actual_pitch,2) + " degrees.").
-    IF h_dist < LND_ALLOWED_DIST * 3 AND actual_pitch < 90 {
-      SET max_ang TO 1.
-      // if close to the target site, use the throttle setting that gives us the 
-      // horizontal acceleration we want
+//    IF h_dist < LND_ALLOWED_DIST * 3 AND actual_pitch < 90 {
+//      SET max_ang TO 1.
+//      // if close to the target site, use the throttle setting that gives us the 
+//      // horizontal acceleration we want
 //pOut("Horizontal throttle override").
-      LOCAL h_throttle IS MAX(0,MIN(1,(ship_h_acc / LND_THRUST_ACC) / COS(actual_pitch))).
-      SET LND_THROTTLE TO h_throttle.
-    }
+//      LOCAL h_throttle IS MAX(0,MIN(1,(ship_h_acc / LND_THRUST_ACC) / COS(actual_pitch))).
+//      SET LND_THROTTLE TO h_throttle.
+//    }
     IF ship_v_acc > 0 AND adjustedAltitude() < (LND_SURF_G*10) {
       SET max_ang TO 45.
       IF actual_pitch > 20 {
@@ -464,7 +464,7 @@ FUNCTION doConstantAltitudeBurn
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
 
-  LOCAL min_safety_factor IS MAX(50,(20 * LND_SURF_G)).
+  LOCAL min_safety_factor IS MAX(100,(25 * LND_SURF_G)).
 
   hudMsg("Hit ABORT to switch to non-precision landing", YELLOW, 25).
   UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT {
@@ -486,13 +486,11 @@ FUNCTION doConstantAltitudeBurn
 //  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
   UNTIL GROUNDSPEED < (5 * LND_THRUST_ACC) AND h_dist < LND_ALLOWED_DIST*100 {
     IF landerHeartbeat() > 0.5 {
-pOut("Heartbeat").
+pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
       landerResetTimer().
       LOCAL land_acc IS LND_THRUST_ACC.
 
-      IF LND_VS_LIMIT > 0 { SET vs_limit TO LND_VS_LIMIT. }
-      ELSE IF LND_OVERSHOOT OR h_dist < 1000 { SET vs_limit TO -gravAcc(). }
-      ELSE IF h_dist < LND_ALLOWED_DIST * 1000 { SET vs_limit TO MAX(-gravAcc(),LND_VS_LIMIT * h_dist / (LND_ALLOWED_DIST * 1000)). }
+      IF LND_OVERSHOOT { SET vs_limit TO MAX(LND_VS_LIMIT,-gravAcc()). }
       ELSE { SET vs_limit TO LND_VS_LIMIT. }
       LOCAL safety_factor IS min_safety_factor.
 
@@ -502,14 +500,14 @@ pOut("Heartbeat").
       LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
       LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * land_acc * LND_THROTTLE).
       LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
-      IF acc_dot > 0 { SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))). }
-//      LOCAL mod_vs IS SHIP:VERTICALSPEED - (LND_SURF_G *0.5).
-//      IF mod_vs < 0 {
-//        LOCAL max_acc IS land_acc - LND_SURF_G.
-//        LOCAL min_burn_dist IS mod_vs^2 / (2 * max_acc).
-//        SET safety_factor TO MAX(min_burn_dist, safety_factor).
-//      }
-      findMinVSpeed2(vs_limit,burn_time,step,safety_factor).
+      IF acc_dot > 0 { 
+        SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))).
+        LOCAL th IS LATLNG(LND_LAT,LND_LNG):TERRAINHEIGHT.
+        LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / burn_time.
+        SET vs_limit TO MAX(vs_limit, safe_vs).
+      } 
+      IF burn_time < 20 AND vs_limit < 0 { SET vs_limit TO vs_limit * burn_time / 20. }
+      findMinVSpeed2(vs_limit,MIN(burn_time,60),step,safety_factor).
       SET LND_PID:SETPOINT TO LND_MIN_VS.
       SET LND_PID:MAXOUTPUT TO land_acc.
       SET LND_PID:MINOUTPUT TO -land_acc.
@@ -584,7 +582,7 @@ FUNCTION doPrecisionHover
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
   LOCAL LOCK h_dist TO VXCL(UP:VECTOR,spot:ALTITUDEPOSITION(ALTITUDE)):MAG.
 
-  LOCAL safety_alt IS MAX(50,(20 * LND_SURF_G)).
+  LOCAL safety_alt IS MAX(60,(15 * LND_SURF_G)).
 
   LOCAL target_twr is 0.
   LOCAL LOCK max_twr TO MAX(1, SHIP:AVAILABLETHRUST / (gravAcc() * MASS)).
@@ -630,7 +628,7 @@ FUNCTION doNonPrecisionConstantAltitudeBurn
       findMinVSpeed(LND_VS_LIMIT,30,1).
     }
 
-    IF GROUNDSPEED < LND_ALLOWED_DRIFT {
+    IF GROUNDSPEED < MIN(3,LND_ALLOWED_DRIFT*10) {
       SET done TO TRUE.
       pOut("Groundspeed close to zero; ending landing burn.").
       SET LND_THROTTLE TO 0.

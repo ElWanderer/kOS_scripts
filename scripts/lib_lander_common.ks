@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20180119").
+pOut("lib_lander_common.ks v1.1.0 20180123").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
@@ -89,7 +89,8 @@ FUNCTION findMinVSpeed2
   LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
   LOCAL pos_v IS V(0,0,0).
 
-  LOCAL count IS 1.
+//  LOCAL count IS 1.
+LOCAL eta_count IS -1.
 
   UNTIL u_time > end_time {
     SET cur_h_v TO cur_h_v + (acc_v * step).
@@ -100,16 +101,27 @@ FUNCTION findMinVSpeed2
       LOCAL spot IS BODY:GEOPOSITIONOF(pos_v).
       LOCAL new_lng IS mAngle(spot:LNG - (eta * 360 / BODY:ROTATIONPERIOD)).
       LOCAL th IS LATLNG(spot:LAT,new_lng):TERRAINHEIGHT.
-      LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / eta.
+      SET th TO th + safety_factor - (eta * LND_THRUST_ACC).
+      LOCAL safe_vs IS (th - ALTITUDE) / eta.
+//pOut("Step/Count: " + step + "/" + count).
+//pOut("eta: " + ROUND(eta,1) + "s.").
+//pOut("terrain height + safety allowance: " + ROUND(th) + "m.").
+//pOut("our altitude: " + ROUND(ALTITUDE) + "m.").
+//pOut("safe_vs: " + ROUND(safe_vs,1) + "m/s.").
+IF safe_vs > min_vs { SET eta_count TO ROUND(eta). }
       SET min_vs TO MAX(min_vs, safe_vs).
     }
 
     SET u_time TO u_time + step.
-    IF count > 10 {
-      SET step TO step * 2.
-      SET count TO 1.
-    } ELSE { SET count TO count + 1. }
+//    SET count TO count + 1.
+
+//    IF count > 10 {
+//      SET step TO step * 2.
+//      SET count TO 1.
+//    }
   }
+
+IF eta_count > 0 { pOut("LND_MIN_VS based on the terrainheight in " + eta_count + "s."). }
 
   landerSetMinVSpeed(min_vs).
 }
