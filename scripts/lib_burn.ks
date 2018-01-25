@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_burn.ks v1.2.3 20171024").
+pOut("lib_burn.ks v1.2.3 20180125").
 
 FOR f IN LIST(
   "lib_dv.ks",
@@ -103,7 +103,7 @@ FUNCTION burnNode
 
   pOrbit(SHIP:OBT).
 
-  IF n:DELTAV:MAG >= 1 { SET ok TO FALSE. }
+  IF n:DELTAV:MAG >= MAX(1,SHIP:AVAILABLETHRUST/(MASS*20)) { SET ok TO FALSE. }
   IF ok { pOut("Node complete."). }
   ELSE { pOut("ERROR: node has " + ROUND(n:DELTAV:MAG,1) + "m/s remaining."). }
   pDV().
