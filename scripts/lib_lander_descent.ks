@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180123").
+pOut("lib_lander_descent.ks v1.2.0 20180126").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -15,7 +15,7 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // needs tuning...
-GLOBAL LND_PID IS PIDLOOP(1, 0, 3, -999, 999).
+GLOBAL LND_PID IS PIDLOOP(1, 1, 3, -999, 999).
 //GLOBAL LND_PID IS PIDLOOP(1, 0, 5, -999, 999).
 GLOBAL LND_HOV_PID IS PIDLOOP(2.7, 4.4, 0.12, 0, 0).
 
@@ -231,7 +231,7 @@ FUNCTION stepBurnScore
 
     LOCAL est_burn_dist IS burnDist(v_h:MAG).
 //    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.05.
-    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.2. // TBD - test line!
+    SET est_burn_dist TO (est_burn_dist + correction_dist) * 1.1. // TBD - test line!
 
     LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
 
@@ -500,13 +500,13 @@ pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
       LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
       LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * land_acc * LND_THROTTLE).
       LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
-      IF acc_dot > 0 { 
+      IF acc_dot > 0 AND VANG(UP:VECTOR,FACING:VECTOR) > 30 { 
         SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))).
         LOCAL th IS LATLNG(LND_LAT,LND_LNG):TERRAINHEIGHT.
         LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / burn_time.
         SET vs_limit TO MAX(vs_limit, safe_vs).
-      } 
-      IF burn_time < 20 AND vs_limit < 0 { SET vs_limit TO vs_limit * burn_time / 20. }
+        IF burn_time < 20 AND vs_limit < 0 { SET vs_limit TO vs_limit * burn_time / 20. }
+      }
       findMinVSpeed2(vs_limit,MIN(burn_time,60),step,safety_factor).
       SET LND_PID:SETPOINT TO LND_MIN_VS.
       SET LND_PID:MAXOUTPUT TO land_acc.
@@ -546,7 +546,7 @@ FUNCTION precisionHoverVec
   LOCAL h_dist IS h_v:MAG.
   LOCAL des_v IS MAX(0,MIN(LND_THRUST_ACC*5,MIN(GROUNDSPEED+2,h_dist/4))) * h_v:NORMALIZED.
 
-  SET final_vector TO (UP:VECTOR * gravAcc()) + (UP:VECTOR * LND_HOV_PID:SETPOINT) + des_v - VELOCITY:SURFACE.
+  SET final_vector TO (UP:VECTOR * (gravAcc() + LND_HOV_PID:SETPOINT)) + des_v - VELOCITY:SURFACE.
 
   // display-only code
   LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
@@ -593,7 +593,7 @@ FUNCTION doPrecisionHover
     LOCAL safety_adjust IS hoverSafetyAdjust(h_dist).
     SET LND_HOV_PID:SETPOINT TO MAX(((safety_alt * safety_adjust) - ALT:RADAR)/2, -gravAcc()/2).
     SET LND_HOV_PID:MAXOUTPUT TO max_twr.
-    SET target_twr TO LND_HOV_PID:UPDATE(TIME:SECONDS, VERTICALSPEED) / COS(VANG(UP:VECTOR, FACING:VECTOR)).
+    SET target_twr TO LND_HOV_PID:UPDATE(TIME:SECONDS, VERTICALSPEED) / MIN(0.01,COS(VANG(UP:VECTOR, FACING:VECTOR))).
     SET LND_THROTTLE TO MIN(target_twr / max_twr, 1).
 
     IF ABORT <> initial_abort {
@@ -784,6 +784,7 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 215 {
     IF NOT HASNODE { runMode(211). }
     ELSE IF execNode(TRUE) { runMode(221). }
+    ELSE { removeAllNodes(). }
 
   } ELSE IF rm = 221 {
     IF addNodeLowerPeriapsisOverSpot(LND_LAT,LND_LNG,pe_safety_factor,max_dist,days_limit) { runMode(222). }
@@ -795,6 +796,9 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 222 {
     IF NOT HASNODE { runMode(221). }
     ELSE IF execNode(TRUE) { runMode(223). }
+    ELSE {
+      // TBD - what do we do here?!
+    }
   } ELSE IF rm = 223 {
     checkPeriapsis(LND_LAT,LND_LNG,pe_safety_factor).
     runMode(231).
