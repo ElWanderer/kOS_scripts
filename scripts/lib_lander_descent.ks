@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180126").
+pOut("lib_lander_descent.ks v1.2.0 20180202").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -60,6 +60,7 @@ FUNCTION initDescentValues
   SET LND_LAT TO l_lat.
   SET LND_LNG TO l_lng.
   SET LND_RADAR_ADJUST TO calcRadarAltAdjust().
+  SET LND_SURF_G TO BODY:MU / BODY:RADIUS^2.
   SET LND_VS_LIMIT TO vs_limit.
   setTime("LND_BURN_TIME", 0).
   landerSetMinVSpeed(0).
@@ -464,7 +465,8 @@ FUNCTION doConstantAltitudeBurn
   LOCK THROTTLE TO LND_THROTTLE.
   LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
 
-  LOCAL min_safety_factor IS MAX(100,(25 * LND_SURF_G)).
+  LOCAL site_safety_factor IS MAX(100,(25 * LND_SURF_G)).
+  LOCAL burn_safety_factor IS site_safety_factor * 2.
 
   hudMsg("Hit ABORT to switch to non-precision landing", YELLOW, 25).
   UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT {
@@ -478,7 +480,7 @@ FUNCTION doConstantAltitudeBurn
   landerResetTimer().
   LND_PID:RESET().
   SET LND_THROTTLE TO 1.
-  findMinVSpeed2(LND_VS_LIMIT,30,0.5,min_safety_factor).
+  findMinVSpeed2(VERTICALSPEED,30,1,burn_safety_factor).
   SET LND_PID:SETPOINT TO LND_MIN_VS.
   LOCAL vs_limit IS LND_VS_LIMIT.
   LOCAL precision_dv IS 0.
@@ -492,10 +494,9 @@ pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
 
       IF LND_OVERSHOOT { SET vs_limit TO MAX(LND_VS_LIMIT,-gravAcc()). }
       ELSE { SET vs_limit TO LND_VS_LIMIT. }
-      LOCAL safety_factor IS min_safety_factor.
+      LOCAL safety_factor IS burn_safety_factor.
 
       LOCAL burn_time IS 20.
-      LOCAL step IS 1.
 
       LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
       LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * land_acc * LND_THROTTLE).
@@ -503,11 +504,14 @@ pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
       IF acc_dot > 0 AND VANG(UP:VECTOR,FACING:VECTOR) > 30 { 
         SET burn_time TO MIN(300,MAX(1,ROUND(cur_h_v:MAG / acc_dot))).
         LOCAL th IS LATLNG(LND_LAT,LND_LNG):TERRAINHEIGHT.
-        LOCAL safe_vs IS (th + safety_factor - ALTITUDE) / burn_time.
+        LOCAL safe_vs IS (th + site_safety_factor - ALTITUDE) / burn_time.
         SET vs_limit TO MAX(vs_limit, safe_vs).
-        IF burn_time < 20 AND vs_limit < 0 { SET vs_limit TO vs_limit * burn_time / 20. }
+        IF burn_time < 20 AND vs_limit < 0 {
+          SET vs_limit TO vs_limit * burn_time / 20.
+          SET safety_factor TO site_safety_factor.
+        }
       }
-      findMinVSpeed2(vs_limit,MIN(burn_time,60),step,safety_factor).
+      findMinVSpeed2(vs_limit,MIN(burn_time,60),1,safety_factor).
       SET LND_PID:SETPOINT TO LND_MIN_VS.
       SET LND_PID:MAXOUTPUT TO land_acc.
       SET LND_PID:MINOUTPUT TO -land_acc.
@@ -546,14 +550,16 @@ FUNCTION precisionHoverVec
   LOCAL h_dist IS h_v:MAG.
   LOCAL des_v IS MAX(0,MIN(LND_THRUST_ACC*5,MIN(GROUNDSPEED+2,h_dist/4))) * h_v:NORMALIZED.
 
+//  LOCAL des_v_acc IS gravAcc() + (LND_HOV_PID:SETPOINT - VERTICALSPEED).
+//  LOCAL des_v_acc IS LND_THRUST_ACC * LND_HOV_PID:OUTPUT.
+//pOut("Desired v acc: " + ROUND(des_v_acc,1) + "m/s^2.").
+//  SET final_vector TO (UP:VECTOR * des_v_acc) + des_v - VXCL(UP:VECTOR,VELOCITY:SURFACE).
   SET final_vector TO (UP:VECTOR * (gravAcc() + LND_HOV_PID:SETPOINT)) + des_v - VELOCITY:SURFACE.
 
   // display-only code
   LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
   LOCAL spot_dist_string IS ROUND(h_dist/1000,1)+"km".
-  IF h_dist < 1000 {
-    SET spot_dist_string TO ROUND(h_dist)+"m".
-  }
+  IF h_dist < 1000 { SET spot_dist_string TO ROUND(h_dist)+"m". }
   drawVector("land", V(0,0,0), spot_draw_v, "Landing site "+spot_dist_string, RGB(1,0,0)).
   drawVector("spot", spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, "", RGB(1,0,0)).
   drawVector("svel", V(0,0,0), VELOCITY:SURFACE, "Current vel", RGB(1,1,0)).
@@ -569,6 +575,9 @@ FUNCTION hoverSafetyAdjust
   IF GROUNDSPEED < (25 * LND_ALLOWED_DRIFT) AND h_dist < (5 * LND_ALLOWED_DIST) { RETURN 0.25. }
   ELSE IF GROUNDSPEED < (50 * LND_ALLOWED_DRIFT) AND h_dist < (10 * LND_ALLOWED_DIST) { RETURN 0.5. }
   ELSE IF GROUNDSPEED < (99 * LND_ALLOWED_DRIFT) AND h_dist < (20 * LND_ALLOWED_DIST) { RETURN 0.75. }
+//  IF GROUNDSPEED < (25 * LND_ALLOWED_DRIFT) AND h_dist < (5 * LND_ALLOWED_DIST) { RETURN 0.4. }
+//  ELSE IF GROUNDSPEED < (50 * LND_ALLOWED_DRIFT) AND h_dist < (10 * LND_ALLOWED_DIST) { RETURN 0.6. }
+//  ELSE IF GROUNDSPEED < (99 * LND_ALLOWED_DRIFT) AND h_dist < (20 * LND_ALLOWED_DIST) { RETURN 0.8. }
   RETURN 1.
 }
 
@@ -585,25 +594,43 @@ FUNCTION doPrecisionHover
   LOCAL safety_alt IS MAX(60,(15 * LND_SURF_G)).
 
   LOCAL target_twr is 0.
-  LOCAL LOCK max_twr TO MAX(1, SHIP:AVAILABLETHRUST / (gravAcc() * MASS)).
+  LOCAL LOCK max_twr TO MAX(1, LND_THRUST_ACC / gravAcc()).
 
   SET LND_HOV_PID:SETPOINT TO 0.
+  SET LND_HOV_PID:MINOUTPUT TO 0.
+
+  landerResetTimer().
 
   UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
     LOCAL safety_adjust IS hoverSafetyAdjust(h_dist).
+//    SET LND_HOV_PID:SETPOINT TO MAX(((safety_alt * safety_adjust) - ALT:RADAR)/2, MAX(-LND_THRUST_ACC/2,VERTICALSPEED-gravAcc()/2)).
     SET LND_HOV_PID:SETPOINT TO MAX(((safety_alt * safety_adjust) - ALT:RADAR)/2, -gravAcc()/2).
     SET LND_HOV_PID:MAXOUTPUT TO max_twr.
+//    SET LND_HOV_PID:MINOUTPUT TO 0.5 * gravAcc() / LND_THRUST_ACC. // TBD - does this help?!
     SET target_twr TO LND_HOV_PID:UPDATE(TIME:SECONDS, VERTICALSPEED) / MIN(0.01,COS(VANG(UP:VECTOR, FACING:VECTOR))).
-    SET LND_THROTTLE TO MIN(target_twr / max_twr, 1).
+    SET LND_THROTTLE TO MIN(target_twr / max_twr, 1). // TBD potential div0
+
+    IF landerHeartbeat() > 0.25 {
+pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
+      landerResetTimer().
+
+      LOCAL suicide_dv IS 1.5 * SQRT(VERTICALSPEED^2 + (2 * gravAcc() * ALT:RADAR)).
+      IF stageDV() < suicide_dv {
+        hudMsg("FUEL LOW", RED, 40).
+        RETURN switchBurnType().
+      }
+    }
 
     IF ABORT <> initial_abort {
       hudMsg("ABORT OVERRIDE", RED, 40).
       RETURN switchBurnType().
     }
+    WAIT 0.
   }
 
   pOut("Groundspeed close to zero, near landing site; ending landing burn.").
   SET LND_THROTTLE TO 0.
+  RETURN TRUE.
 }
 
 // cut-down versions of the old constant-altitude-burn code:
@@ -673,10 +700,14 @@ FUNCTION suicideBurnThrot
 
   LOCAL sv2 IS SHIP:VERTICALSPEED^2.
   LOCAL min_burn_dist IS sv2 / (2 * max_acc).
+
   LOCAL cur_burn_dist IS 99999.
   IF cur_acc > 0 { SET cur_burn_dist TO sv2 / (2 * cur_acc). }
   LOCAL ship_alt IS MIN(ALT:RADAR,ALTITUDE - imp_alt) - LND_RADAR_ADJUST.
   LOCAL dist_adjust IS -SHIP:VERTICALSPEED / 10.
+
+//pOut("Minimum burn distance: "+ROUND(min_burn_dist + dist_adjust)+"m.").
+//pOut("Calculated leg height above terrain: "+ROUND(ship_alt)+"m.").
 
   IF SHIP:VERTICALSPEED > 0 { SET burn_throt TO 0. }
   ELSE IF (min_burn_dist + dist_adjust) > ship_alt { SET burn_throt TO 1. }
@@ -691,10 +722,14 @@ FUNCTION suicideBurnThrot
 FUNCTION doSuicideBurn
 {
   hudMsg("Waiting to apply suicide burn.").
+pDV().
   LOCK THROTTLE TO LND_THROTTLE.
 
   LOCAL imp_alt IS calculateImpact().
   landerResetTimer().
+
+//pOut("LND_THRUST_ACC: " + ROUND(LND_THRUST_ACC,1) + "m/s^2.").
+//pOut("LND_SURF_G: " + ROUND(LND_SURF_G,1) + "m/s^2.").
 
   UNTIL adjustedAltitude() < LND_SET_DOWN[0] {
     IF landerHeartbeat() > 1 {
@@ -702,6 +737,11 @@ FUNCTION doSuicideBurn
       SET imp_alt TO calculateImpact().
     }
     SET LND_THROTTLE TO suicideBurnThrot(imp_alt).
+//pOut("doSuicideBurn ("+ROUND(ALT:RADAR)+"m)").
+//pOut("Distance to impact: " + ROUND(ALTITUDE-imp_alt) + "m.").
+//pOut("Vertical speed: " + ROUND(VERTICALSPEED,1) + "m/s.").
+//pOut("Ground speed: " + ROUND(GROUNDSPEED,1) + "m/s.").
+//pOut("Throttle: " + LND_THROTTLE).
     WAIT 0.
   }
 }
@@ -709,6 +749,7 @@ FUNCTION doSuicideBurn
 FUNCTION doSetDown
 {
   hudMsg("Setting down.").
+pDV().
   LOCK THROTTLE TO LND_THROTTLE.
   PANELS OFF.
 
@@ -724,11 +765,19 @@ FUNCTION doSetDown
     LOCAL des_throt IS 1.
     IF LND_THRUST_ACC > 0 { SET des_throt TO (des_acc + gravAcc()) / LND_THRUST_ACC. }
     SET LND_THROTTLE TO MIN(1,MAX(0,des_throt)).
+//pOut("Set down in progress ("+ROUND(ALT:RADAR)+"m)").
+//pOut("Vertical speed: " + ROUND(VERTICALSPEED,1) + "m/s.").
+//pOut("Ground speed: " + ROUND(GROUNDSPEED,1) + "m/s.").
+//pOut("Throttle: " + LND_THROTTLE).
     WAIT 0.
   }
 
   pOut("Cutting throttle.").
   SET LND_THROTTLE TO 0.
+//UNTIL isLanded() {
+//pOut("Vertical speed: " + ROUND(VERTICALSPEED,1) + "m/s.").
+//pOut("Ground speed: " + ROUND(GROUNDSPEED,1) + "m/s.").
+//}
   WAIT UNTIL isLanded().
   hudMsg("Touchdown.").
   pOut("Landed at LAT: " + ROUND(LATITUDE,2) + " LNG: " + ROUND(LONGITUDE,2)).

@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_common.ks v1.1.0 20180123").
+pOut("lib_lander_common.ks v1.1.0 20180201").
 
 GLOBAL LND_THROTTLE IS 0.
 GLOBAL LND_PITCH IS 0.
@@ -83,7 +83,7 @@ FUNCTION findMinVSpeed2
   LOCAL min_vs IS init_min_vs.
   LOCAL start_time IS TIME:SECONDS.
   LOCAL end_time IS start_time + look_ahead.
-  LOCAL u_time IS start_time + step.
+  LOCAL u_time IS start_time + MAX(step,2).
 
   LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
   LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
