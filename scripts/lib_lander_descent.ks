@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180202").
+pOut("lib_lander_descent.ks v1.2.0 20180206").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -48,7 +48,7 @@ FUNCTION calcRadarAltAdjust
     } ELSE IF p:TITLE:CONTAINS("Strut") OR p:TITLE:CONTAINS("Land") OR p:TITLE:CONTAINS("Gear") {
       SET p_height TO p_height + 1.5.
     }
-    SET core_height tO MAX(p_height, core_height).
+    SET core_height TO MAX(p_height, core_height).
   }
   RETURN core_height.
 }
@@ -696,13 +696,10 @@ FUNCTION suicideBurnThrot
   LOCAL burn_throt IS 0.
 
   LOCAL max_acc IS LND_THRUST_ACC - LND_SURF_G.
-  LOCAL cur_acc IS (LND_THRUST_ACC * LND_THROTTLE) - LND_SURF_G.
 
   LOCAL sv2 IS SHIP:VERTICALSPEED^2.
   LOCAL min_burn_dist IS sv2 / (2 * max_acc).
 
-  LOCAL cur_burn_dist IS 99999.
-  IF cur_acc > 0 { SET cur_burn_dist TO sv2 / (2 * cur_acc). }
   LOCAL ship_alt IS MIN(ALT:RADAR,ALTITUDE - imp_alt) - LND_RADAR_ADJUST.
   LOCAL dist_adjust IS -SHIP:VERTICALSPEED / 10.
 
