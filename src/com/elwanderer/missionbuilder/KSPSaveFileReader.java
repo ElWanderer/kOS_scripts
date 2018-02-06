@@ -30,7 +30,7 @@ public class KSPSaveFileReader {
 		return b;
 	}
 	
-	public boolean LoadKSPContracts(String path) throws IOException {
+	public boolean LoadKSPSave(String path) throws IOException {
 		boolean returnVal = false;
 		
 		Scanner saveFileReader = null;
@@ -51,6 +51,33 @@ public class KSPSaveFileReader {
 			    	ok = false;
 			    }
 			}
+			
+			saveFileReader = new Scanner(new BufferedReader(new FileReader(path)));
+			KSPConfigBlock block = ReadNamedBlock(saveFileReader, "FLIGHTSTATE");
+		    if (block != null) {
+		    	double time = block.getDoubleField("UT");
+		    	System.out.println("Current game time (UT): " + time);
+		    	double SECONDS_IN_MINUTE = 60.0;
+		    	double SECONDS_IN_HOUR = 60.0 * SECONDS_IN_MINUTE;
+		    	double SECONDS_IN_DAY = 6.0 * SECONDS_IN_HOUR;
+		    	double SECONDS_IN_YEAR = 426.0 * SECONDS_IN_DAY;
+		    	
+		    	int years = (int) Math.floor(time / SECONDS_IN_YEAR);
+		    	double remain = time - (years * SECONDS_IN_YEAR);
+		    	
+		    	int days = (int) Math.floor(remain / SECONDS_IN_DAY);
+		    	remain -= (days * SECONDS_IN_DAY);
+		    	
+		    	int hours = (int) Math.floor(remain / SECONDS_IN_HOUR);
+		    	remain -= (hours * SECONDS_IN_HOUR);
+		    	
+		    	int minutes = (int) Math.floor(remain / SECONDS_IN_MINUTE);
+		    	remain -= (minutes * SECONDS_IN_MINUTE);
+		    	
+		    	int seconds = (int) Math.floor(remain);
+		    	
+		    	System.out.println("Current game time: Y" + (years+1) + " D" + (days+1) + " " + hours + ":" + minutes + ":" + seconds);
+		    }
 
 		} finally {
 			if (saveFileReader != null) {

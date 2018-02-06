@@ -48,12 +48,12 @@ public class MissionBuilder extends JPanel implements ActionListener {
  
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
-                //This is where a real application would open the file.
+                
                 log.append("Opening: " + file.getName() + "." + newline);
                 KSPSaveFileReader sfr = new KSPSaveFileReader();
         		
                 try {
-                	sfr.LoadKSPContracts(file.getPath());
+                	sfr.LoadKSPSave(file.getPath());
                 } catch (IOException ex) {
                 	log.append("Error opening: " + file.getName() + "." + newline);
                 }
