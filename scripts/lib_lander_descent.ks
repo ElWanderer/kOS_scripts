@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_descent.ks v1.2.0 20180206").
+pOut("lib_lander_descent.ks v1.2.0 20180209").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -32,25 +32,25 @@ GLOBAL LND_SURF_G IS BODY:MU / BODY:RADIUS^2.
 
 GLOBAL LND_LEG_LEX IS LEXICON(
   "LT-2 Landing Strut", 1.7,
-  "LT-1 Landing Struts", 1.75,
-  "LT-05 Micro Landing Strut", 1.2).
+  "LT-1 Landing Struts", 1.6,
+  "LT-05 Micro Landing Strut", 0.95).
 
 FUNCTION calcRadarAltAdjust
 {
-  LOCAL core_height IS 0.
+  LOCAL rh IS 0.
   LOCAL pl IS LIST().
   LIST PARTS IN pl.
   FOR p IN pl {
-    LOCAL p_pos IS p:POSITION - CORE:PART:POSITION.
-    LOCAL p_height IS VDOT(-FACING:VECTOR,p_pos).
+    LOCAL p_pos IS p:POSITION - SHIP:ROOTPART:POSITION.
+    LOCAL ph IS VDOT(-FACING:VECTOR,p_pos).
     IF LND_LEG_LEX:HASKEY(p:TITLE) { 
-      SET p_height TO p_height + LND_LEG_LEX[p:TITLE].
+      SET ph TO ph + LND_LEG_LEX[p:TITLE].
     } ELSE IF p:TITLE:CONTAINS("Strut") OR p:TITLE:CONTAINS("Land") OR p:TITLE:CONTAINS("Gear") {
-      SET p_height TO p_height + 1.5.
+      SET ph TO ph + 1.5.
     }
-    SET core_height TO MAX(p_height, core_height).
+    SET rh TO MAX(ph, rh).
   }
-  RETURN core_height.
+  RETURN rh.
 }
 
 FUNCTION initDescentValues
