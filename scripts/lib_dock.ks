@@ -92,7 +92,7 @@ FUNCTION checkRouteStep
 
   FOR p IN t:PARTS {
     LOCAL ang IS VANG(p2-p1,p:POSITION-p1).
-    IF ang < 90 AND p:POSITION:MAG * SIN(ang) < DOCK_AVOID { RETURN FALSE. }
+    IF ang < 90 AND (p:POSITION-p1):MAG * SIN(ang) < DOCK_AVOID { RETURN FALSE. }
   }
   RETURN TRUE.
 }
