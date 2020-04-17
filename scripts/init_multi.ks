@@ -5,7 +5,7 @@ GLOBAL VOLUME_NAMES IS LIST().
 listVolumes().
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
-pOut("init_multi.ks v1.2.0 20170117").
+pOut("init_multi.ks v1.3.0 20200406").
 pVolumes().
 
 FUNCTION cOk
@@ -102,6 +102,16 @@ FUNCTION store
   LOG t TO findSpace(fn,mfs).
 }
 
+FUNCTION storeJSON
+{
+  PARAMETER o, fn, mfs IS 150.
+  LOCAL lfp IS findSpace(fn,mfs).
+  IF lfp <> "" {
+    delScript(fn).
+    WRITEJSON(o, lfp).
+  }
+}
+
 FUNCTION append
 {
   PARAMETER t, fn IS RESUME_FN.
@@ -113,4 +123,16 @@ FUNCTION resume
   PARAMETER fn IS RESUME_FN.
   LOCAL lfp IS findPath(fn).
   IF lfp <> "" { RUNPATH(lfp). }
+}
+
+FUNCTION hasFile
+{
+  PARAMETER fn.
+  RETURN findPath(fn) <> "".
+}
+
+FUNCTION getJSON
+{
+  PARAMETER fn.
+  RETURN READJSON(findPath(fn)).
 }

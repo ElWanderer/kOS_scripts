@@ -2,6 +2,7 @@
 
 GLOBAL TIMES IS LEXICON().
 GLOBAL LOG_FILE IS "".
+GLOBAL LOG_BUFF IS "log.json".
 GLOBAL g0 IS 9.80665.
 GLOBAL INIT_MET_TS IS -1.
 GLOBAL INIT_MET IS "".
@@ -20,7 +21,8 @@ IF NOT EXISTS (CRAFT_FILE) AND cOk() {
 IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
 CORE:DOEVENT("Open Terminal").
 CLEARSCREEN.
-pOut("init_common.ks v1.3.0 20170814").
+pOut("init_common.ks v1.4.0 20200406").
+sendLog().
 
 FUNCTION padRep
 {
@@ -56,7 +58,31 @@ FUNCTION logOn
 FUNCTION doLog
 {
   PARAMETER t.
-  IF LOG_FILE <> "" AND cOk() { LOG t TO LOG_FILE. }
+  IF LOG_FILE <> "" {
+    IF cOk() { LOG t TO LOG_FILE. }
+    ELSE {
+      LOCAL l IS LIST().
+      IF hasFile(LOG_BUFF) {
+        SET l TO getJSON(LOG_BUFF).
+      } ELSE {
+        ON HOMECONNECTION:ISCONNECTED { sendLog(). }
+        PRINT "No connection. Storing logs".
+      }
+      l:ADD(t).
+      storeJSON(l, LOG_BUFF, t:LENGTH + 200).
+    }
+  }
+}
+
+FUNCTION sendLog
+{
+  IF hasFile(LOG_BUFF) AND cOk() {
+    LOCAL l is getJSON(LOG_BUFF).
+    delScript(LOG_BUFF).
+    pOut("Sending stored logs").
+    FOR t IN l { doLog(t). }
+  }
+  RETURN hasFile(LOG_BUFF) AND NOT cOk().
 }
 
 FUNCTION pOut

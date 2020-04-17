@@ -2,7 +2,7 @@
 RUNONCEPATH(loadScript("init_common.ks",FALSE)).
 
 GLOBAL RESUME_FN IS "resume.ks".
-pOut("init.ks v1.3.0 20170106").
+pOut("init.ks v1.4.0 20200406").
 
 FUNCTION cOk
 {
@@ -42,6 +42,15 @@ FUNCTION store
   LOG t TO ("1:/" + fn).
 }
 
+FUNCTION storeJSON
+{
+  PARAMETER o, fn, mfs IS 150.
+  IF CORE:VOLUME:FREESPACE > mfs {
+    delScript(fn).
+    WRITEJSON(o, "1:/" + fn).
+  }
+}
+
 FUNCTION append
 {
   PARAMETER t, fn IS RESUME_FN.
@@ -53,4 +62,16 @@ FUNCTION resume
   PARAMETER fn IS RESUME_FN.
   LOCAL lfp IS "1:/" + fn.
   IF EXISTS(lfp) { RUNPATH(lfp). }
+}
+
+FUNCTION hasFile
+{
+  PARAMETER fn.
+  RETURN EXISTS("1:/" + fn).
+}
+
+FUNCTION getJSON
+{
+  PARAMETER fn.
+  RETURN READJSON("1:/" + fn).
 }
