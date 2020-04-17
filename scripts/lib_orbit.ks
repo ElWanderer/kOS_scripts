@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.1.0 20171108").
+pOut("lib_orbit.ks v1.2.0 20200417").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
@@ -92,17 +92,32 @@ FUNCTION nodeAlterOrbit
 
   LOCAL b IS ORBITAT(SHIP,u_time):BODY.
   LOCAL p IS posAt(SHIP,u_time).
-  LOCAL v IS velAt(SHIP,u_time).
-  LOCAL f_ang IS 90 - VANG(v,p).
+  LOCAL v0 IS velAt(SHIP,u_time).
+  LOCAL f_ang IS 90 - VANG(v0,p).
 
   LOCAL r IS p:MAG.
   LOCAL a1 IS (r + opp_alt + b:RADIUS) / 2.
 
   LOCAL v1 IS SQRT(b:MU * ((2/r)-(1/a1))).
-  LOCAL pro IS (v1 * COS(f_ang)) - v:MAG.
+  LOCAL pro IS (v1 * COS(f_ang)) - v0:MAG.
   LOCAL rad IS -v1 * SIN(f_ang).
   LOCAL n IS NODE(u_time, rad, 0, pro).
   RETURN n.
+}
+
+FUNCTION nodeFromVector
+{
+  PARAMETER v1, n_time IS TIME:SECONDS.
+  LOCAL s_pro IS velAt(SHIP,n_time).
+  LOCAL s_nrm IS VCRS(s_pro,posAt(SHIP,n_time)):NORMALIZED.
+  LOCAL s_rad IS VCRS(s_nrm,s_pro):NORMALIZED.
+  RETURN NODE(n_time, VDOT(v1,s_rad), VDOT(v1,s_nrm), VDOT(v1,s_pro:NORMALIZED)).
+}
+
+FUNCTION nodeToVector
+{
+  PARAMETER v1, n_time IS TIME:SECONDS.
+  RETURN nodeFromVector(v1 - velAt(SHIP,n_time),n_time).
 }
 
 FUNCTION firstTAAtRadius

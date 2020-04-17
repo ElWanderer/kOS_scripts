@@ -1,10 +1,11 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.4.0 20171214").
+pOut("lib_launch_common.ks v1.5.0 20200417").
 
 FOR f IN LIST(
   "lib_burn.ks",
   "lib_runmode.ks",
-  "lib_parts.ks"
+  "lib_parts.ks",
+  "lib_orbit.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
 GLOBAL LCH_AP IS 0.
@@ -208,17 +209,29 @@ FUNCTION sepLauncher
   }
 }
 
+FUNCTION rotateVelocity
+{
+  PARAMETER v0, spot, des_bearing.
+
+  LOCAL spot_up_v IS (spot:ALTITUDEPOSITION(1000)-spot:ALTITUDEPOSITION(0)):NORMALIZED.
+  LOCAL north_v IS VXCL(spot_up_v, LATLNG(MIN(90, spot:LAT+1),spot:LNG):POSITION - spot:POSITION):NORMALIZED.
+  LOCAL east_v IS VCRS(spot_up_v, north_v):NORMALIZED.
+  LOCAL v0_bearing IS ARCTAN2(VDOT(v0, east_v), VDOT(v0, north_v)).
+
+  RETURN ANGLEAXIS(des_bearing - v0_bearing, spot_up_v) * v0.
+}
+
 FUNCTION launchCirc
 {
   IF NOT HASNODE {
     LOCAL m_time IS TIME:SECONDS + ETA:APOAPSIS.
-    LOCAL v0 IS VELOCITYAT(SHIP,m_time):ORBIT:MAG.
-    LOCAL v1 IS SQRT(BODY:MU/(BODY:RADIUS + APOAPSIS)).
-    LOCAL n IS NODE(m_time, 0, 0, v1 - v0).
-    addNode(n).
+    LOCAL m_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,m_time)).
+    LOCAL az IS launchBearing(m_spot:LAT, V(0,0,0), -1).
+    LOCAL v1 IS rotateVelocity(VELOCITYAT(SHIP,m_time):ORBIT, m_spot, az):NORMALIZED * SQRT(BODY:MU/(BODY:RADIUS + APOAPSIS)).
+
+    addNode(nodeToVector(v1, m_time)).
   }
-  LOCAL ok IS execNode(TRUE).
-  RETURN ok AND PERIAPSIS > BODY:ATM:HEIGHT.
+  RETURN execNode(TRUE) AND PERIAPSIS > BODY:ATM:HEIGHT.
 }
 
 FUNCTION launchCoast
@@ -312,16 +325,21 @@ FUNCTION launchLocks
   LOCK THROTTLE TO 1.
 }
 
+FUNCTION bearingSouth
+{
+  IF ALT:RADAR < (LCH_PITCH_ALT * 10) { RETURN NOT LCH_AN. }
+  RETURN BODY:GEOPOSITIONOF(POSITIONAT(SHIP,TIME:SECONDS+5)):LAT < LATITUDE.
+}
+
 FUNCTION launchBearing
 {
-  LOCAL lat IS SHIP:LATITUDE.
-  LOCAL vo IS SHIP:VELOCITY:ORBIT.
+  PARAMETER lat IS SHIP:LATITUDE, v0 IS SHIP:VELOCITY:ORBIT, v1_mag IS LCH_ORBIT_VEL.
   IF (LCH_I > 0 AND ABS(lat) < 90 AND MIN(LCH_I,180 - LCH_I) >= ABS(lat)) {
     LOCAL az IS ARCSIN( COS(LCH_I) / COS(lat) ).
-    IF NOT LCH_AN { SET az TO mAngle(180 - az). }
-    IF vo:MAG >= LCH_ORBIT_VEL { RETURN az. }
-    LOCAL x IS (LCH_ORBIT_VEL * SIN(az)) - VDOT(vo,HEADING(90,0):VECTOR).
-    LOCAL y IS (LCH_ORBIT_VEL * COS(az)) - VDOT(vo,HEADING(0,0):VECTOR).
+    IF bearingSouth() { SET az TO mAngle(180 - az). }
+    IF v0:MAG >= v1_mag { RETURN az. }
+    LOCAL x IS (v1_mag * SIN(az)) - VDOT(v0,HEADING(90,0):VECTOR).
+    LOCAL y IS (v1_mag * COS(az)) - VDOT(v0,HEADING(0,0):VECTOR).
     RETURN mAngle(90 - ARCTAN2(y, x)).
   } ELSE {
     IF LCH_I < 90 { RETURN 90. }
