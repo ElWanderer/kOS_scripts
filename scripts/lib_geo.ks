@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_geo.ks v1.2.0 20170602").
+pOut("lib_geo.ks v1.2.1 20200416").
 
 RUNONCEPATH(loadScript("lib_orbit.ks")).
 
@@ -17,16 +17,14 @@ FUNCTION firstTAAtLat
 
   LOCAL i IS o:INCLINATION.
   IF NOT latOkForInc(lat,i) { RETURN -1. }
-  LOCAL w IS mAngle(o:ARGUMENTOFPERIAPSIS).
-  RETURN mAngle(ARCSIN((SIN(lat)/SIN(i))) - w).
+  RETURN mAngle(ARCSIN((SIN(lat)/SIN(i))) - mAngle(o:ARGUMENTOFPERIAPSIS)).
 }
 
 FUNCTION secondTAAtLat
 {
   PARAMETER o,lat.
 
-  LOCAL i IS o:INCLINATION.
-  IF NOT latOkForInc(lat,i) { RETURN -1. }
+  IF NOT latOkForInc(lat,o:INCLINATION) { RETURN -1. }
   LOCAL w IS o:ARGUMENTOFPERIAPSIS.
   LOCAL ta_extreme_lat IS mAngle(90 - w).
   IF lat < 0 { SET ta_extreme_lat TO mAngle(270 - w). }
@@ -37,27 +35,24 @@ FUNCTION secondTAAtLat
 FUNCTION spotRotated
 {
   PARAMETER planet, spot, time_diff.
-  LOCAL new_lng IS mAngle(spot:LNG - (time_diff * 360 / planet:ROTATIONPERIOD)).
-  RETURN LATLNG(spot:LAT,new_lng).
+  RETURN LATLNG(spot:LAT,mAngle(spot:LNG - (time_diff * 360 / planet:ROTATIONPERIOD))).
 }
 
 FUNCTION spotAtTime
 {
   PARAMETER planet,craft,u_time.
-
-  LOCAL spot IS planet:GEOPOSITIONOF(POSITIONAT(craft,u_time)).
-  RETURN spotRotated(planet, spot, u_time-TIME:SECONDS).
+  RETURN spotRotated(planet, planet:GEOPOSITIONOF(POSITIONAT(craft,u_time)), u_time-TIME:SECONDS).
 }
 
 FUNCTION greatCircleDistance
 {
-  PARAMETER planet,spot1,spot2.
+  PARAMETER planet,spot1,spot2,alt IS 0.
 
   LOCAL latD IS spot2:LAT - spot1:LAT.
   LOCAL lngD IS spot2:LNG - spot1:LNG.
   LOCAL h IS ((SIN(latD/2))^2) + (COS(spot1:LAT) * COS(spot2:LAT) * ((SIN(lngD/2))^2)).
   IF h < 0 OR h > 1 { RETURN -1. }
-  RETURN (2 * planet:RADIUS * ARCSIN(SQRT(h)) * CONSTANT:DEGTORAD).
+  RETURN (2 * (planet:RADIUS+alt) * ARCSIN(SQRT(h)) * CONSTANT:DEGTORAD).
 }
 
 FUNCTION distAtTime
@@ -99,7 +94,6 @@ FUNCTION findNextPassCA
 
 FUNCTION findNextPass
 {
-  // max_dist in metres
   PARAMETER craft,planet,t_spot,max_dist,days_limit.
 
   LOCAL u_time IS TIME:SECONDS.
@@ -159,7 +153,6 @@ FUNCTION waypointsForBody
 
 FUNCTION addWaypointToList
 {
-  // first element of wayDetails list should be the ETA
   PARAMETER wayDetails,etaList.
 
   LOCAL len IS etaList:LENGTH.
@@ -181,17 +174,14 @@ FUNCTION addWaypointToList
 
 FUNCTION listContractWaypointsByETA
 {
-  // max_dist here is in kilometres
   PARAMETER craft,max_dist,days_limit.
 
   LOCAL planet IS craft:OBT:BODY.
-  LOCAL i IS craft:OBT:INCLINATION.
-  LOCAL wayList IS wayPointsForBody(planet).
   LOCAL etaList IS LIST().
 
-  FOR wp IN wayList {
+  FOR wp IN wayPointsForBody(planet) {
     LOCAL wp_spot IS wp:GEOPOSITION.
-    IF wp:NAME<>"Site" AND wp:NAME<>craft:NAME AND latOkForInc(wp_spot:LAT,i) {
+    IF wp:NAME<>"Site" AND wp:NAME<>craft:NAME AND latOkForInc(wp_spot:LAT,craft:OBT:INCLINATION) {
       LOCAL wp_eta_time IS findNextPass(craft,planet,wp_spot,max_dist*1000,days_limit).
       LOCAL eta IS wp_eta_time - TIME:SECONDS.
       IF eta >= 0 AND eta <= (days_limit * ONE_DAY) {
