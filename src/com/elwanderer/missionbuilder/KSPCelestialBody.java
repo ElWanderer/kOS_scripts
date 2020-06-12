@@ -69,7 +69,7 @@ public class KSPCelestialBody {
 		if (hasOrbit()) {
 			returnVal += orbit.toString();
 			returnVal += "Orbital period: " + getPeriod() + "s\n";
-			returnVal += "Mean anomaly at epoch: " + OrbitUtils.roundToDP(maae,3) + " degrees\n";
+			returnVal += "Mean anomaly at epoch: " + Utils.roundToDP(maae,3) + " degrees\n";
 		}
 		return returnVal;
 	}

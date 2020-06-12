@@ -25,8 +25,11 @@ public class KSPSatelliteContract extends KSPContract {
 	public String toString() {
 		String returnVal = super.toString();
 		
-		returnVal += "Body ID: " + bodyID + "\n";
-		returnVal += orbit.toString();
+		KSPSolarSystem system = new KSPSolarSystem();
+		KSPCelestialBody body = system.getBodyByID(bodyID);
+		
+		returnVal += "Body: " + body.getDescription() + "\n";
+		returnVal += OrbitUtils.orbitToStringForBody(orbit, body);
 		
 		return returnVal;
 	}

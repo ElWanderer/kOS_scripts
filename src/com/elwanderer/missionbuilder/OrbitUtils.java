@@ -1,14 +1,38 @@
 package com.elwanderer.missionbuilder;
 
 public class OrbitUtils {
-	public static double roundToDP(double num, int numDP) {
-		if (numDP > 0) {
-			double exp = Math.pow(10.0, numDP);
-			return Math.round(num*exp) / exp;
-			
-		} else {
-			return Math.round(num);
+	
+	static String[] DISTANCE_SUFFIXES = { "m", "km", "Mm", "Gm", "Tm", "Pm" };
+	static int[] NUM_DP_TO_DISPLAY = { 1, 1, 3, 3, 3, 3 };
+	
+	/*
+	 * Display a distance as a string, using m, km, Mm, Gm as necessary
+	 */
+	public static String distanceToString(double distanceInMetres) {
+
+		int maxSuffixIndex = DISTANCE_SUFFIXES.length - 1;
+		
+		int suffixIndex = 0;
+		double distance = distanceInMetres;
+		
+		while (distance > 1000.0 && suffixIndex < maxSuffixIndex)
+		{
+			suffixIndex++;
+			distance = distance / 1000.0;
 		}
+		
+		String returnVal = Utils.roundToDP(distance, NUM_DP_TO_DISPLAY[suffixIndex]) + DISTANCE_SUFFIXES[suffixIndex];
+		return returnVal;
+	}
+	
+	public static String orbitToStringForBody(Orbit o, KSPCelestialBody b) {
+		
+		String returnVal = o.toString();
+		
+		returnVal += "Apoapsis: " + OrbitUtils.distanceToString(o.getApoapsis(b.getRadius())) + "\n";
+		returnVal += "Periapsis: " + OrbitUtils.distanceToString(o.getPeriapsis(b.getRadius())) + "\n";
+		
+		return returnVal;
 	}
 	
 	// force an angle to be in the range 0-360 (including 0 but not 360)
@@ -80,7 +104,7 @@ public class OrbitUtils {
 	public static double calculateTrueAnomaly(double e, double ma, int dp) {
 		double ea = eccentricAnomaly(e, ma, dp*2);
 		double ta = Math.atan2(Math.sqrt(1-Math.pow(e, 2))*Math.sin(ea), Math.cos(ea)-e);
-		return roundToDP(mAngle(Math.toDegrees(ta)),dp);
+		return Utils.roundToDP(mAngle(Math.toDegrees(ta)),dp);
 	}
 	
 	public static double trueAnomalyAtTime(KSPCelestialBody body, double time) {

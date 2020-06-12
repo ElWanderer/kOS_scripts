@@ -52,13 +52,11 @@ public class Orbit {
 	public String toString() {
 		String returnVal = "Orbit details:\n";
 		
-		returnVal += "Inclination: " + OrbitUtils.roundToDP(inclination,3) + " degrees\n";
-		returnVal += "Eccentricity: " + OrbitUtils.roundToDP(eccentricity,5) + "\n";
-		returnVal += "Semi-major axis: " + OrbitUtils.roundToDP(sma,1) + "m\n";
-		returnVal += "Longitude of the ascending node: " + OrbitUtils.roundToDP(lan,3) + " degrees\n";
-		returnVal += "Argument of periapsis: " + OrbitUtils.roundToDP(argumentOfPeriapsis,3) + " degrees\n";
-		returnVal += "Apoapsis radius: " + OrbitUtils.roundToDP(getApoapsis(),1) + "m\n";
-		returnVal += "Periapsis radius: " + OrbitUtils.roundToDP(getPeriapsis(),1) + "m\n";
+		returnVal += "Inclination: " + Utils.roundToDP(inclination,3) + " degrees\n";
+		returnVal += "Eccentricity: " + Utils.roundToDP(eccentricity,5) + "\n";
+		returnVal += "Semi-major axis: " + OrbitUtils.distanceToString(sma) + "\n";
+		returnVal += "Longitude of the ascending node: " + Utils.roundToDP(lan,3) + " degrees\n";
+		returnVal += "Argument of periapsis: " + Utils.roundToDP(argumentOfPeriapsis,3) + " degrees\n";
 		
 		return returnVal;
 	}
