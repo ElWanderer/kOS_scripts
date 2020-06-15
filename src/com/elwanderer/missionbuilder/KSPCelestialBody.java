@@ -1,5 +1,7 @@
 package com.elwanderer.missionbuilder;
 
+import java.awt.Color;
+
 public class KSPCelestialBody {
 	
 	final int bodyID; 				// integer as appears in the savegame file
@@ -13,8 +15,9 @@ public class KSPCelestialBody {
 	final double maae;				// mean anomaly (degrees) at epoch (time 0 in game universe)
 									//  - defines where in orbit body is
 									//  - passed in using radians, so needs converting
+	final Color displayColour;
 	
-	public KSPCelestialBody(int bid, String name, String desc, KSPCelestialBody pb, double r, double gm, double sr, Orbit o, double maae_rad) {
+	public KSPCelestialBody(int bid, String name, String desc, KSPCelestialBody pb, double r, double gm, double sr, Orbit o, double maae_rad, Color c) {
 		bodyID = bid;
 		bodyName = name;
 		bodyDescription = desc;
@@ -24,6 +27,7 @@ public class KSPCelestialBody {
 		soiRadius = sr;
 		orbit = o;
 		maae = Math.toDegrees(maae_rad);
+		displayColour = c;
 	}
 
 	public int getID() { return bodyID; }
@@ -43,6 +47,8 @@ public class KSPCelestialBody {
 	public Orbit getOrbit() { return orbit; }
 
 	public double getMeanAnomalyAtEpoch() { return maae; }
+	
+	public Color getDisplayColour() { return displayColour; }
 	
 	public double getPeriod() {
 		double p = 0.0;

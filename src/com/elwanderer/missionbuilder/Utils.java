@@ -31,6 +31,10 @@ public class Utils {
 		return returnVal;
 	}
 	
+	public static double getSecondsInYear() {
+		return SECONDS_IN_YEAR;
+	}
+	
 	public static String getTimeString(double universalTime) {
     	
     	int years = (int) Math.floor(universalTime / SECONDS_IN_YEAR);

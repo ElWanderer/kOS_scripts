@@ -31,6 +31,10 @@ public class Orbit {
 	public double getLAN() { return lan; }
 	public double getArg() { return argumentOfPeriapsis; }
 	
+	public double getSemiMinorAxis() {
+		return sma * Math.sqrt(1-Math.pow(eccentricity, 2));
+	}
+	
 	// periapsis radius calculated from centre of body
 	// must subtract the body radius to get values as seen in the game
 	public double getPeriapsis() {

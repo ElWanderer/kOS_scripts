@@ -83,7 +83,7 @@ public class MissionBuilder extends JPanel implements ActionListener {
         summaryPanel.add(saveFileLabel);
         summaryPanel.add(calendarLabel);
         
-        JPanel mainPanel = new JPanel();
+        JPanel mainPanel = new MapPanel();
         JLabel tempMainLabel = new JLabel("Main content here");
         mainPanel.setPreferredSize(new Dimension(1000,500));
         mainPanel.setBackground(Color.WHITE);

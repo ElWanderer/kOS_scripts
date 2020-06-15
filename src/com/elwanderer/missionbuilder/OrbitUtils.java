@@ -110,4 +110,15 @@ public class OrbitUtils {
 	public static double trueAnomalyAtTime(KSPCelestialBody body, double time) {
 		return calculateTrueAnomaly(body.getOrbit().getEcc(), meanAnomalyAtTime(body,time), 5);
 	}
+	
+	// input true anomaly in degrees
+	public static double radiusAtTrueAnomaly(Orbit o, double ta_degrees) {
+
+		double a  = o.getSMA();
+		double e  = o.getEcc();
+		double ta = Math.toRadians(ta_degrees);
+		
+		return (a * (1 - Math.pow(e, 2))) / (1 + (e * Math.cos(ta)));
+		
+	}
 }
