@@ -12,7 +12,7 @@ public class KSPSolarSystem {
         Color BROWN = new Color(165, 42, 42);
         
         // orbit is i, e, a, lan, w
-        // body is ID, kOS name, name/description, parent, radius, GM/Mu, sphere of influence radius, orbit, mean anomaly at epoch
+        // body is ID, kOS name, name/description, parent, radius, GM/Mu, sphere of influence radius, orbit, mean anomaly at epoch, display colour
         KSPCelestialBody sun = new KSPCelestialBody(0,  "SUN",    "The Sun", null, 261600000,   1.17233279483E18,     -1,      null, 0.0,  Color.YELLOW);
         bodies.add(sun);
         
@@ -70,10 +70,6 @@ public class KSPSolarSystem {
         Orbit eelOrbit = new Orbit( 6.15,  0.26,      9.011882E10,  50.0, 260.0);
         KSPCelestialBody eel = new KSPCelestialBody(16, "EELOO",  "Eeloo",    sun,    210000, 7.4410815E10,  119082940.0,  eelOrbit, 3.14, Color.LIGHT_GRAY);
         bodies.add(eel);
-        
-        //Orbit tesOrbit = new Orbit(15.25,  0.5,       5.011882E10,  50.0, 260.0);
-        //KSPCelestialBody tes = new KSPCelestialBody(17, "TEST",  "Test",    sun,      210000, 7.4410815E10,  119082940.0,  tesOrbit, 0.0, Color.BLACK);
-        //bodies.add(tes);
     }
     
     public KSPSolarSystem() {
@@ -81,7 +77,10 @@ public class KSPSolarSystem {
         bodies = new ArrayList<KSPCelestialBody>();
         
         addStockBodies();
-        
+    }
+    
+    public ArrayList<KSPCelestialBody> getBodiesOrbiting(KSPCelestialBody cBody) {
+        return getBodiesOrbiting(cBody.getID());
     }
     
     public ArrayList<KSPCelestialBody> getBodiesOrbiting(String cName) {
@@ -135,13 +134,18 @@ public class KSPSolarSystem {
         return returnBody;
     }
     
+    @Override
     public String toString() {
         String returnVal = "Solar System Details:\n";
         Iterator<KSPCelestialBody> it = bodies.iterator();
         while (it.hasNext()) {
             KSPCelestialBody bod = it.next();
-            returnVal += bod.toString();
+            returnVal += "\n" + bod.toString();
         }
         return returnVal;
+    }
+    
+    public void printOut() {
+        System.out.println(this.toString());
     }
 }

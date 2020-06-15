@@ -17,6 +17,8 @@ public class MissionBuilder extends JPanel implements ActionListener {
     JLabel calendarLabel;
     JTextArea log;
     JFileChooser fc;
+    JPanel mainPanel;
+    MapPanel mapPanel;
 
     KSPGameState gameState;
     boolean saveLoaded = false;
@@ -82,13 +84,17 @@ public class MissionBuilder extends JPanel implements ActionListener {
         JPanel summaryPanel = new JPanel(); // use FlowLayout
         summaryPanel.add(saveFileLabel);
         summaryPanel.add(calendarLabel);
-
-        JPanel mainPanel = new MapPanel();
-        JLabel tempMainLabel = new JLabel("Main content here");
+        
+        mapPanel = new MapPanel();
+        mapPanel.setVisible(false);
+        mapPanel.setBackground(Color.BLACK);
+        mapPanel.setPreferredSize(new Dimension(500, 500));
+        
+        JPanel mainPanel = new JPanel();
         mainPanel.setPreferredSize(new Dimension(1000, 500));
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.add(tempMainLabel);
-
+        mainPanel.add(mapPanel);
+        
         JPanel mainWindow = new JPanel(new BorderLayout());
         mainWindow.add(summaryPanel, BorderLayout.PAGE_START);
         mainWindow.add(mainPanel, BorderLayout.CENTER);
@@ -132,6 +138,7 @@ public class MissionBuilder extends JPanel implements ActionListener {
 
                 try {
                     gameState = sfr.LoadKSPSave(file.getPath());
+                    mapPanel.initialiseMap(gameState, "SUN"); // TODO - do we want this as the default?
                 } catch (IOException ex) {
                     log.append("Error opening: " + file.getName() + "." + newline);
                 }
@@ -142,7 +149,12 @@ public class MissionBuilder extends JPanel implements ActionListener {
             refreshButtonStates();
             refreshSummaryPanel();
         } else if (e.getSource() == viewMapButton) {
+            
             // TODO
+            //mainPanel.removeAll();
+            
+            mapPanel.initialiseMap(gameState, "SUN");
+            
         } else if (e.getSource() == viewContractsButton) {
             // TODO
         }
