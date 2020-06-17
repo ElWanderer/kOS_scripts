@@ -10,12 +10,12 @@ public class KSPSolarSystem {
     private void addStockBodies() {
         
         Color BROWN = new Color(165, 42, 42);
-
+        
         // orbit is i, e, a, lan, w
         // body is ID, kOS name, name/description, parent, radius, GM/Mu, sphere of influence radius, orbit, mean anomaly at epoch, display colour
         KSPCelestialBody sun = new KSPCelestialBody(0,  "SUN",    "The Sun", null, 261600000,   1.17233279483E18,     -1,      null, 0.0,  Color.YELLOW);
         bodies.add(sun);
-        
+
         Orbit mohOrbit = new Orbit( 7.0,   0.2,    5.263138304E9,   70.0,  15.0);
         KSPCelestialBody moh = new KSPCelestialBody(4,  "MOHO",   "Moho",     sun,    250000,   1.68609E11,    9646663.0,  mohOrbit, 3.14, BROWN);
         bodies.add(moh);

@@ -11,7 +11,6 @@ public class MissionBuilder extends JPanel implements ActionListener {
 
     static private final String newline = "\n";
     JButton openButton;
-    JButton viewMapButton;
     JButton viewContractsButton;
     JLabel saveFileLabel;
     JLabel calendarLabel;
@@ -19,6 +18,8 @@ public class MissionBuilder extends JPanel implements ActionListener {
     JFileChooser fc;
     JPanel mainPanel;
     MapPanel mapPanel;
+    SatelliteContractPanel satConPanel;
+    JPanel secondaryPanel;
     JButton mapZoomInButton;
     JButton mapZoomResetButton;
     JButton mapZoomOutButton;
@@ -64,15 +65,10 @@ public class MissionBuilder extends JPanel implements ActionListener {
             fc.setCurrentDirectory(path);
         }
 
-        // Create the open button.
+        // Create the main buttons
         openButton = new JButton("Open a File...");
         openButton.addActionListener(this);
 
-        // Create the open button.
-        viewMapButton = new JButton("View Map");
-        viewMapButton.addActionListener(this);
-
-        // Create the open button.
         viewContractsButton = new JButton("View Contracts");
         viewContractsButton.addActionListener(this);
 
@@ -81,12 +77,16 @@ public class MissionBuilder extends JPanel implements ActionListener {
         // For layout purposes, put the buttons in a separate panel
         JPanel buttonPanel = new JPanel(); // use FlowLayout
         buttonPanel.add(openButton);
-        buttonPanel.add(viewMapButton);
         buttonPanel.add(viewContractsButton);
 
         JPanel summaryPanel = new JPanel(); // use FlowLayout
         summaryPanel.add(saveFileLabel);
         summaryPanel.add(calendarLabel);
+        
+        secondaryPanel = new JPanel();
+        secondaryPanel.setVisible(true);
+        secondaryPanel.setBackground(Color.WHITE);
+        secondaryPanel.setPreferredSize(new Dimension(500, 500));
         
         mapPanel = new MapPanel();
         mapPanel.setVisible(false);
@@ -97,8 +97,9 @@ public class MissionBuilder extends JPanel implements ActionListener {
         mainPanel.setPreferredSize(new Dimension(1000, 500));
         mainPanel.setBackground(Color.WHITE);
         mainPanel.add(mapPanel);
+        mainPanel.add(secondaryPanel);
         
-        // Create the zoom buttons.
+        // Create the map zoom buttons.
         mapZoomOutButton = new JButton("-");
         mapZoomOutButton.addActionListener(this);
         mapZoomOutButton.setBounds(5, 5, 20, 20);
@@ -123,7 +124,6 @@ public class MissionBuilder extends JPanel implements ActionListener {
     }
 
     private void refreshButtonStates() {
-        viewMapButton.setEnabled(saveLoaded);
         viewContractsButton.setEnabled(saveLoaded);
     }
 
@@ -166,15 +166,14 @@ public class MissionBuilder extends JPanel implements ActionListener {
             saveLoaded = (gameState != null);
             refreshButtonStates();
             refreshSummaryPanel();
-        } else if (e.getSource() == viewMapButton) {
-            
-            // TODO
-            //mainPanel.removeAll();
-            
-            mapPanel.initialiseMap(gameState, "SUN");
             
         } else if (e.getSource() == viewContractsButton) {
-            // TODO
+
+            satConPanel = new SatelliteContractPanel();
+            satConPanel.initialiseContracts(gameState);
+            secondaryPanel.removeAll();
+            secondaryPanel.add(satConPanel);
+            
         } else if (e.getSource() == mapZoomOutButton) {
             mapPanel.zoomOut();
         } else if (e.getSource() == mapZoomResetButton) {
