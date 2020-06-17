@@ -19,6 +19,9 @@ public class MissionBuilder extends JPanel implements ActionListener {
     JFileChooser fc;
     JPanel mainPanel;
     MapPanel mapPanel;
+    JButton mapZoomInButton;
+    JButton mapZoomResetButton;
+    JButton mapZoomOutButton;
 
     KSPGameState gameState;
     boolean saveLoaded = false;
@@ -95,6 +98,20 @@ public class MissionBuilder extends JPanel implements ActionListener {
         mainPanel.setBackground(Color.WHITE);
         mainPanel.add(mapPanel);
         
+        // Create the zoom buttons.
+        mapZoomOutButton = new JButton("-");
+        mapZoomOutButton.addActionListener(this);
+        mapZoomOutButton.setBounds(5, 5, 20, 20);
+        mapZoomResetButton = new JButton("100%");
+        mapZoomResetButton.addActionListener(this);
+        mapZoomResetButton.setBounds(30, 5, 30, 20);
+        mapZoomInButton = new JButton("+");
+        mapZoomInButton.addActionListener(this);
+        mapZoomInButton.setBounds(65, 5, 20, 20);
+        mapPanel.add(mapZoomOutButton);
+        mapPanel.add(mapZoomResetButton);
+        mapPanel.add(mapZoomInButton);
+        
         JPanel mainWindow = new JPanel(new BorderLayout());
         mainWindow.add(summaryPanel, BorderLayout.PAGE_START);
         mainWindow.add(mainPanel, BorderLayout.CENTER);
@@ -133,12 +150,13 @@ public class MissionBuilder extends JPanel implements ActionListener {
             if (fileChooserOption == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
 
-                log.append("Opening: " + file.getName() + "." + newline);
+                log.append("Opening: " + file.getName() + "..." + newline);
                 KSPSaveFileReader sfr = new KSPSaveFileReader();
 
                 try {
                     gameState = sfr.LoadKSPSave(file.getPath());
                     mapPanel.initialiseMap(gameState, "SUN"); // TODO - do we want this as the default?
+                    log.append("Done" + newline);
                 } catch (IOException ex) {
                     log.append("Error opening: " + file.getName() + "." + newline);
                 }
@@ -157,6 +175,12 @@ public class MissionBuilder extends JPanel implements ActionListener {
             
         } else if (e.getSource() == viewContractsButton) {
             // TODO
+        } else if (e.getSource() == mapZoomOutButton) {
+            mapPanel.zoomOut();
+        } else if (e.getSource() == mapZoomResetButton) {
+            mapPanel.resetZoom();
+        } else if (e.getSource() == mapZoomInButton) {
+            mapPanel.zoomIn();
         }
     }
 

@@ -10,7 +10,7 @@ public class KSPSolarSystem {
     private void addStockBodies() {
         
         Color BROWN = new Color(165, 42, 42);
-        
+
         // orbit is i, e, a, lan, w
         // body is ID, kOS name, name/description, parent, radius, GM/Mu, sphere of influence radius, orbit, mean anomaly at epoch, display colour
         KSPCelestialBody sun = new KSPCelestialBody(0,  "SUN",    "The Sun", null, 261600000,   1.17233279483E18,     -1,      null, 0.0,  Color.YELLOW);
@@ -70,6 +70,16 @@ public class KSPSolarSystem {
         Orbit eelOrbit = new Orbit( 6.15,  0.26,      9.011882E10,  50.0, 260.0);
         KSPCelestialBody eel = new KSPCelestialBody(16, "EELOO",  "Eeloo",    sun,    210000, 7.4410815E10,  119082940.0,  eelOrbit, 3.14, Color.LIGHT_GRAY);
         bodies.add(eel);
+
+        /*
+        Orbit t01Orbit = new Orbit( 45, 0.5,  10E10,  45.0,   45.0);
+        KSPCelestialBody t01 = new KSPCelestialBody(17,  "TEST1",   "Test1",     sun,   6000000, 2.82528004E14, 2455985200.0, t01Orbit, 0,  Color.RED);
+        bodies.add(t01);
+        
+        Orbit t02Orbit = new Orbit( 45, 0.5,  3E10,  45.0,   45.0);
+        KSPCelestialBody t02 = new KSPCelestialBody(18,  "TEST2",   "Test2",     sun,   6000000, 2.82528004E14, 2455985200.0, t02Orbit, 0,  Color.RED);
+        bodies.add(t02);
+        */
     }
     
     public KSPSolarSystem() {

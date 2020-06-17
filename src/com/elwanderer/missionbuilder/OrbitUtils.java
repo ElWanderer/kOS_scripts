@@ -44,6 +44,17 @@ public class OrbitUtils {
         }
         return ang;
     }
+    
+    // force an angle to be in the range 0-360 (including 0 but not 360), then return as radians
+    public static double mAngleConvertToRadians(double ang) {
+        while (ang < 0) {
+            ang += 360;
+        }
+        while (ang >= 360) {
+            ang -= 360;
+        }
+        return Math.toRadians(ang);
+    }
 
     // radians per second
     public static double meanMotion(double a, double pmu) {

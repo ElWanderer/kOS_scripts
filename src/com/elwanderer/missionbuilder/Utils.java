@@ -67,4 +67,14 @@ public class Utils {
 
         return returnPath;
     }
+    
+    // Like Math.cos() but takes an angle in degrees instead of radians
+    public static double cos(double ang) {
+        return Math.cos(Math.toRadians(ang));
+    }
+    
+    // Like Math.sin() but takes an angle in degrees instead of radians
+    public static double sin(double ang) {
+        return Math.sin(Math.toRadians(ang));
+    }
 }
