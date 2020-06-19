@@ -47,13 +47,7 @@ public class OrbitUtils {
     
     // force an angle to be in the range 0-360 (including 0 but not 360), then return as radians
     public static double mAngleConvertToRadians(double ang) {
-        while (ang < 0) {
-            ang += 360;
-        }
-        while (ang >= 360) {
-            ang -= 360;
-        }
-        return Math.toRadians(ang);
+        return Math.toRadians(mAngle(ang));
     }
 
     // radians per second
@@ -73,10 +67,6 @@ public class OrbitUtils {
         if (body.hasParent() && body.hasOrbit()) {
             double period = body.getPeriod();
             if (period > 0) {
-                // double orbits = Math.floor(time / period); // number of orbits in time
-                // double rem = time - (orbits * period); // time remaining once whole orbits
-                // removed
-                // double mae = 360 * rem / period; // mean anomaly elapsed
                 double mae = 360 * time / period; // mean anomaly elapsed
                 maat = mAngle(body.getMeanAnomalyAtEpoch() + mae);
             }
@@ -87,10 +77,8 @@ public class OrbitUtils {
 
     // e is eccentricity
     // ma is mean anomaly in radians
-    // E is the calculated (but not necessarily accurate) eccentric anomaly in
-    // radians
-    // returns the error from the value of mean anomaly that this value of E
-    // produces
+    // E is the calculated (but not necessarily accurate) eccentric anomaly in radians
+    // returns the error from the value of mean anomaly that this value of E produces
     public static double eccErr(double e, double ma, double E) {
         return E - (e * Math.sin(E)) - ma;
     }
@@ -129,15 +117,58 @@ public class OrbitUtils {
     public static double trueAnomalyAtTime(KSPCelestialBody body, double time) {
         return calculateTrueAnomaly(body.getOrbit().getEcc(), meanAnomalyAtTime(body, time), 5);
     }
+    
+    // input true anomaly in radians
+    public static double radiusAtTrueAnomaly(double a, double e, double ta_rads) {
+        return (a * (1 - Math.pow(e, 2))) / (1 + (e * Math.cos(ta_rads)));
+    }
 
     // input true anomaly in degrees
     public static double radiusAtTrueAnomaly(Orbit o, double ta_degrees) {
 
         double a = o.getSMA();
         double e = o.getEcc();
-        double ta = Math.toRadians(ta_degrees);
+        double ta_rads = Math.toRadians(ta_degrees);
 
-        return (a * (1 - Math.pow(e, 2))) / (1 + (e * Math.cos(ta)));
+        return radiusAtTrueAnomaly(a, e, ta_rads);
+    }
+    
+    public static double meanAnomalyFromTA(double ta_rads, double e) {
+        
+        double ma = 0.0;
+        
+        if (ta_rads < 0 ) { ta_rads = (2* Math.PI) - ta_rads; }
+        if (e < 1) {
+            double ea = Math.acos( (e + Math.cos(ta_rads)) / (1 + (e * Math.cos(ta_rads))) );
+            if (ta_rads > Math.PI) {
+                ea = (2 * Math.PI) - ea;
+            }
+            ma = ea - (e * Math.sin(ea));
+            
+        } else if (e > 1) {
+            double x = (e + Math.cos(ta_rads)) / (1 + (e * Math.cos(ta_rads)));
+            double F = Math.log(x + Math.sqrt(Math.pow(x, 2) - 1));
+            ma = (e * Math.sinh(F)) - F;
+            if (ta_rads > Math.PI) {
+                ma = -ma;
+            }
+        }
+        
+        return ma;
+    }
 
+    // time taken to go from ta1 to ta2 (input in rads)
+    // pmu is the value of mu for the parent body
+    public static double secondsToTA(double a, double e, double pmu, double ta1_rads, double ta2_rads) {
+
+        double ma1 = meanAnomalyFromTA(ta1_rads, e);
+        double ma2 = meanAnomalyFromTA(ta2_rads, e);
+        
+        double seconds = (ma2 - ma1) / meanMotion(a, pmu);
+        while (seconds < 0) {
+            seconds += orbitalPeriod(a, pmu);
+        }
+        
+        return seconds;
     }
 }

@@ -239,5 +239,80 @@ public class MissionBuilder extends JPanel implements ActionListener {
          * OrbitUtils.trueAnomalyAtTime(jool, time);
          * System.out.println("Jool's true anomaly = " + taj);
          */
+        
+        /*
+         * Testing the calculations needed to work out transfers
+         */
+        
+        // inputs
+        double pmu = 3.986E5; // Mu of parent body
+        double r1 = 10000; // m - distance to central body from current body (P1)
+        double r2 = 16000; // m - distance to central body from target body (p2) at arrival time
+        double alpha = 100; // degrees, angle between r1 vector and r2 vector
+        double transfer_time = 6000;
+        
+        // TODO - loop until transfer time matches arrival time - current time
+        // variable input
+        double y = 30000;
+
+        // temporary variables - independent of y
+        double rm = 0.5 * (r1 + r2); // mean of r1 and r2
+        double d = 0.5 * Math.sqrt(Math.pow(r1, 2) + Math.pow(r2, 2) - (2 * r1 * r2 * Utils.cos(alpha))); // 2d = distance between P1 and P2
+        double A = 0.5 * (r2 - r1); // SMA of hyperbola through F1 with P1 or P2 as focus
+        double E = d / A;           // ecc of hyperbola through F1 with P1 or P2 as focus
+        double B = Math.sqrt(Math.pow(d, 2) - Math.pow(A, 2)); // semi-minor axis of hyperbola through F1 with P1 or P2 as focus
+        double x0 = -rm / E;
+        double y0 = B * Math.sqrt(Math.pow(x0 / A, 2) - 1);
+        
+        // temporary variables - dependent on y
+        double x = A * Math.sqrt(1 + Math.pow(y / B, 2));
+        
+        double x0_min_x2 = Math.pow(x0 - x, 2);
+        double y0_min_y2 = Math.pow(y0 - y, 2);
+        double sqrt_x0_min_x2_plus_y0_min_y2 = Math.sqrt(x0_min_x2 + y0_min_y2);
+        
+        double fx = (x0 - x) / sqrt_x0_min_x2_plus_y0_min_y2;
+        double fy = (y0 - y) / sqrt_x0_min_x2_plus_y0_min_y2;
+        
+        double val_to_asin = (((x0 + d) * fy) - ( y0 * fx)) / r1;
+        if (Utils.sin(alpha) < 0) {
+            val_to_asin = -val_to_asin;
+        }
+        
+        // outputs
+        double a = 0.5 * (rm + (E * x));                    // SMA of transfer ellipse
+        double e = sqrt_x0_min_x2_plus_y0_min_y2 / (2 * a); // ecc of transfer ellipse
+        
+        // TODO - decide how to get the true true anomaly
+        double ta1 = Math.acos(-(((x0 + d) * fx) + (y0 * fy)) / r1);
+        double ta1_viasin = Math.asin(val_to_asin);
+        double ta1_gtb = Math.acos(((a * (1 - Math.pow(e,2))) - r1) / (e * r1));
+        
+        System.out.println("a: " + OrbitUtils.distanceToString(a));
+        System.out.println("e: " + Utils.roundToDP(e, 5));
+        System.out.println("ta1: " + Utils.roundToDP(Math.toDegrees(ta1), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta1)));
+        System.out.println("ta1_viasin: " + Utils.roundToDP(Math.toDegrees(ta1_viasin), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta1_viasin)));
+        System.out.println("ta1_gtb: " + Utils.roundToDP(Math.toDegrees(ta1_gtb), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta1_gtb)));
+        
+        double alpha_rad = Math.toRadians(alpha);
+        double ta2 = ta1 + alpha_rad;
+        double ta2_viasin = ta1_viasin + alpha_rad;
+        double ta2_gtb = ta1_gtb + alpha_rad;
+        System.out.println("ta2: " + Utils.roundToDP(Math.toDegrees(ta2), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta2)));
+        System.out.println("ta2_viasin: " + Utils.roundToDP(Math.toDegrees(ta2_viasin), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta2_viasin)));
+        System.out.println("ta2_gtb: " + Utils.roundToDP(Math.toDegrees(ta2_gtb), 1) + " gives r: " + OrbitUtils.distanceToString(OrbitUtils.radiusAtTrueAnomaly(a, e, ta2_gtb)));
+        
+        // TODO - do we want to convert these details into an Orbit object (or something similar)?
+        // TODO - calculate transfer time, compare to desired arrival time - the solution is only useful if the target body will be there!
+        double period = OrbitUtils.orbitalPeriod(a, pmu);
+        System.out.println("Period of calculated ellipse: " + Utils.getDurationString(period));
+        
+        double tt = OrbitUtils.secondsToTA(a, e, pmu, ta1, ta2);
+        double tt_viasin = OrbitUtils.secondsToTA(a, e, pmu, ta1_viasin, ta2_viasin);
+        double tt_gtb = OrbitUtils.secondsToTA(a, e, pmu, ta1_gtb, ta2_gtb);
+        
+        System.out.println("tt: " + Utils.roundToDP(tt, 0));
+        System.out.println("tt_viasin: " + Utils.roundToDP(tt_viasin, 0));
+        System.out.println("tt_gtb: " + Utils.roundToDP(tt_gtb, 0));
     }
 }

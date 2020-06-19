@@ -7,8 +7,8 @@ public class Utils {
 
     static private final double SECONDS_IN_MINUTE = 60.0;
     static private final double SECONDS_IN_HOUR = 60.0 * SECONDS_IN_MINUTE;
-    static private final double SECONDS_IN_DAY = 6.0 * SECONDS_IN_HOUR;
-    static private final double SECONDS_IN_YEAR = 426.0 * SECONDS_IN_DAY;
+    static private final double SECONDS_IN_DAY = 6.0 * SECONDS_IN_HOUR; // Kerbin not Earth!
+    static private final double SECONDS_IN_YEAR = 426.0 * SECONDS_IN_DAY; // Kerbin not Earth!
 
     public static double roundToDP(double num, int numDP) {
         if (numDP > 0) {
@@ -55,6 +55,31 @@ public class Utils {
         String secondsString = padString("" + seconds, "0", 2);
 
         return "Y" + (years + 1) + " D" + (days + 1) + " " + hoursString + ":" + minutesString + ":" + secondsString;
+    }
+    
+    public static String getDurationString(double duration) {
+        int years = (int) Math.floor(duration / SECONDS_IN_YEAR);
+        double remain = duration - (years * SECONDS_IN_YEAR);
+
+        int days = (int) Math.floor(remain / SECONDS_IN_DAY);
+        remain -= (days * SECONDS_IN_DAY);
+
+        int hours = (int) Math.floor(remain / SECONDS_IN_HOUR);
+        remain -= (hours * SECONDS_IN_HOUR);
+
+        int minutes = (int) Math.floor(remain / SECONDS_IN_MINUTE);
+        remain -= (minutes * SECONDS_IN_MINUTE);
+
+        int seconds = (int) Math.floor(remain);
+        
+        String returnVal = "";
+        if (years > 0) { returnVal += years + "y "; }
+        if (days > 0) { returnVal += days + "d "; }
+        if (hours > 0) { returnVal += hours + "h"; }
+        if (minutes > 0 || hours > 0) { returnVal += minutes + "m"; }
+        returnVal += seconds + "s";
+        
+        return returnVal;
     }
 
     public static String getDirectoryUnderProgramFilesX86(String[] paths) {
