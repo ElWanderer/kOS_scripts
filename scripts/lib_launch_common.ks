@@ -226,7 +226,7 @@ FUNCTION launchCirc
   IF NOT HASNODE {
     LOCAL m_time IS TIME:SECONDS + ETA:APOAPSIS.
     LOCAL m_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,m_time)).
-    LOCAL az IS launchBearing(m_spot:LAT, V(0,0,0), -1).
+    LOCAL az IS launchBearing(m_spot:LAT, V(0,0,0), -1, m_time).
     LOCAL v1 IS rotateVelocity(VELOCITYAT(SHIP,m_time):ORBIT, m_spot, az):NORMALIZED * SQRT(BODY:MU/(BODY:RADIUS + APOAPSIS)).
 
     addNode(nodeToVector(v1, m_time)).
@@ -327,16 +327,17 @@ FUNCTION launchLocks
 
 FUNCTION bearingSouth
 {
+  PARAMETER u_time IS TIME:SECONDS.
   IF ALT:RADAR < (LCH_PITCH_ALT * 10) { RETURN NOT LCH_AN. }
-  RETURN BODY:GEOPOSITIONOF(POSITIONAT(SHIP,TIME:SECONDS+5)):LAT < LATITUDE.
+  RETURN BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time+1)):LAT < BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time)):LAT.
 }
 
 FUNCTION launchBearing
 {
-  PARAMETER lat IS SHIP:LATITUDE, v0 IS SHIP:VELOCITY:ORBIT, v1_mag IS LCH_ORBIT_VEL.
+  PARAMETER lat IS SHIP:LATITUDE, v0 IS SHIP:VELOCITY:ORBIT, v1_mag IS LCH_ORBIT_VEL, u_time IS TIME:SECONDS.
   IF (LCH_I > 0 AND ABS(lat) < 90 AND MIN(LCH_I,180 - LCH_I) >= ABS(lat)) {
     LOCAL az IS ARCSIN( COS(LCH_I) / COS(lat) ).
-    IF bearingSouth() { SET az TO mAngle(180 - az). }
+    IF bearingSouth(u_time) { SET az TO mAngle(180 - az). }
     IF v0:MAG >= v1_mag { RETURN az. }
     LOCAL x IS (v1_mag * SIN(az)) - VDOT(v0,HEADING(90,0):VECTOR).
     LOCAL y IS (v1_mag * COS(az)) - VDOT(v0,HEADING(0,0):VECTOR).
