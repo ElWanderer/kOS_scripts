@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.3.0 20180102").
+pOut("lib_dock.ks v1.4.0 20200806").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -37,20 +37,36 @@ FUNCTION clearPorts
   UNLOCK T_NODE.
 }
 
-FUNCTION readyPorts
+FUNCTION getPortTypes
 {
-  PARAMETER t.
-  LOCAL ports IS LIST().
-  FOR p IN t:DOCKINGPORTS { IF p:STATE = "Ready" AND p:TAG <> "DISABLED" { ports:ADD(p). } }
-  RETURN ports.
+  PARAMETER portList.
+  LOCAL portTypes IS LIST().
+  FOR p IN portList { IF NOT portTypes:CONTAINS(p:NODETYPE) { portTypes:ADD(p:NODETYPE). } }
+  RETURN portTypes.
 }
 
-FUNCTION hasReadyPort
+FUNCTION matchingPortTypes
 {
-  PARAMETER t.
-  LOCAL np IS readyPorts(t):LENGTH.
-  pOut(t:NAME + " has " + np + " available docking port(s).").
-  RETURN np > 0.
+  PARAMETER t1, t2.
+  LOCAL matchingTypes IS LIST().
+  LOCAL portTypes1 IS getPortTypes(readyPorts(t1)).
+  LOCAL portTypes2 IS getPortTypes(readyPorts(t2)).
+  LOCAL message IS "Matching port types:".
+  FOR pt IN portTypes1 { IF portTypes2:CONTAINS(pt) {
+    matchingTypes:ADD(pt).
+    SET message TO message + " " + pt.
+  } }
+  pOut(message).
+  RETURN matchingTypes.
+}
+
+FUNCTION readyPorts
+{
+  PARAMETER t, f IS { PARAMETER p. RETURN TRUE. }.
+  LOCAL ports IS LIST().
+  FOR p IN t:DOCKINGPORTS { IF p:STATE = "Ready" AND p:TAG <> "DISABLED" AND f(p) { ports:ADD(p). } }
+  pOut(t:NAME + " has " + ports:LENGTH + " ready docking port(s).").
+  RETURN ports.
 }
 
 FUNCTION bestPort
@@ -73,17 +89,19 @@ FUNCTION bestPort
 
 FUNCTION selectOurPort
 {
-  PARAMETER t.
+  PARAMETER t, portTypeList.
+  LOCAL f IS { PARAMETER p. RETURN portTypeList:CONTAINS(p:NODETYPE). }.
   LOCAL fwd IS FACING:FOREVECTOR.
-  RETURN bestPort(readyPorts(SHIP),fwd,100 * fwd).
+  RETURN bestPort(readyPorts(SHIP, f),fwd,100 * fwd).
 }
 
 FUNCTION selectTargetPort
 {
-  PARAMETER t.
+  PARAMETER t, portType.
+  LOCAL f IS { PARAMETER p. RETURN portType = p:NODETYPE. }.
   LOCAL tp IS t:POSITION.
-  IF tp:MAG < DOCK_DIST { RETURN bestPort(readyPorts(t),-tp,-tp). }
-  ELSE { RETURN bestPort(readyPorts(t),VCRS(t:VELOCITY:ORBIT,tp-BODY:POSITION),-tp). }
+  IF tp:MAG < DOCK_DIST { RETURN bestPort(readyPorts(t, f),-tp,-tp). }
+  ELSE { RETURN bestPort(readyPorts(t, f),VCRS(t:VELOCITY:ORBIT,tp-BODY:POSITION),-tp). }
 }
 
 FUNCTION checkRouteStep
@@ -284,10 +302,11 @@ FUNCTION doDocking
   pOut("Preparing to dock with " + t:NAME).
   LOCAL ok IS TRUE.
 
-  IF NOT hasReadyPort(SHIP) OR NOT hasReadyPort(t) { RETURN FALSE. }
+  LOCAL portTypes IS matchingPortTypes(SHIP, t).
+  IF portTypes:LENGTH < 1 { RETURN FALSE. }
 
-  LOCAL s_port IS selectOurPort(t).
-  LOCAL t_port IS selectTargetPort(t).
+  LOCAL s_port IS selectOurPort(t, portTypes).
+  LOCAL t_port IS selectTargetPort(t, s_port:NODETYPE).
   setupPorts(s_port,t_port).
   s_port:CONTROLFROM. WAIT 0.
 
