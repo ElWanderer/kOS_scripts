@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KMSat.ks v1.3.0 20170116").
+pOut("KMSat.ks v1.4.0 20201819").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -15,10 +15,10 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL SAT_BODY IS MUN.
-GLOBAL SAT_NAME IS "Rendezvous Test Target".
-GLOBAL SAT_AP IS 75000.
-GLOBAL SAT_PE IS 75000.
+GLOBAL SAT_BODY IS MINMUS.
+GLOBAL SAT_NAME IS "Minmus Station 1".
+GLOBAL SAT_AP IS 100000.
+GLOBAL SAT_PE IS 100000.
 GLOBAL SAT_I IS 0.
 GLOBAL SAT_LAN IS 0.
 GLOBAL SAT_W IS 0.
@@ -73,7 +73,7 @@ IF rm < 0 {
   IF doOrbitMatch(FALSE,stageDV(),SAT_I,SAT_LAN) { runMode(822). }
   ELSE { runMode(829,821). }
 } ELSE IF rm = 822 {
-  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W) { runMode(831,821). }
+  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W,SAT_LAN) { runMode(831,821). }
   ELSE { runMode(829,822). }
 
 } ELSE IF rm = 831 {

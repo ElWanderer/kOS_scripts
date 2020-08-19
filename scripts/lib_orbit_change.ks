@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_orbit_change.ks v1.1.0 20171108").
+pOut("lib_orbit_change.ks v1.2.0 20201819").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -11,14 +11,20 @@ FUNCTION changeOrbit
 {
   PARAMETER doExec, can_stage, limit_dv.
   PARAMETER u_time.
-  PARAMETER ap, pe, w.
+  PARAMETER ap, pe, w, lan.
 
   LOCAL ok IS TRUE.
   LOCAL dv_req IS 0.
 
   LOCAL o IS ORBITAT(SHIP,u_time).
   LOCAL w_diff IS 0.
-  IF w >= 0 { SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS). }
+  IF w >= 0 {
+    IF lan >= 0 AND (o:INCLINATION < 1 OR o:INCLINATION > 179) {
+      SET w_diff TO mAngle(w + lan - (o:ARGUMENTOFPERIAPSIS + o:LAN)).
+    } ELSE {
+      SET w_diff TO mAngle(w - o:ARGUMENTOFPERIAPSIS).
+    }
+  }
   LOCAL ap_diff IS ap - o:APOAPSIS.
   LOCAL pe_diff IS pe - o:PERIAPSIS.
   LOCAL double_pe_burn IS (ap < o:PERIAPSIS).
@@ -60,9 +66,8 @@ FUNCTION changeOrbit
 
 FUNCTION doOrbitChange
 {
-  PARAMETER can_stage,limit_dv.
-  PARAMETER ap,pe.
-  PARAMETER w IS -1.
+  PARAMETER can_stage,limit_dv, ap, pe.
+  PARAMETER w IS -1, lan IS -1.
 
   LOCAL ok IS TRUE.
   IF HASNODE {
@@ -70,9 +75,9 @@ FUNCTION doOrbitChange
     removeAllNodes().
   }
   LOCAL u_time IS bufferTime().
-  IF ok { SET ok TO changeOrbit(FALSE,can_stage,limit_dv,u_time,ap,pe,w). }
+  IF ok { SET ok TO changeOrbit(FALSE,can_stage,limit_dv,u_time,ap,pe,w,lan). }
   removeAllNodes().
-  IF ok { SET ok TO changeOrbit(TRUE,can_stage,0,u_time,ap,pe,w). }
+  IF ok { SET ok TO changeOrbit(TRUE,can_stage,0,u_time,ap,pe,w,lan). }
   removeAllNodes().
   RETURN ok.
 }

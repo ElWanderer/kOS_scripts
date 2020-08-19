@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.3.0 20171114").
+pOut("KSat.ks v1.4.0 20201819").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,12 +14,12 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "EXpiSat 2".
-GLOBAL SAT_AP IS 3060027.
-GLOBAL SAT_PE IS 103500.
-GLOBAL SAT_I IS 63.4.
-GLOBAL SAT_LAN IS 93.
-GLOBAL SAT_W IS 270.
+GLOBAL NEW_NAME IS "W-TEST-SAT-4".
+GLOBAL SAT_AP IS 750000.
+GLOBAL SAT_PE IS 250000.
+GLOBAL SAT_I IS 0.
+GLOBAL SAT_LAN IS 90.
+GLOBAL SAT_W IS 45.
 
 IF runMode() > 0 { logOn(). }
 
@@ -54,7 +54,7 @@ IF rm < 0 {
   delResume().
   runMode(802).
 } ELSE IF rm = 802 {
-  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W) { runMode(803). }
+  IF doOrbitChange(FALSE,stageDV(),SAT_AP,SAT_PE,SAT_W,SAT_LAN) { runMode(803). }
   ELSE { runMode(809,802). }
 } ELSE IF rm = 803 {
   IF doOrbitMatch(FALSE,stageDV(),SAT_I,SAT_LAN) { runMode(804,802). }
