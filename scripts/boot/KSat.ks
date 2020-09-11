@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("KSat.ks v1.4.0 20201819").
+pOut("KSat.ks v1.4.0 20200819").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -14,12 +14,12 @@ FOR f IN LIST(
 ) { RUNONCEPATH(loadScript(f)). }
 
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "W-TEST-SAT-4".
-GLOBAL SAT_AP IS 750000.
-GLOBAL SAT_PE IS 250000.
+GLOBAL NEW_NAME IS "Duna Lander 1".
+GLOBAL SAT_AP IS 125000.
+GLOBAL SAT_PE IS 125000.
 GLOBAL SAT_I IS 0.
-GLOBAL SAT_LAN IS 90.
-GLOBAL SAT_W IS 45.
+GLOBAL SAT_LAN IS -1.
+GLOBAL SAT_W IS -1.
 
 IF runMode() > 0 { logOn(). }
 

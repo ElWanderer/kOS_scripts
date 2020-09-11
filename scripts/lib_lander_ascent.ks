@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-pOut("lib_lander_ascent.ks v1.1.0 20160812").
+pOut("lib_lander_ascent.ks v1.2.0 20200821").
 
 FOR f IN LIST(
   "lib_steer.ks",
@@ -17,11 +17,6 @@ FUNCTION initAscentValues
 {
   landerSetMinVSpeed(20).
   initLanderValues().
-}
-
-FUNCTION stopAscentValues
-{
-  stopLanderValues().
 }
 
 FUNCTION steerAscent
@@ -113,5 +108,4 @@ UNTIL rm = exit_mode
 
   WAIT 0.
 }
-  stopAscentValues().
 }

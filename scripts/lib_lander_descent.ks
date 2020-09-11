@@ -485,8 +485,8 @@ FUNCTION doConstantAltitudeBurn
   LOCAL vs_limit IS LND_VS_LIMIT.
   LOCAL precision_dv IS 0.
   LOCAL LOCK h_dist TO VXCL(UP:VECTOR,spot:POSITION):MAG.
-//  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
-  UNTIL GROUNDSPEED < (5 * LND_THRUST_ACC) AND h_dist < LND_ALLOWED_DIST*100 {
+  UNTIL GROUNDSPEED < LND_ALLOWED_DRIFT AND h_dist < LND_ALLOWED_DIST {
+//  UNTIL GROUNDSPEED < (5 * LND_THRUST_ACC) AND h_dist < LND_ALLOWED_DIST*100 {
     IF landerHeartbeat() > 0.5 {
 pOut("Heartbeat ("+ROUND(ALT:RADAR)+"m)").
       landerResetTimer().
