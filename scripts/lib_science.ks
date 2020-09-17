@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_science.ks v1.2.0 20170123").
+pOut("lib_science.ks v1.2.1 20200917").
 
 RUNONCEPATH(loadScript("lib_ant.ks")).
 
@@ -7,6 +7,7 @@ GLOBAL SCI_LIST IS LIST().
 GLOBAL SCI_MIN_POW IS 10.
 GLOBAL SCI_MIT_RATE IS 3.
 GLOBAL SCI_EC_PER_MIT IS 6.
+GLOBAL SCI_TIMEOUT IS 15.
 
 listScienceModules().
 
@@ -59,7 +60,6 @@ FUNCTION doMod
   PARAMETER m.
   pOut("Collecting science from " + m:PART:TITLE).
   m:DEPLOY().
-  WAIT UNTIL m:HASDATA.
 }
 
 FUNCTION txMod
@@ -76,6 +76,10 @@ FUNCTION doScience
   FOR m IN SCI_LIST { IF NOT m:INOPERABLE AND (m:RERUNNABLE OR one_use) {
     IF m:DEPLOYED AND overwrite { resetMod(m). }
     IF NOT m:DEPLOYED { doMod(m). }
+  }}
+  setTime("SCI_DEP").
+  FOR m IN SCI_LIST { IF NOT m:INOPERABLE AND (m:RERUNNABLE OR one_use) {
+    WAIT UNTIL m:HASDATA OR diffTime("SCI_DEP") > SCI_TIMEOUT.
   }}
 }
 
