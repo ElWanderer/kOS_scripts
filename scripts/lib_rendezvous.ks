@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rendezvous.ks v1.4.0 20180102").
+pOut("lib_rendezvous.ks v1.4.1 20201105").
 
 FOR f IN LIST(
   "lib_runmode.ks",
@@ -295,6 +295,10 @@ FUNCTION nodePhasingOrbit
   LOCAL s_p IS s_orbit:PERIOD.
   LOCAL t_orbit IS ORBITAT(t,u_time).
   LOCAL t_p IS t_orbit:PERIOD.
+
+  UNTIL eta_diff < t_p {
+    SET eta_diff TO eta_diff - t_p.
+  }
 
   IF eta_diff < 10 {
     SET RDZ_PHASE_PERIOD TO s_p.
