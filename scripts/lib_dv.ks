@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dv.ks v1.1.0 20171214").
+pOut("lib_dv.ks v1.2.0 20201126").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 GLOBAL DV_PL IS LIST().
@@ -164,7 +164,7 @@ FUNCTION fuelMass
 FUNCTION fuelMassChildren
 {
   PARAMETER p.
-  IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
+  IF NOT (isBlockingDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
     FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
@@ -175,7 +175,7 @@ FUNCTION fuelMassFamily
 {
   PARAMETER p.
   FOR cp IN p:CHILDREN { fuelMassChildren(cp). }
-  IF NOT (isDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
+  IF NOT (isBlockingDecoupler(p) OR DV_PL:CONTAINS(p:UID)) {
     DV_PL:ADD(p:UID).
     SET DV_FM TO DV_FM + fuelMass(p:RESOURCES).
     IF p:HASPARENT { fuelMassFamily(p:PARENT). }

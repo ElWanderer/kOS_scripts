@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_parts.ks v1.2.0 20171206").
+pOut("lib_parts.ks v1.3.0 20201126").
 
 GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleDockingNode", "decouple node",
@@ -7,6 +7,21 @@ GLOBAL PART_DECOUPLERS IS LEXICON(
   "ModuleAnchoredDecoupler", "decouple").
 
 IF SHIP:PARTSTAGGED("FINAL"):LENGTH = 0 { tagFinalParts(). }
+
+FUNCTION hasModule
+{
+  PARAMETER mn, p.
+  RETURN p:MODULES:CONTAINS(mn).
+}
+
+FUNCTION hasEvent
+{
+  PARAMETER e, mn, p.
+  IF hasModule(mn, p) {
+    RETURN canEvent(e, p:GETMODULE(mn)).
+  }
+  RETURN FALSE.
+}
 
 FUNCTION canEvent
 {
@@ -31,7 +46,7 @@ FUNCTION modDo
 FUNCTION partEvent
 {
   PARAMETER e, mn, p.
-  IF p:MODULES:CONTAINS(mn) { RETURN modDo(e, p:GETMODULE(mn)). }
+  IF hasModule(mn, p) { RETURN modDo(e, p:GETMODULE(mn)). }
   RETURN FALSE.
 }
 
@@ -53,6 +68,15 @@ FUNCTION isDecoupler
 {
   PARAMETER p.
   FOR mn IN p:MODULES { IF PART_DECOUPLERS:HASKEY(mn) { RETURN TRUE. } }
+  RETURN FALSE.
+}
+
+FUNCTION isBlockingDecoupler
+{
+  PARAMETER p.
+  LOCAL canDecouple IS FALSE.
+  FOR mn IN PART_DECOUPLERS:KEYS { IF hasEvent(PART_DECOUPLERS[mn],mn,p) { SET canDecouple TO TRUE. } } 
+  IF canDecouple AND NOT hasEvent("disable crossfeed", "ModuleToggleCrossfeed", p) { RETURN TRUE. }
   RETURN FALSE.
 }
 
