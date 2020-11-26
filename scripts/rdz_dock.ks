@@ -31,7 +31,7 @@ IF (rm > 400 AND rm < 450) {
   resume().
 } ELSE IF (TARGET:POSITION:MAG > 500) {
 
-  store("changeRDZ_DIST(25).").
+  store("changeRDZ_DIST(50).").
   append("doRendezvous(runMode(),VESSEL(" + CHAR(34) + TARGET:NAME + CHAR(34) + "),FALSE).").
 
   changeRDZ_DIST(50).
