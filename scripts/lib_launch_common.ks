@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_common.ks v1.5.0 20200417").
+pOut("lib_launch_common.ks v1.5.1 20201127").
 
 FOR f IN LIST(
   "lib_burn.ks",
@@ -114,6 +114,16 @@ FUNCTION verifyClamps
   RETURN FALSE.
 }
 
+FUNCTION verifyControlPoint
+{
+  PARAMETER loud IS TRUE.
+
+  LOCAL ok IS VDOT(FACING:VECTOR,UP:VECTOR) > 0.
+
+  IF NOT ok AND loud { hudMsg("Control Point Reversed", RED, 50). }
+  RETURN ok.
+}
+
 FUNCTION launchAP
 {
   parameter ap.
@@ -134,6 +144,7 @@ FUNCTION launchInit
   checkLES().
   checkClamps().
   IF NOT verifyClamps() { WAIT UNTIL verifyClamps(FALSE). }
+  IF NOT verifyControlPoint() { WAIT UNTIL verifyControlPoint(FALSE). }
 
   IF CRAFT_SPECIFIC:HASKEY("LCH_RCS_ON_ALT") {
     IF ALTITUDE > CRAFT_SPECIFIC["LCH_RCS_ON_ALT"] { RCS ON. }
