@@ -15,9 +15,18 @@ FOR f IN LIST(
   "lib_runmode.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL NEW_NAME IS "Spaceplane Test 5".
+GLOBAL NEW_NAME IS "Spaceplane Test 8".
+GLOBAL SPC_APOAPSIS_INCREMENT IS 5000.
+GLOBAL SPC_APOAPSIS_MULT IS 1.
+GLOBAL SPC_MAX_APOAPSIS IS BODY:ATM:HEIGHT+20000.
+GLOBAL SPC_MIN_APOAPSIS IS BODY:ATM:HEIGHT+10000.
+GLOBAL SPC_MID_APOAPSIS IS (BODY:ATM:HEIGHT / 2) - SPC_APOAPSIS_INCREMENT.
+GLOBAL SPC_MIN_SWITCH_VEL IS 1000.
 GLOBAL SPC_PITCH_ANGLE IS 0.
+GLOBAL SPC_INIT_ALT_RADAR IS 0.
+GLOBAL SPC_THROTTLE IS 0.
 
+// TODO - move functions to a spaceplane library?
 FUNCTION steerSpaceplaneLaunch
 {
   steerTo({ RETURN HEADING(90,SPC_PITCH_ANGLE):VECTOR. }, { RETURN UP:VECTOR. }).
@@ -51,20 +60,20 @@ IF rm < 0 {
 
 } ELSE IF rm = 1 {
   // TODO - break this up!
-  LOCAL initialRadarAlt IS ALT:RADAR.
+  SET SPC_INIT_ALT_RADAR TO ALT:RADAR.
   LOCAL airBreathing IS TRUE.
   LOCAL lastVelocity IS 0.
 
   BRAKES ON.
   RCS OFF.
-  LOCK THROTTLE TO 0.
+  LOCK THROTTLE TO SPC_THROTTLE.
   SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
   WAIT 3.
 
   SET SPC_PITCH_ANGLE TO 90 - VANG(SHIP:FACING:VECTOR, UP:VECTOR).
 
-  LOCK THROTTLE TO 1.
+  SET SPC_THROTTLE TO 1.
   steerSpaceplaneLaunch().
 
   STAGE.
@@ -75,9 +84,9 @@ IF rm < 0 {
   BRAKES OFF.
   hudMsg("Brakes off").
 
-  UNTIL ALT:RADAR > (initialRadarAlt + 5) {
+  UNTIL ALT:RADAR > (SPC_INIT_ALT_RADAR + 10) {
     LOCAL currentVelocity IS SHIP:VELOCITY:SURFACE:MAG.
-    SET SPC_PITCH_ANGLE TO MAX(SPC_PITCH_ANGLE, ((currentVelocity - 40) / 10)).
+    SET SPC_PITCH_ANGLE TO MAX(SPC_PITCH_ANGLE, ((currentVelocity - 30) / 10)).
 
     pOut("Vel: " + ROUND(currentVelocity) + "m/s, Pitch: " + ROUND(SPC_PITCH_ANGLE, 1)).
     WAIT 0.25.
@@ -87,18 +96,48 @@ IF rm < 0 {
   SET SPC_PITCH_ANGLE TO 10.
   hudMsg("Airborne!").
 
-  UNTIL APOAPSIS > (BODY:ATM:HEIGHT + 20000) {
-
-    // TODO - monitor altitude/velocity
-    // TODO - monitor engine performance
-    // TODO - monitor fuel levels
-    // TODO - switch engine mode/intakes
+  UNTIL APOAPSIS > SPC_MAX_APOAPSIS {
 
     LOCAL currentVelocity IS SHIP:VELOCITY:SURFACE:MAG.
 
-    IF currentVelocity > 1000 AND currentVelocity < lastVelocity {
-      hudMsg("Switching engine modes").
-      TOGGLE AG1.
+    IF NOT airBreathing {
+      IF SPC_THROTTLE > 0 {
+        // when firing rockets, turn them off once our Ap is high enough, to avoid going too fast too low
+        // but if we are close to apoapsis, raise the target apoapsis
+        IF APOAPSIS > SPC_MID_APOAPSIS AND ALTITUDE < SPC_MID_APOAPSIS {
+          IF ALTITUDE > (APOAPSIS - SPC_APOAPSIS_INCREMENT) {
+            SET SPC_MID_APOAPSIS TO SPC_MID_APOAPSIS + (SPC_APOAPSIS_INCREMENT / 2).
+            hudMsg("Raising initial target apoapsis to " + SPC_MID_APOAPSIS + "m").
+          } ELSE {
+            hudMsg("Cruising until near apoapsis").
+            SET SPC_THROTTLE TO 0.
+          }
+        }
+      } ELSE {
+        // when cruising, relight the engines if the apoapsis drops too far, and as we approach apoapsis
+        IF APOAPSIS < (SPC_MID_APOAPSIS - SPC_APOAPSIS_INCREMENT) {
+          SET SPC_THROTTLE TO 1.
+          hudMsg("Apoapsis well below initial target - boost").
+        } ELSE IF ALTITUDE > (APOAPSIS - SPC_APOAPSIS_INCREMENT) {
+          hudMsg("Nearing apoapsis - burn to raise").
+          SET SPC_THROTTLE TO 1.
+          SET SPC_MID_APOAPSIS TO SPC_MID_APOAPSIS + (SPC_APOAPSIS_MULT * SPC_APOAPSIS_INCREMENT).
+          SET SPC_APOAPSIS_MULT TO SPC_APOAPSIS_MULT + 1.
+// typical apoapsis targets will be: 30000m, 35000m, 45000m, 60000m, 90000m
+          IF SPC_MID_APOAPSIS >= BODY:ATM:HEIGHT { SET SPC_MID_APOAPSIS TO SPC_MAX_APOAPSIS. }
+          hudMsg("Raising initial target apoapsis to " + SPC_MID_APOAPSIS + "m").
+        }
+      }
+    } ELSE {
+      // when velocity stops increasing, switch to rockets
+      // TODO - monitor fuel levels
+      IF currentVelocity > SPC_MIN_SWITCH_VEL AND currentVelocity < lastVelocity {
+        hudMsg("Switching engine mode").
+        // TODO - switch engine mode/intakes rather than relying on action group
+        TOGGLE AG1.
+        SET airBreathing TO FALSE.
+        steerSpaceplaneSurf().
+      }
     }
 
     SET lastVelocity TO currentVelocity.
@@ -106,12 +145,20 @@ IF rm < 0 {
     WAIT 0.25.
   }
 
-  LOCK THROTTLE TO 0.
+  SET SPC_THROTTLE TO 0.
   steerSpaceplaneSurf().
   hudMsg("Coasting to apoapsis").
 
   UNTIL ALTITUDE > BODY:ATM:HEIGHT {
-  // TODO - boost if apoapsis drops too far
+
+    IF SPC_THROTTLE = 0 AND APOAPSIS < SPC_MIN_APOAPSIS {
+      hudMsg("Boost required").
+      SET SPC_THROTTLE TO 1.
+    } ELSE IF SPC_THROTTLE > 0 AND APOAPSIS > SPC_MAX_APOAPSIS {
+      hudMsg("Boost complete").
+      SET SPC_THROTTLE TO 0.
+    }
+
     pOut("Alt: " + ROUND(ALTITUDE) + "m, Vel: " + ROUND(SHIP:VELOCITY:SURFACE:MAG) + "m/s").
     WAIT 0.25.
   }
@@ -122,7 +169,12 @@ IF rm < 0 {
 
   basicLaunchCirc().
 
-  runMode(49).
+  // TODO - extend solar panels etc (borrow from lib_launch_common) ?
+
+  runMode(49, 21).
+} ELSE IF rm = 21 {
+  hudMsg("Reentry not implemented yet!").
+  runMode(49, 21).
 
 } ELSE IF rm = 49 {
   steerSun().
