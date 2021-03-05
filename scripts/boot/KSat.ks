@@ -13,10 +13,12 @@ FOR f IN LIST(
   "lib_orbit_match.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
+IF cOk() { runpath("0:/update.ks"). }
+
 // set these values ahead of launch
-GLOBAL NEW_NAME IS "Duna Lander 1".
-GLOBAL SAT_AP IS 125000.
-GLOBAL SAT_PE IS 125000.
+GLOBAL NEW_NAME IS "Heat 3 Transfer Stage".
+GLOBAL SAT_AP IS 120000.
+GLOBAL SAT_PE IS 120000.
 GLOBAL SAT_I IS 0.
 GLOBAL SAT_LAN IS -1.
 GLOBAL SAT_W IS -1.
@@ -33,7 +35,7 @@ IF rm < 0 {
   RUNPATH("0:/lib_launch_geo.ks").
 
   LOCAL ap IS 85000.
-  IF SAT_PE < 125000 { SET ap TO SAT_PE. }
+  IF SAT_PE < 165000 { SET ap TO SAT_PE. }
   LOCAL launch_details IS calcLaunchDetails(ap,SAT_I,SAT_LAN).
   LOCAL az IS launch_details[0].
   LOCAL launch_time IS launch_details[1].
