@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestSpaceplane.ks v1.0.2 20210309").
+pOut("TestSpaceplane.ks v1.0.4 20210318").
 
 IF cOk() { RUNPATH("0:/update.ks"). }
 
@@ -14,23 +14,27 @@ FOR f IN LIST(
   "lib_orbit.ks",
   "lib_node.ks",
   "lib_runmode.ks",
-  "lib_reentry.ks"
+  "lib_reentry.ks",
+  "lib_parts.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL NEW_NAME IS "Spaceplane Test 19".
+GLOBAL NEW_NAME IS "Spaceplane Test 36".
 GLOBAL SPC_APOAPSIS_INCREMENT IS 5000.
 GLOBAL SPC_APOAPSIS_MULT IS 1.
 GLOBAL SPC_MAX_APOAPSIS IS BODY:ATM:HEIGHT+20000.
 GLOBAL SPC_MIN_APOAPSIS IS BODY:ATM:HEIGHT+10000.
 GLOBAL SPC_MID_APOAPSIS IS (BODY:ATM:HEIGHT / 2) - SPC_APOAPSIS_INCREMENT.
 GLOBAL SPC_MIN_SWITCH_VEL IS 1000.
-GLOBAL SPC_ASCENT_PITCH_ANGLE IS 6.75.
+GLOBAL SPC_ASCENT_PITCH_ANGLE IS 6.25.
 GLOBAL SPC_PITCH_ANGLE IS 0.
 GLOBAL SPC_INIT_ALT_RADAR IS 0.
 GLOBAL SPC_THROTTLE IS 0.
 GLOBAL SPC_HEADING IS 90.
 
-GLOBAL SPC_IMPACT_ADJUST IS 1.
+GLOBAL SPC_HAS_JATO IS FALSE. // jet-assisted take-off
+GLOBAL SPC_HAS_JASS IS FALSE. // jet-assisted supersonic
+
+GLOBAL SPC_IMPACT_ADJUST IS 1.5.
 GLOBAL SPC_RUNWAY_LAT IS -0.0486.
 GLOBAL SPC_RUNWAY_WEST_LNG IS mAngle(-74.7245).
 GLOBAL SPC_RUNWAY_EAST_LNG IS mAngle(-74.5). // TODO - this is a guess!
@@ -39,6 +43,14 @@ GLOBAL SPC_RUNWAY_EAST_LNG IS mAngle(-74.5). // TODO - this is a guess!
 FUNCTION steerSpaceplane
 {
   steerTo({ RETURN HEADING(SPC_HEADING,SPC_PITCH_ANGLE):VECTOR. }, { RETURN UP:VECTOR. }).
+}
+
+FUNCTION steerSpaceplaneAscent
+{
+  steerTo({ IF ALTITUDE < (BODY:ATM:HEIGHT / 3) AND SPC_THROTTLE > 0 {
+              RETURN HEADING(SPC_HEADING,SPC_PITCH_ANGLE):VECTOR.
+            } ELSE { RETURN SRFPROGRADE:VECTOR. } },
+          { RETURN UP:VECTOR. }).
 }
 
 FUNCTION steerSpaceplaneSurf
@@ -97,6 +109,17 @@ IF rm < 0 {
   pOut("Vessel class: " + oldName).
   pFuelLevels().
   pOut("Ascent pitch angle: " + SPC_ASCENT_PITCH_ANGLE + " degrees").
+
+  LOCAL jatoList IS SHIP:PARTSTAGGED("JATO").
+  IF jatoList:LENGTH > 0 {
+    pOut("Found " + jatoList:LENGTH + " JATO unit(s)").
+    SET SPC_HAS_JATO TO TRUE.
+  }
+  LOCAL jassList IS SHIP:PARTSTAGGED("JASS").
+  IF jassList:LENGTH > 0 {
+    pOut("Found " + jassList:LENGTH + " JASS unit(s)").
+    SET SPC_HAS_JASS TO TRUE.
+  }
   runMode(1).
 
 } ELSE IF rm = 1 {
@@ -110,7 +133,7 @@ IF rm < 0 {
   LOCK THROTTLE TO SPC_THROTTLE.
   SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
-  WAIT 3.
+  WAIT 10.
 
   SET SPC_PITCH_ANGLE TO 90 - VANG(SHIP:FACING:VECTOR, UP:VECTOR).
 
@@ -120,10 +143,21 @@ IF rm < 0 {
   STAGE.
   hudMsg("Engines on!").
 
-  WAIT 1.
+  WAIT 2.
 
   BRAKES OFF.
   hudMsg("Brakes off").
+
+  IF SPC_HAS_JATO {
+    WAIT UNTIL GROUNDSPEED > 10.
+    hudMsg("JATO").
+    FOR p IN SHIP:PARTSTAGGED("JATO") {
+      IF p:ISTYPE("ENGINE") AND NOT p:IGNITION AND NOT p:FLAMEOUT {
+        pOut("Triggering JATO unit").
+        p:ACTIVATE.
+      }
+    }
+  }
 
   UNTIL ALT:RADAR > (SPC_INIT_ALT_RADAR + 10) {
     LOCAL currentVelocity IS SHIP:VELOCITY:SURFACE:MAG.
@@ -139,6 +173,28 @@ IF rm < 0 {
   UNTIL APOAPSIS > SPC_MAX_APOAPSIS {
 
     LOCAL currentVelocity IS SHIP:VELOCITY:SURFACE:MAG.
+
+    IF SPC_HAS_JATO {
+      FOR p IN SHIP:PARTSTAGGED("JATO") {
+        IF p:ISTYPE("ENGINE") AND p:FLAMEOUT {
+          pOut("Ditching JATO unit").
+          decouplePart(p).
+        }
+      }
+
+      IF SHIP:PARTSTAGGED("JATO"):LENGTH = 0 { SET SPC_HAS_JATO TO FALSE. }
+    }
+
+    IF SPC_HAS_JASS {
+      FOR p IN SHIP:PARTSTAGGED("JASS") {
+        IF p:ISTYPE("ENGINE") AND p:FLAMEOUT {
+          pOut("Ditching JASS unit").
+          decouplePart(p).
+        }
+      }
+
+      IF SHIP:PARTSTAGGED("JASS"):LENGTH = 0 { SET SPC_HAS_JASS TO FALSE. }
+    }
 
     IF NOT airBreathing {
       IF SPC_THROTTLE > 0 {
@@ -181,7 +237,7 @@ IF rm < 0 {
         // TODO - switch engine mode/intakes rather than relying on action group
         TOGGLE AG1.
         SET airBreathing TO FALSE.
-        steerSpaceplaneSurf().
+        steerSpaceplaneAscent().
       }
     }
 
@@ -249,8 +305,8 @@ IF rm < 0 {
 
   IF NOT isSteerOn() { steerSun(). }
   WAIT UNTIL steerOk().
-
-  LOCAL next_alt IS BODY:ATM:HEIGHT+2500.
+  LOCAL alt_modifier IS MAX(2500,ROUND(MASS)*100).
+  LOCAL next_alt IS BODY:ATM:HEIGHT+alt_modifier.
   LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,next_alt,FALSE) +1.
   IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > next_alt {
     pOut("Warping until altitude " + next_alt + "m.").
@@ -277,7 +333,7 @@ IF rm < 0 {
   WAIT UNTIL PERIAPSIS < 0.
   hudMsg("Hit abort to take manual control").
   UNTIL runMode() <> 26 {
-    LOCAL impact_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,0,FALSE) +1.
+    LOCAL impact_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,MAX(0,PERIAPSIS),FALSE) +1.
     LOCAL impact_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP, impact_time)).
     
     LOCAL impact_lng IS mAngle(impact_spot:LNG).
