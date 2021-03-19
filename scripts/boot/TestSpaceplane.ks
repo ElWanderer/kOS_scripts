@@ -3,7 +3,7 @@
 IF NOT EXISTS("1:/init.ks") { RUNPATH("0:/init_select.ks"). }
 RUNONCEPATH("1:/init.ks").
 
-pOut("TestSpaceplane.ks v1.0.4 20210318").
+pOut("TestSpaceplane.ks v1.0.5 20210319").
 
 IF cOk() { RUNPATH("0:/update.ks"). }
 
@@ -18,7 +18,7 @@ FOR f IN LIST(
   "lib_parts.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL NEW_NAME IS "Spaceplane Test 36".
+GLOBAL NEW_NAME IS "Spaceplane Test 42".
 GLOBAL SPC_APOAPSIS_INCREMENT IS 5000.
 GLOBAL SPC_APOAPSIS_MULT IS 1.
 GLOBAL SPC_MAX_APOAPSIS IS BODY:ATM:HEIGHT+20000.
@@ -33,6 +33,9 @@ GLOBAL SPC_HEADING IS 90.
 
 GLOBAL SPC_HAS_JATO IS FALSE. // jet-assisted take-off
 GLOBAL SPC_HAS_JASS IS FALSE. // jet-assisted supersonic
+GLOBAL SPC_JASS_ACTIVE IS FALSE.
+GLOBAL SPC_JASS_MIN_VEL IS 240.
+GLOBAL SPC_JASS_MAX_VEL IS 320.
 
 GLOBAL SPC_IMPACT_ADJUST IS 1.5.
 GLOBAL SPC_RUNWAY_LAT IS -0.0486.
@@ -47,8 +50,12 @@ FUNCTION steerSpaceplane
 
 FUNCTION steerSpaceplaneAscent
 {
-  steerTo({ IF ALTITUDE < (BODY:ATM:HEIGHT / 3) AND SPC_THROTTLE > 0 {
-              RETURN HEADING(SPC_HEADING,SPC_PITCH_ANGLE):VECTOR.
+  steerTo({ IF SPC_THROTTLE > 0 {
+              IF ALTITUDE < (BODY:ATM:HEIGHT / 3) {
+                RETURN HEADING(SPC_HEADING,SPC_PITCH_ANGLE):VECTOR.
+              }
+              LOCAL progradePitch IS 90 - VANG(SRFPROGRADE:VECTOR, UP:VECTOR).
+              RETURN HEADING(SPC_HEADING, MAX(SPC_PITCH_ANGLE/2, MIN(SPC_PITCH_ANGLE,progradePitch))):VECTOR.
             } ELSE { RETURN SRFPROGRADE:VECTOR. } },
           { RETURN UP:VECTOR. }).
 }
@@ -70,10 +77,16 @@ FUNCTION basicLaunchCirc
   RETURN execNode(TRUE) AND PERIAPSIS > BODY:ATM:HEIGHT.
 }
 
+FUNCTION deorbitLongitude
+{
+  LOCAL massAdjust IS MASS / 10.
+  RETURN SPC_RUNWAY_WEST_LNG - (150 + massAdjust).
+}
+
 FUNCTION deorbitSpaceplaneNode
 {
   removeAllNodes().
-  LOCAL lng_diff IS mAngle(135 - SHIP:LONGITUDE).
+  LOCAL lng_diff IS mAngle(deorbitLongitude() - SHIP:LONGITUDE).
   LOCAL lng_speed IS (360/OBT:PERIOD) - (360/BODY:ROTATIONPERIOD).
   LOCAL m_time IS TIME:SECONDS + (lng_diff / lng_speed).
   LOCAL n IS nodeAlterOrbit(m_time,35000).
@@ -160,8 +173,7 @@ IF rm < 0 {
   }
 
   UNTIL ALT:RADAR > (SPC_INIT_ALT_RADAR + 10) {
-    LOCAL currentVelocity IS SHIP:VELOCITY:SURFACE:MAG.
-    SET SPC_PITCH_ANGLE TO MAX(SPC_PITCH_ANGLE, ((currentVelocity - 30) / 10)).
+    SET SPC_PITCH_ANGLE TO MIN(SPC_ASCENT_PITCH_ANGLE, MAX(SPC_PITCH_ANGLE, ((GROUNDSPEED - 30) / 10))).
     WAIT 0.
   }
 
@@ -185,15 +197,32 @@ IF rm < 0 {
       IF SHIP:PARTSTAGGED("JATO"):LENGTH = 0 { SET SPC_HAS_JATO TO FALSE. }
     }
 
-    IF SPC_HAS_JASS {
+    IF SPC_HAS_JASS AND NOT SPC_JASS_ACTIVE {
+      IF currentVelocity > SPC_JASS_MAX_VEL OR (currentVelocity > SPC_JASS_MIN_VEL AND currentVelocity < lastVelocity) {
+        FOR p IN SHIP:PARTSTAGGED("JASS") {
+          IF p:ISTYPE("ENGINE") AND NOT p:IGNITION AND NOT p:FLAMEOUT {
+            pOut("Activating JASS unit").
+            p:ACTIVATE.
+          }
+        }
+        SET SPC_JASS_ACTIVE TO TRUE.
+      }
+    }
+
+    IF SPC_HAS_JASS AND SPC_JASS_ACTIVE {
       FOR p IN SHIP:PARTSTAGGED("JASS") {
-        IF p:ISTYPE("ENGINE") AND p:FLAMEOUT {
-          pOut("Ditching JASS unit").
-          decouplePart(p).
+        IF p:ISTYPE("ENGINE") {
+          IF p:FLAMEOUT {
+            pOut("Ditching JASS unit").
+            decouplePart(p).
+          }
         }
       }
 
-      IF SHIP:PARTSTAGGED("JASS"):LENGTH = 0 { SET SPC_HAS_JASS TO FALSE. }
+      IF SHIP:PARTSTAGGED("JASS"):LENGTH = 0 { 
+        SET SPC_HAS_JASS TO FALSE.
+        SET SPC_JASS_ACTIVE TO FALSE.
+      }
     }
 
     IF NOT airBreathing {
@@ -319,7 +348,7 @@ IF rm < 0 {
   reentryRetract().
   PANELS OFF.
   steerSpaceplane().
-  runMode(26, 99).
+  runMode(26, 27).
 
 } ELSE IF rm = 26 {
 
@@ -344,10 +373,20 @@ IF rm < 0 {
     WAIT 0.5.
   }
 
+} ELSE IF rm = 27 {
+
   hudMsg("Ending Automatic Pilot!!").
   UNLOCK STEERING.
   UNLOCK THROTTLE.
+  hudMsg("SAS on").
   SAS ON.
+  runMode(28,99).
+
+} ELSE IF rm = 28 {
+  UNTIL runMode() <> 28 {
+    pOut("Latitude: " + ROUND(LATITUDE, 3)).
+    WAIT 1.
+  }
 
 } ELSE IF rm = 49 {
   steerSun().
