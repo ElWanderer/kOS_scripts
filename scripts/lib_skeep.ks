@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_skeep.ks v1.1.0 20161107").
+pOut("lib_skeep.ks v1.2.0 20170106").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -29,7 +29,8 @@ FUNCTION sepTime
   LOCAL u_time IS start_time.
   UNTIL listNearbyVessels(u_time) = 0 {
     SET u_time TO u_time + 60.
-    IF u_time - start_time > SHIP:OBT:PERIOD { RETURN 0. }
+    IF OBT:ECCENTRICITY > 1 { IF u_time - TIME:SECONDS > ETA:TRANSITION { RETURN 0. } }
+    ELSE IF u_time - start_time > OBT:PERIOD { RETURN 0. }
   }
   RETURN u_time.
 }

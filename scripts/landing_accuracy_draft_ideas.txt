@@ -1,0 +1,204 @@
+// This is a pile of ideas, not all of which are complete
+// This will not run!
+
+LOCAL landing_spot IS LATLNG(landing_lat, landing_lng).
+
+// -----------------------------------------------------------
+// STEP 1 - calculating where/when we need to start our burn
+// -----------------------------------------------------------
+
+// if v is the surface velocity at periapsis, which could be got from
+//  - SHIP:VELOCITY:SURFACE is the surface velocity now
+//  - VELOCITYAT(SHIP, periapsis_time):SURFACE.
+// then we can calculate the rough distance we will travel while
+// reducing the (horizontal) velocity to 0:
+
+LOCAL acc IS SHIP:AVAILABLETHRUST / MASS.
+LOCAL est_burn_dist IS v:SQRMAGNITUDE / (2 * acc).
+
+// e.g. 2000m/s at 20m/s^2 -> 100.0  km stopping distance
+//       500m/s at  5m/s^2 ->  25.0  km stopping distance
+//       150m/s at 25m/s^2 ->   0.45 km stopping distance
+
+// We want to start our modified constant altitude burn this far from the landing site
+// it would be worth checking if we pass this near to the landing site first!
+// We may also want to iterate along the predicted flightpath until we find where we are
+// this far away, so that we don't warp past it.
+
+// stopping time is given by v:MAG / acc
+LOCAL burn_time IS v:MAG / acc.
+
+// e.g. 2000m/s at 20m/s^2 -> 100s stopping time
+//       500m/s at  5m/s^2 -> 100s stopping time
+//       150m/s at 25m/s^2 -> 6s stopping time
+
+// NOTE - These functions assume constant acceleration, which is inaccurate. The same is
+//        true for our calculation of a suicide burn, but those are usually much shorter.
+//        To an extent, we mitigate this because we have to use some thrust downwards to
+//        counter gravity, but for long burns, we will probably overestimate the stopping
+//        distance and time. The consequence of that would be burning at reduced thrust,
+//        with higher fuel usage than a full-thrust burn.
+
+// the (curved) ground distance from our ship to the landing site (requires lib_geo.ks):
+LOCAL some_timestamp IS TIME:SECONDS.
+LOCAL dist_at_some_timestamp IS distAtTime(SHIP, BODY, landing_spot, some_timestamp).
+
+// However, we may need to take into account this time when calculating where the
+// landing site will be e.g. in 100s, a spot on Kerbin's equator moves about 17.5km
+// We could modify lib_geo.ks thus:
+
+// new function - modify a spot from it's current location by applying time_diff seconds
+// of rotation of the parent body
+FUNCTION spotRotated
+{
+  PARAMETER planet, spot, time_diff.
+  LOCAL new_lng IS mAngle(spot:LNG - (time_diff * 360 / planet:ROTATIONPERIOD)).
+  RETURN LATLNG(spot:LAT,new_lng).
+}
+
+// spotAtTime rewritten to use spotRotated
+FUNCTION spotAtTime
+{
+  PARAMETER planet,craft,u_time.
+
+  LOCAL spot IS planet:GEOPOSITIONOF(POSITIONAT(craft,u_time)).
+  RETURN spotRotated(planet, spot, u_time-TIME:SECONDS).
+}
+
+// new function - calculate the distance between two spots:
+//  - craft_spot is where the craft will be at the input timestamp
+//  - planet_spot is where the input spot will have rotated to in time_diff seconds 
+FUNCTION distAtTimeRotated
+{
+  PARAMETER craft,planet,spot,craft_time,time_diff.
+  LOCAL craft_spot IS spotAtTime(planet,craft,craft_time).
+  LOCAL planet_spot IS spotRotated(planet,spot,time_diff).
+  RETURN greatCircleDistance(planet,craft_spot, planet_spot).
+}
+
+// then use the new function:
+LOCAL pred_dist IS distAtTimeRotated(SHIP, BODY, landing_spot, some_timestamp, burn_time).
+
+// ah, but I've just realised we should take into account orientation - it's no good the spot
+// being the "right" distance away if it's actually behind us by that point
+
+ship_pos IS POSITIONAT(SHIP, some_timestamp).
+spot_pos IS spotRotated(BODY, landing_spot, some_timestamp-TIME:SECONDS):POSITION.
+// compare v to spot_pos - ship_pos, excluding the local up vector
+// that will require lib_slope.ks, to get spotDetails
+ship_spot IS spotRotated(BODY, BODY:GEOPOSITIONOF(ship_pos), some_timestamp-TIME:SECONDS).
+LOCAL ship_spot_details IS spotDetails(ship_spot:LAT, ship_spot:LNG).
+LOCAL ship_pos_up_v IS ship_spot_details[1].
+LOCAL spot_pos_h IS VXCL(ship_pos_up_v, spot_pos - ship_pos).
+LOCAL v_h IS VXCL(ship_pos_up_v, v).
+
+// can we stop before the spot?
+// * is the predicted distance greater than the estimated burn distance?
+// would it be efficient?
+// * more efficient the closer the two distances are
+// * more efficient the closer the two position vectors are
+// one way of combining this is (lower = better):
+LOCAL score IS (spot_pos_h - (est_burn_dist * v_h:NORMALIZED)):MAG.
+
+// -----------------------------------------------------------
+// STEP 2 - calculating our burn as we go
+// -----------------------------------------------------------
+
+// we can recalculate these values during the constant altitude burn
+// using bits provided by lib_lander_descent.ks
+//
+// we can compare the predicted distance to the burn distance to see if we are expecting to 
+// overshoot or undershoot
+
+// However,  we should also take into account our orientation and consider horizontal and
+// vertical velocities separately.
+//
+// This is potentially very confusing as the pitch angle and throttle are related -
+// dropping the throttle to avoid undershooting will result in pitching up to avoid
+// descending too fast, in which case we may decide we are going to overshoot and so
+// throttle back up again.
+//
+// Solution - calculate 1. what vertical acc. we need and 2. what horizontal acc. we want
+//            then plot a combination of pitch and throttle that will satisfy (1) and try to
+//            satisfy (2) as best as possible.
+
+// Note - I suggest we store calculated lander pitch in a global, LND_PITCH, instead of
+// calling the dedicated function
+
+// 1. Vertical acceleration:
+// these lines from landerPitch() in lib_lander_common.ks calculate this:
+LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
+LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
+LOCAL ship_v_acc IS LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED).
+
+// 2. Horizontal acceleration:
+// Firstly, to get a desired stopping distance from a current horizontal velocity:
+// est_burn_dist IS v_x2 / (2 * acc).
+// s = v^2 / 2a
+// a = v^2 / 2s
+
+// NOTE - initDescentValues() does this to calculate our current max acceleration:
+//LOCK LND_THRUST_ACC TO SHIP:AVAILABLETHRUST / MASS.
+// use our current predicted burn time to work out how far the landing spot will 
+// have rotated. This need not be super-accurate as body rotation is generally slow compared
+// to orbital velocity.
+LOCAL cur_h_acc IS (LND_THRUST_ACC * LND_THROTTLE) * COS(LND_PITCH). 
+// !!!WARNING!!! - divide by zero if pitch angle is 90!
+LOCAL cur_burn_time IS VXCL(UP:VECTOR,VELOCITY:SURFACE):MAG / cur_h_acc.
+LOCAL cur_pred_dist IS distAtTimeRotated(SHIP, BODY, landing_spot, TIME:SECONDS, cur_burn_time).
+
+// use the predicted distance between our current location and where we think the landing
+// site will be after the burn as our desired stopping distance
+LOCAL ship_h_acc IS v_x2 / (2 * cur_pred_dist).
+
+// Our maximum horizontal acceleration is constrained by the need to satisfy ship_v_acc
+LOCAL worst_p_ang IS 90.
+LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
+IF acc_ratio < 0 { SET worst_p_ang TO 0. }
+ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
+LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
+
+IF max_h_acc < ship_h_acc {
+  // we cannot accelerate horizontally as much as we want (or at all)
+  //  - use full throttle
+  //  - use the calculated worst case pitch angle
+  SET LND_THROTTLE TO 1.
+  SET LND_PITCH TO worst_p_ang.
+} ELSE {
+  // we can accelerate horizontally as much as we want
+  // calculate total required acceleration
+  LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
+  LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
+  LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
+  // TBD - this is very dumb as it assumes we can instantly rotate to the required pitch
+  //       angle. We can't, which may result in oscillations if a large change is required.
+  // We should improve this by taking into account the current pitch angle in some way
+  // It may be a good idea to use a PID loop (or multiple loops).
+  SET LND_THROTTLE TO des_throttle.
+  SET LND_PITCH TO des_pitch.
+}
+
+// So far we have assumed that we are travelling in the right direction to land at the
+// landing site, so all burns are purely surface retrograde. We must take into account
+// whether we are heading off to one side or the other...
+
+// Firstly, to take into account the planet's rotation, we should aim at:
+LOCAL landing_spot_rot IS spotRotated(BODY, landing_spot, cur_burn_time).
+
+// these two vectors tell us which way to the landing spot's predicted position, and
+// which way we are currently travelling:
+LOCAL des_h_v IS VXCL(UP:VECTOR,landing_spot_rot:POSITION).
+LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+
+// Trying to minimise VANG(des_h_v,cur_h_v) is our aim.
+
+// a very rough solution, that rotates the current velocity to (and then beyond) the desired
+// velocity vector:
+LOCAL calc_h_v IS ANGLEAXIS(2*VANG(des_h_v,cur_h_v), VCRS(cur_h_v, des_h_v)) * cur_h_v.
+// that may oscillate wildly - we could change the multiplier depending on how close we are
+// or introduce a deadband and/or introduce a PID loop.
+
+// put it all together
+LOCAL final_vector IS ANGLEAXIS(LND_PITCH,VCRS(VELOCITY:SURFACE,BODY:POSITION)) * -calc_h_v.
+
+// we then steer towards final_vector

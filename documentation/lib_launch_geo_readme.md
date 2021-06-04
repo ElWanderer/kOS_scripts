@@ -34,7 +34,7 @@ It is used widely to prevent various calculations throwing errors that would cra
 
 There is also a check that the latitude is not precisely `90` degrees (unlikely though this is), as inputting that into `TAN()` may cause a crash or push a huge number into a calculation.
 
-#### `etaToOrbitPlane(ascending_node, planet, target_orbit_LAN, target_orbit_inclination, current_latitude, current_longitude)`
+#### `etaToOrbitPlane(ascending_node, target_orbit_LAN, target_orbit_inclination, current_latitude, current_longitude)`
 
 Calculates the estimated time until the orbital plane described by the input `target_orbit_LAN` and `target_orbit_inclination` will pass over the point defined by the input `current_latitude` and `current_longitude`, going in the direction South to North if `ascending_node` is `TRUE`, North to South if it is `FALSE`.
 
@@ -57,11 +57,11 @@ ARCSIN() will return values between `-90` and `90`. If we are interested in the 
       IF NOT is_AN { SET rel_lng TO 180 - rel_lng. }
 Now the hard/clever bit. We want to convert from a longitude relative to the orbit's `LAN`, to a geographical longitude relative to the planet. In kOS, `BODY:ROTATIONANGLE` gives you the angle between the universal reference vector and the body's zero longitude. Subtracting `BODY:ROTATIONANGLE` from the orbit's `LAN` gives the current geographical longitude of the orbit's ascending node as it crosses the equator. Adding the calculated relative longitude for the point of the orbit that we're interested in to this gives the current geographical longitude of that point. As is standard, we call `mAngle()` to restrict the result to the range `0`-`360` degrees:
 
-      LOCAL geo_lng IS mAngle(target_orbit_LAN + rel_lng - planet:ROTATIONANGLE).
+      LOCAL geo_lng IS mAngle(target_orbit_LAN + rel_lng - BODY:ROTATIONANGLE).
 The rest is much easier. We have our current geographical longitude and the geographical longitude where the orbit plane meets our latitude. The angle between them will change predictably as the planet rotates. The time it will take for the planet to rotate us under the orbit plane is given by the difference in the longitudes, divided by `360`, multiplied by the planet's `ROTATIONPERIOD`:
 
       LOCAL node_angle IS mAngle(geo_lng - current_longitude).
-      SET eta TO (node_angle / 360) * planet:ROTATIONPERIOD.
+      SET eta TO (node_angle / 360) * BODY:ROTATIONPERIOD.
     }
     RETURN eta.
 
@@ -75,20 +75,16 @@ Returns `-1` if the craft's current latitude is too high for the input inclinati
 
 Otherwise returns `ARCSIN(COS(inclination) / COS(SHIP:LATITUDE))`. Note that there are two azimuth values, ascending and descending. The second value can be determined by subtracting the first from `180`.
 
-#### `planetSurfaceSpeedAtLat(planet, latitude)`
-
-We can calculate the speed of rotation of the planet's surface at the equator by dividing the circumference by the rotation period `2 * CONSTANT:PI * planet:RADIUS / planet:ROTATIONPERIOD`. To find the speed at a given latitude, we then multiply the result by `COS(latitude)`.
-
-#### `launchAzimuth(planet, azimuth, apoapsis)`
+#### `launchAzimuth(azimuth, apoapsis)`
 
 This calculates the launch azimuth (compass heading) that you would want to point in at launch. If you could instantly accelerate to launch velocity, this is the direction you would want to face. In practice, of course, this is not possible and the launch scripts bend the trajectory slightly to account for the change in latitude during launch.
 
 The input azimuth is the compass heading that the target orbit has as it passes over the craft. It is typically calculated by calling `azimuth(inclination)`.
 
 This is effectively a piece of triangular maths using vectors. We have three vectors:
-* a target orbit vector that points towards a heading of `azimuth` degrees, with a magnitude that is orbital velocity at the desired `apoapsis` (assuming a circular orbit), `SQRT(planet:MU/(planet:RADIUS + apoapsis))`.
-* the current 'orbital' velocity our craft has as a result of the rotation of the planet. In KSP, this has a heading of 90 degrees and a magnitude given by `planetSurfaceSpeedAtLat(planet,latitude)`
-* the vector we need to burn to get into the target orbit, which is the orbit vector minus the planet rotation vector
+* a target orbit vector that points towards a heading of `azimuth` degrees, with a magnitude that is orbital velocity at the desired `apoapsis` (assuming a circular orbit), `SQRT(BODY:MU/(BODY:RADIUS + apoapsis))`.
+* the current 'orbital' velocity our craft has as a result of the rotation of the planet. In KSP, this has a heading of 90 degrees and a magnitude given by `SHIP:GEOPOSITION:ALTITUDEVELOCITY(ALTITUDE):ORBIT:MAG`.
+* the vector we need to burn to get into the target orbit, which is the orbit vector minus the planet rotation vector.
 
 Rearranging this, we can calculate the delta-v required in the Easterly (x) and Northerly (y) axes, and from there determine the launch angle:
 
@@ -133,6 +129,8 @@ Returns a list containing the calculated launch azimuth and launch timestamp.
 
 #### `warpToLaunch(launch_time)`
 
-A simple wrapper around `doWarp()` that warps time forward until the calculated launch time.
+A wrapper around `doWarp()` that warps time forward until the calculated `launch_time`.
+
+Prior to calling `doWarp()`, the function triggers a slow warp and sets the warp mode to `RAILS`. It does this every `0.2` seconds until `WARPMODE = "RAILS"`. This is done to force rails warp instead of physics warp, which KSP prefers when a craft is first launched and the terminal has focus. The warp to `launch_time` could take a long time at 4x physics warp...
 
 Geoff Banks / ElWanderer

@@ -1,14 +1,17 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit.ks v1.0.3 20161108").
+pOut("lib_orbit.ks v1.2.0 20200417").
 
 RUNONCEPATH(loadScript("lib_node.ks")).
 
 FUNCTION calcTa
 {
   PARAMETER a, e, r.
-  LOCAL inv IS ((a * (1 - e^2)) - r)/ (e * r).
+  LOCAL inv IS ((a * (1 - e^2)) - r) / (e * r).
   IF ABS(inv) > 1 {
     hudMsg("ERROR: Invalid ARCCOS() in calcTa(). Rebooting in 5s.").
+    pOut("a: " + ROUND(a) + "m.").
+    pOut("e: " + ROUND(e,5) + ".").
+    pOut("r: " + ROUND(r) + "m.").
     WAIT 5. REBOOT.
   }
   RETURN ARCCOS( inv ).
@@ -25,8 +28,10 @@ FUNCTION posAt
   PARAMETER c, u_time.
   LOCAL b IS ORBITAT(c,u_time):BODY.
   LOCAL p IS POSITIONAT(c, u_time).
-  IF b <> BODY { SET p TO p - POSITIONAT(b,u_time). }
-  ELSE { SET p TO p - BODY:POSITION. }
+  
+  IF BODY <> SUN AND c = SHIP AND b:HASBODY AND b:BODY = BODY { SET p TO p - POSITIONAT(b,u_time). }
+  ELSE { SET p TO p - b:POSITION. }
+
   RETURN p.
 }
 
@@ -34,6 +39,7 @@ FUNCTION taAt
 {
   PARAMETER c, u_time.
   LOCAL o IS ORBITAT(c,u_time).
+  IF o:ECCENTRICITY = 0 { RETURN mAngle(o:TRUEANOMALY + (360 * (u_time-TIME:SECONDS) / o:PERIOD)). }
   LOCAL r IS posAt(c,u_time):MAG.
   LOCAL c_ta IS calcTa(o:SEMIMAJORAXIS,o:ECCENTRICITY,r).
   IF posAt(c,u_time+1):MAG < r { SET c_ta TO 360 - c_ta. }
@@ -86,15 +92,63 @@ FUNCTION nodeAlterOrbit
 
   LOCAL b IS ORBITAT(SHIP,u_time):BODY.
   LOCAL p IS posAt(SHIP,u_time).
-  LOCAL v IS velAt(SHIP,u_time).
-  LOCAL f_ang IS 90 - VANG(v,p).
+  LOCAL v0 IS velAt(SHIP,u_time).
+  LOCAL f_ang IS 90 - VANG(v0,p).
 
   LOCAL r IS p:MAG.
   LOCAL a1 IS (r + opp_alt + b:RADIUS) / 2.
 
   LOCAL v1 IS SQRT(b:MU * ((2/r)-(1/a1))).
-  LOCAL pro IS (v1 * COS(f_ang)) - v:MAG.
+  LOCAL pro IS (v1 * COS(f_ang)) - v0:MAG.
   LOCAL rad IS -v1 * SIN(f_ang).
   LOCAL n IS NODE(u_time, rad, 0, pro).
   RETURN n.
+}
+
+FUNCTION nodeFromVector
+{
+  PARAMETER v1, n_time IS TIME:SECONDS.
+  LOCAL s_pro IS velAt(SHIP,n_time).
+  LOCAL s_nrm IS VCRS(s_pro,posAt(SHIP,n_time)):NORMALIZED.
+  LOCAL s_rad IS VCRS(s_nrm,s_pro):NORMALIZED.
+  RETURN NODE(n_time, VDOT(v1,s_rad), VDOT(v1,s_nrm), VDOT(v1,s_pro:NORMALIZED)).
+}
+
+FUNCTION nodeToVector
+{
+  PARAMETER v1, n_time IS TIME:SECONDS.
+  RETURN nodeFromVector(v1 - velAt(SHIP,n_time),n_time).
+}
+
+FUNCTION firstTAAtRadius
+{
+  PARAMETER o, r.
+  LOCAL e IS o:ECCENTRICITY.
+  IF e > 0 AND e <> 1 AND r > 0 { RETURN calcTa(o:SEMIMAJORAXIS,e,r). }
+  ELSE { RETURN -1. }
+}
+
+FUNCTION secondTAAtRadius
+{
+  PARAMETER o, r.
+  LOCAL ta2 IS -1.
+  LOCAL ta1 IS firstTAAtRadius(o,r).
+  IF ta1 >= 0 { SET ta2 TO 360 - ta1. }
+  RETURN ta2.
+}
+
+FUNCTION secondsToAlt
+{
+  PARAMETER craft, u_time, t_alt, ascending.
+
+  LOCAL secs IS -1.
+  LOCAL o IS ORBITAT(craft,u_time).
+  LOCAL e IS o:ECCENTRICITY.
+  LOCAL t_ta IS -1.
+  IF t_alt > o:PERIAPSIS AND (t_alt < o:APOAPSIS OR e > 1) {
+    IF ascending { SET t_ta TO firstTAAtRadius(o,o:BODY:RADIUS + t_alt). }
+    ELSE { SET t_ta TO secondTAAtRadius(o,o:BODY:RADIUS + t_alt). }
+    SET secs TO secondsToTA(craft,u_time,t_ta).
+  }
+  RETURN secs.
 }

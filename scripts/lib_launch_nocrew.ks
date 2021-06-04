@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
-
-pOut("lib_launch_nocrew.ks v1.2.0 20161101").
+pOut("lib_launch_nocrew.ks v1.3.0 20171130").
 
 RUNONCEPATH(loadScript("lib_launch_common.ks")).
 
@@ -16,33 +15,16 @@ UNTIL rm = exit_mode
 {
   IF rm = 1 {
     killThrot().
-    LOCK THROTTLE TO 1.
-    steerLaunch().
+    launchLocks().
     runMode(2).
   } ELSE IF rm = 2 {
-    IF modeTime() > 3 {
-      doStage().
-      hudMsg("Liftoff!").
-      runMode(11).
-    }
+    launchIgnition(3).
+  } ELSE IF rm = 3 {
+    launchLiftOff(11).
   } ELSE IF rm = 11 {
-    launchSteerUpdate().
-    launchStaging().
-    IF APOAPSIS > ap {
-      LOCK THROTTLE TO 0.
-      pDV().
-      steerSurf().
-      runMode(12).
-    }
+    launchFlight(12).
   } ELSE IF rm = 12 {
-    IF ALTITUDE > BODY:ATM:HEIGHT {
-      steerOff().
-      PANELS ON.
-      launchCirc().
-      sepLauncher().
-      pDV().
-      runMode(exit_mode).
-    }
+    launchCoast(exit_mode,11).
   } ELSE {
     pOut("Unexpected run mode: " + rm).
     BREAK.

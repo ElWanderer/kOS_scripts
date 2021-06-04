@@ -96,21 +96,21 @@ If not specified the default value of `one_use` is `TRUE`.
 
 If not specified the default value of `overwrite` is `FALSE`.
 
-#### `transmitScience(one_use, wait_for_power, max_wait)`
+#### `transmitScience(one_use, wait_for_power_and_connection, max_wait)`
 
 This function transmits science from the science experiments on the active vessel. It will extend all extendable antennae on the active vessel prior to doing so. Note - it does not currently retract the antennae afterwards.
 
 If `one_use` is set to `FALSE`, only those experiments that can be re-run have their data transmitted i.e. one-shot experiments such as Goo Cannisters and the Science Junior will be left alone. If `one_use` is set to `TRUE`, all experiments containing data will have that data transmitted if possible.
 
-The power level is checked prior to transmitting each experiment's data. If there is not enough power for the transmission, the behaviour depends on the setting of `wait_for_power`. If `wait_for_power` is set to `FALSE`, the function will return `FALSE` immediately - no further experiments will be transmitted. If `wait_for_power` is set to `TRUE`, the function will loop until there is enough power. This loop is indefinite, but it can be broken if `max_wait` has been set to a positive number, once that number of seconds has elapsed since the function was first called. If the loop is broken due to `max_wait` being exceeded, the function will immediately return `FALSE` - no further experiments will be transmitted.
+The power level and the connection back to the KSC are checked prior to transmitting each experiment's data. If there is not enough power for the transmission, or there is no connection, the behaviour depends on the setting of `wait_for_power_and_connection`. If `wait_for_power_and_connection` is set to `FALSE`, the function will return `FALSE` immediately - no further experiments will be transmitted. If `wait_for_power_and_connection` is set to `TRUE`, the function will loop until there is both enough power and a connection. This loop is indefinite, but it can be broken if `max_wait` has been set to a positive number, once that number of seconds has elapsed since the function was first called. If the loop is broken due to `max_wait` being exceeded, the function will immediately return `FALSE` - no further experiments will be transmitted.
 
 Prior to each transmission, the time when the transmission is expected to have completed is calculated based on `timeReq(module)` and stored under `TIMES["SCI_TX"]`. Following the call to `txMod(module)` to fire off the actual transmission, the function will then wait until the stored time is passed. This is because after calling the `TRANSMIT()` function inside `txMod(module)`, kOS continues executing code and there is no obvious way to query KSP as to the status of the transmission. 
 
-The function returns `TRUE` if it did not encounter any problems.
+The function returns `TRUE` if it did not encounter any problems, though this does not necessarily imply that any science was actually transmitted.
 
 If not specified the default value of `one_use` is `TRUE`.
 
-If not specified the default value of `wait_for_power` is `TRUE`.
+If not specified the default value of `wait_for_power_and_connection` is `TRUE`.
 
 If not specified the default value of `max_wait` is `-1`.
 

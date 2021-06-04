@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_rcs_burn.ks v1.0.0 20170112").
+pOut("lib_rcs_burn.ks v1.1.1 20200930").
 
 FOR f IN LIST(
   "lib_rcs.ks",
@@ -16,8 +16,8 @@ FUNCTION rcsPartThrust
 {
   PARAMETER p.
 
-  IF p:NAME = "RCSBlock" { RETURN 1 - ABS(VDOT(p:FACING:STARVECTOR,FACING:VECTOR)). }
-  IF p:NAME = "linearRCS" { RETURN 2 * MAX(0,VDOT(p:FACING:VECTOR,-FACING:VECTOR)). }
+  IF p:NAME:CONTAINS("RCSBlock") { RETURN 1 - ABS(VDOT(p:FACING:STARVECTOR,FACING:VECTOR)). }
+  IF p:NAME:CONTAINS("linearRCS") { RETURN 2 * MAX(0,VDOT(p:FACING:VECTOR,-FACING:VECTOR)). }
   RETURN 0.
 }
 
@@ -30,11 +30,7 @@ FUNCTION rcsSetThrust
 
 FUNCTION rcsDV
 {
-  LOCAL fm IS 0.
-  FOR r IN SHIP:RESOURCES {
-    IF RCS_BURN_FUELS:CONTAINS(r:NAME) { SET fm TO fm + (r:AMOUNT * r:DENSITY). }
-  }
-  RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fm))).
+  RETURN (g0 * RCS_BURN_ISP * LN(MASS / (MASS-fuelMass(SHIP:RESOURCES,RCS_BURN_FUELS)))).
 }
 
 FUNCTION rcsPDV
@@ -69,7 +65,7 @@ FUNCTION rcsBurnNode
   UNTIL done OR NOT ok {
     doTranslation(n:DELTAV, burnThrottle(rcsBurnTime(n:DELTAV:MAG))).
 
-    IF VDOT(o_dv, n:DELTAV) < 0 { SET done TO TRUE. stopTranslation(). }
+    IF VDOT(o_dv, n:DELTAV) < 0 OR n:DELTAV:MAG <= RCS_DEADBAND { SET done TO TRUE. stopTranslation(). }
     ELSE IF rcsDV() < n:DELTAV:MAG { SET ok TO FALSE. stopTranslation(). }
 
     WAIT 0.
@@ -105,7 +101,7 @@ FUNCTION rcsExecNode
 
   IF s_dv >= n_dv {
     SET BURN_NODE_IS_SMALL TO TRUE.
-    LOCAL bt IS rcsBurnTime(n_dv, s_dv).
+    LOCAL bt IS rcsBurnTime(n_dv).
     pOut("Burn time: " + ROUND(bt,1) + "s.").
     warpCloseToNode(n,bt).
     pointNode(n).

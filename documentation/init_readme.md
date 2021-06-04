@@ -2,11 +2,14 @@
 
 There are currently two initialisation scripts with a shared library and a selector file. Previously, all this code was in a single library, but I felt it was worth separating out the (chunky) code I added for coping with multiple disk volumes to keep the file size down for the simpler version that only uses the local volume.
 
-All the boot scripts start out the first time by running the selector script from the archive. This copies over either `"0:/init.ks"` (single volume) or `"0:/init_multi.ks"` (multiple volumes) to `"1:/init.ks"`. The current method of selection is fairly simple: we loop through all the processors on the craft and count how many there are that
- * are powered up and
- * do not have a boot file set
+All the boot scripts start out the first time by running the selector script from the archive. This copies over either `"0:/init.ks"` (single volume) or `"0:/init_multi.ks"` (multiple volumes) to `"1:/init.ks"`. This is expected to take place on the launchpad where we should be guaranteed a connection to the archive, so no check on the connection is made beforehand. The current method of selection is: we loop through all the other processors on the craft and count how many there are that meet the following conditions:
+ * they are powered up
+ * they do not have a boot file set
+ * they are tagged appropriately (see below)
 
-This means that if you have two kOS CPUs set to run different boot scripts, neither will try to overwrite each other's disks, they will both use the single volume version of init. There would be competition if you had a third, non-booting volume, though: both active CPUs would load the multiple volume version and try to use the third disk as well as their own.
+The tagging requirement has a few choices. If the current processor has a tag of `MULTI`, any other processors whose tag is blank will be included in the count. If the current processor has a tag other than `MULTI`, any other processors will be included if they have the same tag. If the current processor has a blank tag, any other processors will be included if they also have blank tags.
+
+This means that if you have two kOS CPUs set to run different boot scripts, neither will try to overwrite each other's disks, they will both use the single volume version of init. There could be competition if you had a third, non-booting volume, though: both active CPUs would load the multiple volume version and try to use the third disk as well as their own. Part tags can be used to assign the third volume to either (or neither) CPU.
 
 Finally, each boot script then runs `"1:/init.ks"`. So on each subsequent boot after the first, it will go straight to running whatever init script it has locally.
 
@@ -34,6 +37,8 @@ We have the capability of running a ship-specific script. This uses the ship's n
       IF EXISTS (afp) { COPYPATH(afp,CRAFT_FILE). }
     }
     IF EXISTS(CRAFT_FILE) { RUNONCEPATH(CRAFT_FILE). }
+
+The craft file can be used to run any code, but one thing that is explicitly supported is adding to the `CRAFT_SPECIFIC` lexicon. For more details of how this can be used, see the `craft_specific_readme.md` document.
 
 Then we open a terminal and clear its screen ready for output:
 
@@ -85,7 +90,7 @@ A function delegate. This returns the time elapsed since the "STAGE" time was up
 
 #### `CRAFT_SPECIFIC`
 
-This is a lexicon. The idea is that craft-specific files can insert values (and even functions) into here for use elsewhere. Currently nothing has actually been implemented. There are some suggested uses in `issue #55`.
+This is a lexicon. Craft-specific files can insert values (and even functions) into here for use elsewhere. See the `craft_specific_readme.md` document for more details.
 
 #### `CRAFT_FILE`
 
@@ -93,9 +98,15 @@ The path of the locally-stored craft-specific file, if one exists.
 
 ### Function reference
 
+#### `cOk()`
+
+This function is a shorthand for `HOMECONNECTION:ISCONNECTED`. It will return `TRUE` if we have a connection back to the Kerbal Space Center, `FALSE` otherwise. This can then be used as a check prior to trying to access the archive.
+
 #### `loadScript(script_name, loud_mode)`
 
 This tries to copy `script_name` from the archive to one of the disk volumes on the ship. `init.ks` uses the processor's local volume (`"1:/"`), but `init_multi.ks` will loop through the available volumes (starting with `"1:/"`) until it finds one that has enough space to store the script being copied. If the file already exists, it does not re-copy the file.
+
+Before accessing the archive, the function waits for `cOk()` to return `TRUE`. This may mean a long pause in processing if there is no connection available, but without this check the script would crash.
 
 This will crash kOS if the file needs to be copied over but there is not enough space to store the file (currently it is assumed that we want to stop and debug - if we are missing a library then chances are we will crash shortly anyway).
 
@@ -153,16 +164,18 @@ This is intended for boot scripts/craft-specific scripts to set-up a specific li
 
 This function is run once on start-up. It will populate `VOLUME_NAMES` with a list of available volumes.
 
-The function will start by renaming the local volume `"Disk0"` if it doesn't already have a name, then set `VOLUME_NAMES` to a list containing just the name of this local volume. As far as I can tell, volumes typically start off with no name at all.
+The function will start by renaming the local volume `"{CPU part tag}D0"` if it doesn't already have a name, then set `VOLUME_NAMES` to a list containing just the name of this local volume. As far as I can tell, volumes typically start off with no name at all.
 
-Next, it loops through all the processors on the vessel, checking their volumes to see if they should be added to the list. Volumes are added if they:
- * are powered up and
- * do not have a boot file set
- * do not have a volume name that equals that of the local volume
+Next, it loops through all the processors on the vessel, checking their volumes to see if they should be added to the list. Volumes are added if their processor meets the following conditions:
+ * it is powered up
+ * it does not have a boot file set
+ * it is tagged appropriately (see below)
 
-These checks are designed to prevent the current volume from being added twice and from including any volumes that are in use by another processor. If you have a vessel with two CPUs it may be because you intend to divide it into two at some point, so giving each one a boot file prevents each CPU from trying to use the other's disk.
+The tagging requirement has a few choices. If the processor on which this script is running has a tag of `MULTI`, any other processors whose tag is blank will be included in the count. If the current processor has a tag other than `MULTI`, any other processors will be included if they have the same tag. If the current processor has a blank tag, any other processors will be included if they also have blank tags.
 
-Before being added to the list, each volume is renamed if it doesn't already have a name. Names are generated numerically: `"Disk1"`, `"Disk2"` etc.
+These checks are designed to prevent the current volume from being added twice and from including any volumes that are in use by another processor. If you have a vessel with two CPUs it may be because you intend to divide it into two at some point, so giving each one a boot file or different part tags prevents each CPU from trying to use the other's disk.
+
+Before being added to the list, each volume is renamed if it doesn't already have a name. Names are generated numerically: `"{CPU part tag}D1"`, `"{CPU part tag}D2"` etc. Note - this uses the part tag of the currently-running CPU (`CORE`), not the part on which the volume under consideration is located.
 
 #### `pVolumes() (init_multi.ks only)`
 
@@ -214,6 +227,8 @@ The default value for `log_file_path` is `"0:/log/_ship_name_.txt"` (with any sp
 
 If logging is enabled (i.e. `LOG_FILE` does not contain an empty string) write the input text to the log file.
 
+On the assumption that logging is to the archive, the function first calls `cOk()`. If this returns `FALSE` (indicating the archive is not accessible), no logging takes place.
+
 #### `pOut(text, write_MET_timestamp)`
 
 This is basically a wrapper around the `PRINT` command.
@@ -234,7 +249,7 @@ Prints the input text to the (centre/top of the) screen, with a duration of thre
 
 The default colour is `yellow`.
 
-The default size is `40`.
+The default size is `30`.
 
 #### `setTime(name, u_time)`
 

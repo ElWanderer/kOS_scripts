@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_launch_crew.ks v1.2.0 20161101").
+pOut("lib_launch_crew.ks v1.3.0 20171201").
 
 FOR f IN LIST(
   "lib_launch_common.ks",
@@ -7,19 +7,20 @@ FOR f IN LIST(
   "lib_parts.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL LCH_LES_ALT IS BODY:ATM:HEIGHT * 0.62.
+GLOBAL LCH_LES_ALT IS BODY:ATM:HEIGHT * 0.72.
 GLOBAL LCH_CHUTE_ALT IS BODY:ATM:HEIGHT * 0.3.
 
 FUNCTION fireLES
 {
-  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
-    p:GETMODULE("ModuleEnginesFX"):DOACTION("activate engine",TRUE).
+  FOR p IN LCH_LES_PARTS {
+    pOut("Firing LES").
+    fireEngine(p).
   }
 }
 
 FUNCTION jettisonLES
 {
-  FOR p IN SHIP:PARTSNAMED("LaunchEscapeSystem") {
+  FOR p IN LCH_LES_PARTS {
     pOut("Jettisoning LES").
     decouplePart(p).
   }
@@ -46,60 +47,34 @@ UNTIL rm = exit_mode
 {
   IF rm = 1 {
     killThrot().
-    WAIT 0.
-    LOCK THROTTLE TO 1.
-    steerLaunch().
+    launchLocks().
     runMode(2,21).
   } ELSE IF rm = 2 {
-    IF NOT isSteerOn() { steerLaunch(). }
-    IF modeTime() > 3 {
-      doStage().
-      hudMsg("Liftoff!").
-      runMode(11).
-    }
+    launchIgnition(3).
+  } ELSE IF rm = 3 {
+    launchLiftOff(11).
   } ELSE IF rm = 11 {
-    IF NOT isSteerOn() { steerLaunch(). }
-    launchSteerUpdate().
-    launchStaging().
-    IF APOAPSIS > ap {
-      killThrot().
-      pDV().
-      steerSurf().
-      runMode(12).
-    }
+    launchFlight(12).
   } ELSE IF rm = 12 {
-    IF ALTITUDE > BODY:ATM:HEIGHT {
-      steerOff().
-      PANELS ON.
-      launchCirc().
-      IF PERIAPSIS > BODY:ATM:HEIGHT {
-        sepLauncher().
-        pDV().
-        runMode(exit_mode,0).
-      } ELSE { runMode(21,0). }
-    }
+    launchCoast(exit_mode,11).
   } ELSE IF rm = 21 {
     killThrot().
-    WAIT 0.
-    steerOff().
-    IF hasLES() {
-      hudMsg("LAUNCH ABORT!", RED, 50).
-      fireLES().
-      decoupleByTag("FINAL").
-    } ELSE { hudMsg("MANUAL STAGING REQUIRED!", RED, 50). }
+    hudMsg("LAUNCH ABORT!", RED, 40).
+    IF hasLES() { fireLES(). }
+    ELSE { WAIT 0.1. }
+    decoupleByTag("FINAL").
+    steerSurf().
     runMode(22).
   } ELSE IF rm = 22 {
-    IF modeTime() > 6 {
+    IF modeTime() > 2 AND SHIP:AVAILABLETHRUST = 0 {
       steerSurf(FALSE).
-      IF hasLES() { JettisonLES(). }
       runMode(23).
     }
   } ELSE IF rm = 23 {
-    IF modeTime() > 6 { runMode(31). }
+    IF ALT:RADAR > 1000 { IF modeTime() > 5 { runMode(31). } }
+    ELSE IF modeTime() > 2 { runMode(31). }
   } ELSE IF rm = 31 {
-    IF ALTITUDE > LCH_CHUTE_ALT { steerSurf(FALSE). }
-    runMode(32).
-  } ELSE IF rm = 32 {
+    IF hasLES() { JettisonLES(). }
     IF ALTITUDE < LCH_CHUTE_ALT {
       steerOff().
       IF hasChutes() { hudMsg("Will deploy parachutes once safe."). }

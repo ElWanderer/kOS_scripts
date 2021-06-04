@@ -1,0 +1,231 @@
+// LOCAL our_pid IS PIDLOOP(Kp, Ki, Kd, min, max).
+
+// initial set-up:
+// GLOBAL LND_PID IS PIDLOOP(Kp, Ki, Kd, 0, 100).
+// during loop:
+// SET LND_PID:SETPOINT TO MIN_VS.
+// SET ship_v_acc TO LND_PID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED).
+
+
+// needs tuning...
+GLOBAL LND_PID IS PIDLOOP(2, 0.1, 0.5, 0, 10).
+
+FUNCTION constantAltitudeVec3
+{
+  CLEARVECDRAWS().
+pOut("constantAltitudeVec3").
+
+  LOCAL final_vector IS UP:VECTOR.
+  IF LND_THRUST_ACC = 0 { RETURN final_vector. }
+
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+  LOCAL des_h_v IS VXCL(UP:VECTOR,spot:POSITION).
+pOut("Distance to landing site: "+ROUND(des_h_v:MAG)+"m.").
+  LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+pOut("Horizontal velocity: " + ROUND(cur_h_v:MAG,1) + "m/s.").
+pOut("Vertical velocity: " + ROUND(SHIP:VERTICALSPEED,1) + "m/s.").
+
+  // display-only code
+  LOCAL spot_draw_v IS spot:ALTITUDEPOSITION(ALTITUDE).
+  LOCAL spot_dist_string IS ROUND(des_h_v:MAG/1000,1)+"km".
+  IF des_h_v:MAG < 1000 {
+    SET spot_dist_string TO ROUND(des_h_v:MAG)+"m".
+  }
+  VECDRAW(V(0,0,0), spot_draw_v, RGB(1,0,0), "Landing site "+spot_dist_string, 1, TRUE).
+  VECDRAW(spot_draw_v, spot:ALTITUDEPOSITION(spot:TERRAINHEIGHT)-spot_draw_v, RGB(1,0,0), "", 1, TRUE).
+  VECDRAW(V(0,0,0), VELOCITY:SURFACE, RGB(1,1,0), "Current vel", 1, TRUE).
+  // end of display
+
+  LOCAL v_xs2 IS VXCL(UP:VECTOR,VELOCITY:SURFACE):SQRMAGNITUDE.
+  LOCAL v_x2 IS VXCL(UP:VECTOR,VELOCITY:ORBIT):SQRMAGNITUDE.
+  LOCAL cent_acc IS v_x2 / (BODY:RADIUS + ALTITUDE).
+  LOCAL old_ship_v_acc IS MAX(0,LND_G_ACC - cent_acc + (LND_MIN_VS - SHIP:VERTICALSPEED)).
+pOut("old_ship_v_acc: " + ROUND(old_ship_v_acc,2) + "m/s^2.").
+
+  LOCAL ship_v_acc IS LND_PID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED).
+pOut("ship_v_acc: " + ROUND(ship_v_acc,2) + "m/s^2.").
+
+  LOCAL worst_p_ang IS 90.
+  LOCAL acc_ratio IS ship_v_acc / LND_THRUST_ACC.
+  IF acc_ratio < 0 { SET worst_p_ang TO 0. }
+  ELSE IF acc_ratio < 1 { SET worst_p_ang TO ARCSIN(acc_ratio). }
+  LOCAL max_h_acc IS LND_THRUST_ACC * COS(worst_p_ang).
+pOut("max_h_acc: " + ROUND(max_h_acc,2) + "m/s^2.").
+  LOCAL ship_h_acc IS v_xs2 / (2 * des_h_v:MAG).
+pOut("ship_h_acc: " + ROUND(ship_h_acc,2) + "m/s^2.").
+  LOCAL des_speed IS SQRT(des_h_v:MAG * max_h_acc) * 0.75.
+  IF des_h_v:MAG < 150 { SET des_speed TO SQRT(des_h_v:MAG). }
+
+  IF NOT LND_OVERSHOOT AND des_h_v:MAG > 1 AND VDOT(des_h_v:NORMALIZED, cur_h_v:NORMALIZED) < 0 {
+    hudMsg("OVERSHOOT mode.").
+    SET LND_OVERSHOOT TO TRUE.
+  } ELSE IF LND_OVERSHOOT AND VDOT(des_h_v:NORMALIZED, cur_h_v) > des_speed {
+    hudMsg("Ending OVERSHOOT mode.").
+    SET LND_OVERSHOOT TO FALSE.
+  }
+
+  LOCAL h_thrust_v IS V(0,0,0).
+  IF LND_OVERSHOOT {
+pOut("des_speed: " + ROUND(des_speed,1) + "m/s.").
+    SET h_thrust_v TO (des_speed * des_h_v:NORMALIZED) - cur_h_v.
+    LOCAL des_h_acc IS MIN(max_h_acc, h_thrust_v:MAG * 5).
+pOut("des_h_acc: " + ROUND(des_h_acc,2) + "m/s^2.").
+    LOCAL total_acc IS SQRT(ship_v_acc^2 + des_h_acc^2).
+    LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
+    LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(des_h_acc/total_acc))).
+    IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
+    SET LND_PITCH TO des_pitch.
+pOut("Pitch (overshoot case): " + LND_PITCH).
+
+  } ELSE {
+    IF ABS(max_h_acc) < ABS(ship_h_acc) {
+      IF LND_THROTTLE > 0 { SET LND_THROTTLE TO 1. }
+      SET LND_PITCH TO worst_p_ang.
+pOut("Pitch (worst case): " + LND_PITCH).
+    } ELSE {
+      LOCAL total_acc IS SQRT(ship_v_acc^2 + ship_h_acc^2).
+pOut("total_acc: " + ROUND(total_acc,2) + "m/s^2.").
+      LOCAL des_throttle IS MIN(1,total_acc / LND_THRUST_ACC).
+      LOCAL des_pitch IS MIN(90,MAX(0,ARCCOS(ship_h_acc/total_acc))).
+      IF LND_THROTTLE > 0 { SET LND_THROTTLE TO des_throttle. }
+      SET LND_PITCH TO des_pitch.
+pOut("Pitch (normal): " + LND_PITCH).
+    }
+
+    SET h_thrust_v TO ((cur_h_v:MAG - ship_h_acc) * des_h_v:NORMALIZED) - cur_h_v.
+  }
+
+  IF LND_PITCH < 90 AND h_thrust_v:MAG > 0 {
+    VECDRAW(V(0,0,0), 5 * h_thrust_v:NORMALIZED, RGB(0.3,0.3,1), "Horizontal thrust vector ", 1, TRUE).
+    SET final_vector TO ANGLEAXIS(LND_PITCH,VCRS(-h_thrust_v,BODY:POSITION)) * h_thrust_v.
+  }
+
+  VECDRAW(V(0,0,0), 5 * FACING:VECTOR, RGB(0,1,0), "Current facing", 1, TRUE).
+  VECDRAW(V(0,0,0), 10 * final_vector:NORMALIZED, RGB(0,0,1), "Desired facing", 1, TRUE).
+
+  LOCAL facing_dot IS VDOT(final_vector:NORMALIZED,FACING:VECTOR).
+pOut("Facing VDOT: " + ROUND(facing_dot,2)).
+  IF facing_dot < 0.8 AND LND_THROTTLE > 0 {
+    SET LND_THROTTLE TO MAX(0.01, LND_THROTTLE * facing_dot).
+  }
+pOut("Throttle: " + ROUND(LND_THROTTLE,2)).
+
+  RETURN final_vector.
+}
+
+FUNCTION doConstantAltitudeBurn2
+{
+  pOut("Preparing for constant altitude burn.").
+
+  SET LND_THROTTLE TO 0.
+  LOCK THROTTLE TO LND_THROTTLE.
+  LOCAL spot IS LATLNG(LND_LAT,LND_LNG).
+
+  LOCAL surface_g IS BODY:MU / BODY:RADIUS^2.
+  LOCAL min_safety_factor IS MAX(30,(10 * surface_g)).
+
+  WAIT UNTIL diffTime("LND_BURN_TIME") > -1 OR LND_OVERSHOOT.
+  pOut("Executing constant altitude burn.").
+  landerResetTimer().
+
+  SET LND_THROTTLE TO 1.
+  findMinVSpeed2(LND_VS_LIMIT,30,0.5,min_safety_factor).
+  SET LND_PID:SETPOINT TO LND_MIN_VS.
+  SET LND_PID:MAXOUTPUT TO LND_THRUST_ACC.
+  LOCAL done IS FALSE.
+  UNTIL done {
+    IF landerHeartbeat() > 0.5 {
+      landerResetTimer().
+      LOCAL safety_factor IS min_safety_factor.
+      LOCAL burn_time IS 20.
+      LOCAL step IS 1.
+
+      LOCAL cur_h_v IS VXCL(UP:VECTOR,VELOCITY:SURFACE).
+      LOCAL acc_v IS VXCL(UP:VECTOR,FACING:VECTOR * LND_THRUST_ACC * LND_THROTTLE).
+      LOCAL acc_dot IS VDOT(cur_h_v:NORMALIZED, -acc_v).
+      IF acc_dot > 0 { SET burn_time TO MIN(60,MAX(1,ROUND(cur_h_v:MAG / acc_dot))). }
+      LOCAL mod_vs IS SHIP:VERTICALSPEED - (surface_g *0.5).
+      IF mod_vs < 0 {
+        LOCAL max_acc IS LND_THRUST_ACC - surface_g.
+        LOCAL min_burn_dist IS mod_vs^2 / (2 * max_acc).
+        SET safety_factor TO MAX(min_burn_dist, safety_factor).
+      }
+      findMinVSpeed2(LND_VS_LIMIT,burn_time,step,safety_factor).
+      SET LND_PID:SETPOINT TO LND_MIN_VS.
+      SET LND_PID:MAXOUTPUT TO LND_THRUST_ACC.
+
+      LOCAL des_h_v IS VXCL(UP:VECTOR,LATLNG(LND_LAT,LND_LNG):POSITION).
+      LOCAL correction_dv IS 2 * cur_h_v:MAG * SIN(VANG(des_h_v, cur_h_v)/2).
+      LOCAL velocity_dv IS (VELOCITY:SURFACE:MAG * 1.1) + (surface_g * 15).
+      LOCAL precision_dv IS correction_dv + velocity_dv.
+pOut("Estimated delta-v required to land: " + ROUND(precision_dv,1) + "m/s.").
+pDV().
+IF stageDV() < velocity_dv { pOut("ERROR: not enough delta-v to land safely!"). }
+ELSE IF stageDV() < precision_dv { pOut("WARNING: switch to non-precision landing."). }
+// RETURN FALSE to switch to non-precise version...
+    }
+
+    IF GROUNDSPEED < 0.25 AND spot:ALTITUDEPOSITION(ALTITUDE):MAG < 5 {
+      SET done TO TRUE.
+      pOut("Groundspeed close to zero and near landing site.").
+      pOut("Ending constant altitude burn.").
+    }
+  }
+
+  SET LND_THROTTLE TO 0.
+  steerSurf(FALSE).
+  RETURN TRUE.
+}
+
+// add an extra run-mode, so if doConstantAltitudeBurn2 returns FALSE, we switch
+// to non-precision versions:
+
+  } ELSE IF rm = 233 {
+    steerTo(constantAltitudeVec3@).
+    LOCAL ok IS doConstantAltitudeBurn2().
+    CLEARVECDRAWS().
+    IF ok { runMode(235). } ELSE { runMode(234). }
+  } ELSE IF rm = 234 {
+    steerTo(nonPrecisionConstantAltitudeVec@).
+    doNonPrecisionConstantAltitudeBurn().
+    runMode(235).
+  } ELSE IF rm = 235 {
+    steerSurf(FALSE).
+    doSuicideBurn().
+    runMode(236).
+  } ELSE IF rm = 236 {
+    IF NOT isSteerOn() { steerSurf(FALSE). }
+    doSetDown().
+    runMode(exit_mode).
+
+
+// cut-down versions of the old constant-altitude-burn code:
+FUNCTION nonPrecisionConstantAltitudeVec
+{
+  RETURN ANGLEAXIS(landerPitch(),VCRS(VELOCITY:SURFACE,BODY:POSITION)) 
+         * VXCL(UP:VECTOR,-VELOCITY:SURFACE).
+}
+
+FUNCTION doNonPrecisionConstantAltitudeBurn
+{
+  SET LND_THROTTLE TO 1.
+  LOCK THROTTLE TO LND_THROTTLE.
+
+  pOut("Executing non-precision constant altitude burn.").
+  landerResetTimer().
+  SET LND_THROTTLE TO 1.
+  SET done TO FALSE.
+  UNTIL done {
+    IF landerHeartbeat() > 1 {
+      landerResetTimer().
+      findMinVSpeed(LND_VS_LIMIT,30,1).
+    }
+
+    IF GROUNDSPEED < 2 {
+      SET done TO TRUE.
+      pOut("Groundspeed close to zero; ending constant altitude burn.").
+    }
+  }
+
+  SET LND_THROTTLE TO 0.
+}

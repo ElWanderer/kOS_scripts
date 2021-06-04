@@ -14,8 +14,11 @@ The functions provided by this library allow for:
   * There is an exception that allows an emergency pitch-up if a rocket is in danger of passing apoapsis too soon.
 * staging off the launcher once in stable orbit
 
-There are always improvements that can be made, some of which are listed under [Issue #46](https://github.com/ElWanderer/kOS_scripts/issues/46):
+There are always improvements that can be made, some of which are listed under [Issue #46](https://github.com/ElWanderer/kOS_scripts/issues/46) / [Issue #93](https://github.com/ElWanderer/kOS_scripts/issues/93):
 * the pitch curve could change based on the TWR of the craft, rather than being fixed.
+* we could use an initial pitch-over velocity instead (or as well as) an altitude.
+* the pitch-over altitude/velocity and curve altitude could be set based on values in the CRAFT_SPECIFIC lexicon, if a craft-specific file exists.
+* the initial pitch is currently straight up, but this could be modified if a vessel is initialised at an angle (e.g. rotated 5 degrees for launch).
 * the launch trajectory could be improved to try to get into orbit on a single, continuous burn rather than the coast and circularise approach the launch libraries take.
 * handling for RSS/RO vessels could be added, allowing much longer between staging events so that engines have time to spool up, so that separation motors are not counted towards the "has our max thrust dropped?" check and so that we hold on the launch clamps until our thrust has built-up enough.
 
@@ -25,6 +28,14 @@ There are always improvements that can be made, some of which are listed under [
  * `lib_runmode.ks`
 
 ### Global variable reference
+
+#### `LCH_AP`
+
+The target apoapsis.
+
+Set by `launchAP()`.
+
+Initialised as `0`.
 
 #### `LCH_MAX_THRUST`
 
@@ -36,7 +47,7 @@ Initialised as `0`.
 
 The orbital velocity we will need at apoapsis to enter a circular orbit.
 
-Set by `launchInit()`.
+Set by `launchAP()`.
 
 Initialised as `0`.
 
@@ -84,7 +95,9 @@ Unlike most of the global variables in this library, this value could be changed
 
 The altitude at which any fairings will be deployed.
 
-The default value is 60% of the atmosphere height (`42`km on Kerbin).
+The default value is 75% of the atmosphere height (`52.5`km on Kerbin).
+
+Note - until recently this was 60% (`42`km), but it was raised to account for higher drag in the upper atmosphere in KSP v1.2.
 
 Unlike most of the global variables in this library, this value could be changed by modifying the script if so desired.
 
@@ -145,18 +158,26 @@ Sets `LCH_HAS_LES` according to whether we have a Launch Escape System (LES) or 
 
 The reliance on the ability to do actions (3rd level Vehicle Assembly Building or SpacePlane Hanger) comes about because activating the LES is an Action rather than an Event. We cannot activate the LES via staging as the normal staging sequence of a rocket will not fire the LES except when jettisoning it.
 
+#### `launchAP(apoapsis)`
+
+This function is called to set the target apoapsis and the orbital velocity that is required for a circular orbit at that altitude.
+
+It updates two launch settings:
+* `LCH_AP` is set to the input `apoapsis`.
+* `LCH_ORBIT_VEL` is set to the orbital velcoity need for a circular orbit at an altitude matching the input `apoapsis`.
+
 #### `launchInit(apoapsis, azimuth, inclination, pitchover_alt)`
 
 This function is called once when initiating a launch. It initialises quite a few launch settings:
 
-* `LCH_ORBIT_VEL` is set to the orbital velcoity need for a circular orbit at an altitude matching the input `apoapsis`.
-* `LCH_I` is set to the input `inclination`
+* `launchAP(apoapsis)` is called to set `LCH_AP` and `LCH_ORBIT_VEL`.
+* `LCH_I` is set to the input `inclination`.
 * `LCH_AN` is set to `TRUE` or `FALSE` depend on whether the input `azimuth` is a Northwards or Southwards compass bearing. Bearings of `90` and `270` are treated as Northwards if the active vessel's latitude is negative (below the Equator) and Southwards otherwise.
-* `LCH_PITCH_ALT` is set to the input `pitchover_alt`
-* `checkFairing()` and `checkLES()` are called to set `LCH_HAS_FAIRING` and `LCH_HAS_LES` appropriately
-* the maximum thrust is initialised as being `0` by calling `mThrust(0)`
+* `LCH_PITCH_ALT` is set to the input `pitchover_alt`.
+* `checkFairing()` and `checkLES()` are called to set `LCH_HAS_FAIRING` and `LCH_HAS_LES` appropriately.
+* two triggers are initialised to turn the RCS on and then off at set altitudes during launch, if the craft specific values `CRAFT_SPECIFIC["LCH_RCS_ON_ALT"]` and/or `CRAFT_SPECIFIC["LCH_RCS_OFF_ALT"]` have been defined. Note an alternative to setting an off altitude is to set `CRAFT_SPECIFIC["LCH_RCS_OFF_IN_ORBIT"]` to any value, though that is handled by the `launchCoast()` function.
 
-If the run mode has not been initialised yet (i.e. it is less than `0`), a HUD Message is displayed that we are about to laucnh, and the run mode set to `1` by calling `runMode(1)`.
+If the run mode has not been initialised yet (i.e. it is less than `0`), a HUD Message is displayed that we are about to launch, and the run mode set to `1` by calling `runMode(1)`.
 
 #### `launchStaging()`
 
@@ -182,6 +203,10 @@ This function will deploy the fairing if the deployment conditions are met. It i
 
 This function will not do anything until the `ALTITUDE` is above `LCH_FAIRING_ALT`. Then it will deploy any fairings that can be activated and set `LCH_HAS_FAIRING` to `FALSE`. The launch functions that call `launchFairing()` will only call it if `LCH_HAS_FAIRING` is `TRUE`.
 
+#### `launchExtend()`
+
+This function is expected to be called once per launch, once out of the atmosphere. It extends the solar panels and antennae.
+
 #### `sepLauncher()`
 
 This function is expected to be called once per launch, following circularisation. It exists to eject stages that were part of the launcher and so no longer required. This is done by staging rather than activating decouplers as my own designs include sepratrons to put the ejected stages back onto sub-orbital trajectories, thereby keeping Low Kerbin Orbit debris-free.
@@ -197,6 +222,65 @@ The velocity required to be in a circular orbit is given by `SQRT(BODY:MU/(BODY:
 We predict what our velocity will be at apoapsis by `VELOCITYAT(SHIP,m_time):ORBIT:MAG`.
 
 The difference between these values is the prograde delta-v required to circularise.
+
+The function returns `TRUE` if the manoeuvre node is executed successfully and the resultant orbit has a periapsis above the atmosphere. Otherwise it returns `FALSE`.
+
+#### `launchCoast(exit_mode, flight_mode)`
+
+This function represents the third and final stage of launch (coast to apoapsis, then circularisation). It is expected to be called repeatedly, following `launchFlight()`.
+
+Each tick, the altitude and apoapsis are checked to see if we have left the atmosphere, or if the apoapsis has dropped dangerously low due to atmospheric drag.
+
+If the altitude has risen above the atmosphere height:
+* `launchExtend()` is called to extend the solar panels and antennae.
+* `launchCirc()` is called to plot and execute a circularisation manoeuvre node.
+   * If the circularisation burn is successful:
+      * `sepLauncher()` is called to stage off any parts tagged `FINAL`.
+      * if `CRAFT_SPECIFIC["LCH_RCS_OFF_IN_ORBIT"]` is set to any value, RCS will be disabled.
+      * `runMode(exit_mode)` is called, which should cause control to return to the calling script.
+   * If the burn was not successful:
+      * `launchAP()` is called to increase the target apoapsis (`LCH_AP`) by `10`km. The current apoapsis is probably now behind the craft, so we need to redo the ascent steps.
+      * `launchLocks()` is called to engage steering to the launch vector and lock the throttle back to `1`.
+      * `runMode(flight_mode)` is called to switch the run mode back to that which calls `launchFlight()`. This means that we go back to the ascent routine that tries to raise the apoapsis beyond `LCH_AP`. This has code that will try to prevent the vertical speed dropping below 30m/s upwards, which will cause an immediate pitch-up if the craft is currently descending.
+
+Note - the sequence of actions following an unsuccessful burn assumes that the situation is recoverable e.g. because the burn was not perfectly timed, so the apoapsis got shifted around and the burn did not pull the periapsis up high enough. If something unrecoverable occurs, e.g. running out of all fuel, this is likely to get stuck looping through the ascent/flight mode until manually aborted.
+
+If the apoapsis drops below whichever is higher of `5`km below `LCH_AP` or `1`km above the atmosphere:
+* `launchAP()` is called to increase the target apoapsis (`LCH_AP`). This is done in the expectation that following a new burn to raise the apoapsis, drag will cause it to drop again, so the size of the increase is proportional to the difference between the current altitude and the atmosphere height.
+* `launchLocks()` is called to engage steering to the launch vector and lock the throttle back to `1`.
+* `runMode(flight_mode)` is called to switch the run mode back to that which calls `launchFlight()`. This means that we go back to the ascent routine that tries to raise the apoapsis beyond `LCH_AP`.
+
+#### `launchFlight(next_mode)`
+
+This function represents the second stage of launch (ascent/flight). It is expected to be called repeatedly, following `launchLiftOff()`.
+
+If the steering is unlocked, it will be locked to the launch vector (`steerLaunch()`).
+
+Each tick, three checks are made:
+
+* launchSteerUpdate() recalculates the pitch and heading:
+
+   * Launch is vertical until the radar altitude is greater than the input pitchover_altitude (default is `250`m), after which the craft will follow a pitch program that flattens out the pitch angle to `0` at the default altitude of `90`% of the atmosphere height (`63`km on Kerbin).
+
+   * During ascent, the craft will steer to maintain the calculated bearing (which changes with latitude) to enter orbit with the input inclination.
+
+* launchStaging() checks for thrust fluctuations that should trigger a staging event.
+
+* Once the apoapsis is larger than the target apoapsis (`LCH_AP`), the engines are cut (`killThrot()`), the steering is changed to follow surface prograde (`steerSurf()`) and the script jumps to the next run mode (runMode(`next_mode`)).
+
+#### `launchLiftOff(next_mode)`
+
+This function represents the first stage of launch. It is expected to be called repeatedly on the launchpad, following `launchLocks()`.
+
+If the steering is unlocked, it will be locked to the launch vector (`steerLaunch()`).
+
+If more than `3` seconds has elapsed since the last change in run mode, the function will initiate lift-off by calling `doStage()` and change the run mode to `next_mode`.
+
+#### `launchLocks()`
+
+This function represents a pre-launch set-up step. It is expected to be called on the launchpad, but can also be called later on if necessary.
+
+It locks the steering to the launch vector (`steerLaunch()`), updates the current maximum thrust to be zero (`mThrust(0)`) and locks the throttle to `1`.
 
 #### `launchBearing()`
 

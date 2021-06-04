@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_science.ks v1.1.0 20161110").
+pOut("lib_science.ks v1.2.1 20200917").
 
 RUNONCEPATH(loadScript("lib_ant.ks")).
 
@@ -7,6 +7,7 @@ GLOBAL SCI_LIST IS LIST().
 GLOBAL SCI_MIN_POW IS 10.
 GLOBAL SCI_MIT_RATE IS 3.
 GLOBAL SCI_EC_PER_MIT IS 6.
+GLOBAL SCI_TIMEOUT IS 15.
 
 listScienceModules().
 
@@ -59,7 +60,6 @@ FUNCTION doMod
   PARAMETER m.
   pOut("Collecting science from " + m:PART:TITLE).
   m:DEPLOY().
-  WAIT UNTIL m:HASDATA.
 }
 
 FUNCTION txMod
@@ -77,24 +77,32 @@ FUNCTION doScience
     IF m:DEPLOYED AND overwrite { resetMod(m). }
     IF NOT m:DEPLOYED { doMod(m). }
   }}
+  setTime("SCI_DEP").
+  FOR m IN SCI_LIST { IF NOT m:INOPERABLE AND (m:RERUNNABLE OR one_use) {
+    WAIT UNTIL m:HASDATA OR diffTime("SCI_DEP") > SCI_TIMEOUT.
+  }}
 }
 
 FUNCTION transmitScience
 {
-  PARAMETER one_use IS TRUE, wait_for_power IS TRUE, max_wait IS -1.
+  PARAMETER one_use IS TRUE, wait_pc IS TRUE, max_wait IS -1.
   extendAllAntennae().
-  setTime("SCI_START_TX").
-
   FOR m IN SCI_LIST { IF m:HASDATA AND (m:RERUNNABLE OR one_use) {
-    UNTIL powerOkay(m) {
-      IF NOT wait_for_power {
-        pOut("ERROR: Power too low to transmit science.").
-        RETURN FALSE.
+    pOut("Found science data to transmit in " + m:PART:TITLE).
+    setTime("SCI_START_TX").
+    LOCAL pOk IS powerOkay(m).
+    UNTIL pOk AND cOk() {
+      IF NOT wait_pc OR (max_wait > 0 AND diffTime("SCI_START_TX") > max_wait) {
+        IF NOT cOk() {
+          pOut("ERROR: No connection to transmit science.").
+          RETURN FALSE.
+        }
+        IF NOT pOk {
+          pOut("ERROR: Power too low to transmit science.").
+          RETURN FALSE.
+        }
       }
-      IF max_wait > 0 AND diffTime("SCI_START_TX") > max_wait {
-        pOut("ERROR: Science transmission timed out.").
-        RETURN FALSE.
-      }
+      SET pOk TO powerOkay(m).
     }
     setTime("SCI_TX", TIME:SECONDS + timeReq(m)).
     txMod(m).

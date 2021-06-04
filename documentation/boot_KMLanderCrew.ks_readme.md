@@ -2,7 +2,7 @@
 
 ## Kerbin Moon Crewed Lander boot script.
 
-WARNING: This boot script is unlike all the others. The mission steps do not include launch from Kerbin. The mission steps that do exist are activated through hitting `ABORT` once the lander has been powered-up and undocked from the 'mothership'. Because of this, it is recommended to have the kOS processor(s) on the lander powered off initially.
+WARNING: This boot script is unlike all the others. The mission steps do not include launch from Kerbin. The mission steps that do exist are activated through hitting `ABORT` once the lander has been powered-up and undocked from the 'mothership'. Because of this, the kOS processor on the lander will power itself off and will need rebooting following separation in orbit of the target body.
 
 WARNING: This has not been tested all the way through. From memory my one test flight saw the lander fall over after landing in a canyon.
 
@@ -12,7 +12,30 @@ The name is possibly mis-leading, as it could be used to land on any atmosphere-
 
 ### Disk space requirement
 
-Unknown.
+80000 bytes (actual use is about 76k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_ca.ks`
+* `lib_rendezvous.ks`
+* `lib_hoh.ks`
+* `lib_geo.ks`
+* `lib_skeep.ks`
+* `lib_lander_geo.ks`
+* `lib_lander_common.ks`
+* `lib_lander_descent.ks`
+* `lib_lander_ascent.ks`
 
 ### Script Parameters
 
@@ -30,7 +53,7 @@ The parameters of the target orbit can be specified by changing the global varia
 
 #### `NEW_NAME`
 
-On first boot, the ship will be renamed with this string.
+On being rebooted (i.e. any boot bar the first), the ship will be renamed with this string.
 
 #### `CORE_HEIGHT`
 
@@ -56,13 +79,19 @@ The apoapsis (in metres) to aim for during ascent from the target body.
 
 #### Init
 
+First boot is assumed to take place on the launchpad. All libraries are loaded onto the local hard drive(s). Then the processor is powered down, so as not to conflict with the launch and transfer, which is assumed to be controlled by a different processor.
+
+#### Reboot
+
+Once detached from the mothership in orbit of the target body, the CPU can be powered back up.
+
 The craft is renamed `NEW_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 
 The script will then wait until the `ABORT` button is pressed.
 
 #### Landing
 
-The script will attempt to land near the target co-ordinates as defined in the boot script. This is done by setting up a phasing orbit so that the target will pass underneath, lowering the periapsis until it is `SAFETY_ALT` above the target point then burning at the periapsis to kill horizontal velocity then descend to a touchdown.
+The script will attempt to land near the target co-ordinates as defined in the boot script. This is done by setting up a phasing orbit so that the target will pass underneath, lowering the periapsis until it is `SAFETY_ALT` above the target point, burning at the periapsis to kill horizontal velocity and finally descending vertically to a powered touchdown.
 
 #### Landed
 

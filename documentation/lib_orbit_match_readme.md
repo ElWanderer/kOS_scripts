@@ -58,7 +58,7 @@ Note - the vector angle calculation will always return a result that is `180` de
 
 The description here could use some of the diagrams I drew in my notebook when I was trying to understand this!
 
-#### `nodeFromVector(node_vector, n_time IS TIME:SECONDS)`
+#### `nodeFromVector(node_vector, universal_timestamp)`
 
 This function will generate a manoeuvre node to change the active vessel's velocity at `universal_timestamp` by the input `node_vector`. The vector is converted to prograde, radial-out and normal components, so that a node can be created.
 

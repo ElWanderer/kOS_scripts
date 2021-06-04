@@ -16,7 +16,19 @@ It tries to find a single liquid-fuel engine that has a decoupler attached that 
 
 Secondly, though the burn time may be calculated accurately, no attempt is currently made to account for wildly-different thrust levels. If a burn is expected to start off with a Swivel and end with an Ant, you may find that although the burn lasts the predicted length and provides the right amount of delta-v, most of that delta-v will have been produced early on in the burn. This can have undesired results such as pushing out the apoapsis too high then failing to bring the periapsis up out of the atmosphere.
 
+### Requirements
+
+ * `lib_parts.ks`
+
 ### Global variable reference
+
+#### `DV_PL`
+
+Holds a list of part IDs. Typically this is used to store which parts we have looked at to find fuel, so that we don't consider a part more than once.
+
+#### `DV_FM`
+
+Holds the fuel mass that was found. Typically this is calculated by one function, then used by others. 
 
 #### `DV_ISP`
 
@@ -26,6 +38,12 @@ Holds the thrust-weighted average Isp (specific impulse) calculated by looping t
 
 Holds the total fuel rate (in tonnes per second) of all the currently-ignited engines. Typically this is calculated by one function, then used by others.
 
+#### `DV_FUELS`
+
+Holds the default set of fuel resource names to look for when determining the fuel mass available. This is not expected to be changed, though potentially it could be overridden for other fuel types, particularly those added by other mods.
+
+This is set to the list: `LiquidFuel` and `Oxidizer`.
+
 ### Function reference
 
 #### `fuelRate(thrust, isp)`
@@ -33,6 +51,10 @@ Holds the total fuel rate (in tonnes per second) of all the currently-ignited en
 Returns the fuel rate (in tonnes per second) for the input thrust and Isp. Returns `0` if the input Isp is `0`, to avoid a divide-by-zero error.
 
 Fuel rate (the change in mass over time) can be calculated by dividing the total thrust by the effective exhuast velocty (`Ve`, given by `Isp * g0`).
+
+#### `currentStageEngines()`
+
+This returns a list of engines that are currently active. Engines are put into the return list if they are lit (`IGNITION` is `TRUE`) and have not flamed out (`FLAMEOUT` is `FALSE`).
 
 #### `btCalc(delta-v, initial_mass, isp, fuel_rate)`
 
@@ -88,16 +110,44 @@ The total fuel rate is calculated calling `fuelRate(thrust,isp)` for each active
 
 The thrust-weighted average Isp is more complicated. It is determined by dividing the total thrust of all active engines by the total `thrust over Isp` of all active engines: `Average Isp = Total(thrust) / Total(thrust/Isp)`
 
+#### `fuelMass(resource_list, fuel_name_list)`
+
+Given a `resource_list` (e.g. as returned by `STAGE:RESOURCES`, `SHIP:RESOURCES` or `specific_part:RESOURCES`), this function returns the total fuel mass of `fuel_name_list` contained within.
+
+If not specified, the default value for `fuel_name_list` is `DV_FUELS`, which in turn has a default value of `LIST("LiquidFuel","Oxidizer")`.
+
+#### `fuelMassChildren(part)`
+
+This is part of the recursive part tree search for fuel. This function only recurses *down* the parts tree.
+
+If the input `part` is a decoupler or its ID is already in the `DV_PL` list (indicating that the part has already been considered), no action is taken. Otherwise, there are three steps:
+* the ID of the part (`part:UID`) is added to the `DV_PL` list of parts
+* the fuel mass of the part (`fuelMass(part)`) is added to the `DV_FM` fuel mass tracker
+* the `fuelMassChildren()` function is called again for each child part of `part`
+
+#### `fuelMassFamily(part)`
+
+This is part of the recursive part tree search for fuel. This function primarily recurses *up* the parts tree towards the root part, but for each new part is also calls `fuelMassChildren()` on the children of that new part. This ensures that we cover all parts.
+
+If the input `part` is a decoupler or its ID is already in the `DV_PL` list (indicating that the part has already been considered), no further action is taken. Otherwise, there are three steps:
+* the ID of the part (`part:UID`) is added to the `DV_PL` list of parts
+* the fuel mass of the part (`fuelMass(part)`) is added to the `DV_FM` fuel mass tracker
+* the `fuelMassFamily()` function is called again for the parent part of `part`, if there is one (the root part has no parent)
+
 #### `stageDV()`
 
 Calculates the remaining delta-v of the current stage.
 
-This starts by calling `setIspFuelRate()` to determine the appropriate Isp for all the engines that are currently active. Next, we determine the dry mass (m1) of the stage:
+This starts by calling `setIspFuelRate()` to determine the appropriate Isp for all the engines that are currently active, and by clearing/resetting the global variables `DV_PL` and `DV_FM`.
 
-    LOCAL m1 IS MASS - ((STAGE:LIQUIDFUEL + STAGE:OXIDIZER) * 0.005)
-Note this assumes that KSP has determined the stage correctly, and that we're only interested in liquid fuel and oxidiser. We could expand this to cover other fuel types.
+Next, we determine the fuel mass of the stage. This is done in multiple ways: 
+ - 1) by getting all the currently-lit engines and passing them one-by-one into `fuelMassFamily()`. This does a walk of the parts tree to find fuel and puts the result into `DV_FM`. This doesn't follow fuel lines, so it will underestimate the fuel available if some fuel is beyond a decoupler but accessible via a pipe.
+ - 2) by passing `STAGE:RESOURCES` into `fuelMass()`. This relies on KSP to identify the stage correctly so it often returns `0` when there is fuel available.
+ - 3) by passing `SHIP:RESOURCES` into `fuelMass()`. If there are still stages to go, this will return too much fuel for the stage, so this is only done as a last resort if both steps 1 and 2 return `0`.
 
-This lets us calculate the delta-v via the Tsiolkovsky rocket equation: `delta-v = g0 * Isp * ln(m0 / m1)`
+Steps 1 and 2 are evaluated first and the larger value is taken to be the fuel mass to use. If both return `0` and the ship's available thrust is non-zero, step 3 is evaluated and used instead.
+
+This lets us calculate the delta-v via the Tsiolkovsky rocket equation: `delta-v = g0 * Isp * ln(m0 / m1)`, where `m1 = m0 - fuel mass`.
 
 #### `pDV()`
 

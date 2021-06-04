@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_orbit_match.ks v1.1.0 20161115").
+pOut("lib_orbit_match.ks v1.3.0 20200417").
 
 FOR f IN LIST(
   "lib_orbit.ks",
@@ -42,27 +42,6 @@ FUNCTION taAN
   LOCAL ang IS VANG(s_pos,nodes).
   IF VDOT(s_normal,VCRS(nodes,s_pos)) < 0 { SET ang TO 360 - ang. }
   RETURN mAngle(ang + taAt(SHIP,u_time)).
-}
-
-FUNCTION nodeFromVector
-{
-  PARAMETER vec, n_time IS TIME:SECONDS.
-  LOCAL s_pro IS velAt(SHIP,n_time).
-  LOCAL s_pos IS posAt(SHIP,n_time).
-  LOCAL s_nrm IS VCRS(s_pro,s_pos).
-  LOCAL s_rad IS VCRS(s_nrm,s_pro).
-
-  LOCAL pro IS VDOT(vec,s_pro:NORMALIZED).
-  LOCAL nrm IS VDOT(vec,s_nrm:NORMALIZED).
-  LOCAL rad IS VDOT(vec,s_rad:NORMALIZED).
-
-  RETURN NODE(n_time, rad, nrm, pro).
-}
-
-FUNCTION nodeToVector
-{
-  PARAMETER v1, n_time IS TIME:SECONDS.
-  RETURN nodeFromVector(v1 - velAt(SHIP,n_time),n_time).
 }
 
 FUNCTION nodeMatchAtNode
@@ -121,7 +100,7 @@ FUNCTION matchOrbitInc
     addNode(n1).
     LOCAL dv_req IS nodeDV(n1).
     pOut("Delta-v requirement: " + ROUND(dv_req,1) + "m/s.").
-    IF dv_req > limit_dv {
+    IF dv_req > limit_dv AND NOT (can_stage AND moreEngines()) {
       SET ok TO FALSE.
       pOut("ERROR: exceeds delta-v allowance ("+ROUND(limit_dv,1)+"m/s).").
     } ELSE { SET ok TO execNode(can_stage). }

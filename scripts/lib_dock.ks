@@ -1,12 +1,13 @@
 @LAZYGLOBAL OFF.
-pOut("lib_dock.ks v1.2.0 20161108").
+pOut("lib_dock.ks v1.4.0 20200806").
 
 FOR f IN LIST(
   "lib_rcs.ks",
-  "lib_steer.ks"
+  "lib_steer.ks",
+  "lib_draw.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-GLOBAL DOCK_VEL IS 1.
+GLOBAL DOCK_VEL IS 0.75.
 GLOBAL DOCK_DIST IS 50.
 GLOBAL DOCK_AVOID IS 10.
 GLOBAL DOCK_START_MONO IS 5.
@@ -14,42 +15,58 @@ GLOBAL DOCK_LOW_MONO IS 2.
 
 GLOBAL DOCK_POINTS IS LIST().
 GLOBAL DOCK_ACTIVE_WP IS V(0,0,0).
-GLOBAL S_FACE IS V(0,0,0).
 GLOBAL S_NODE IS V(0,0,0).
 GLOBAL T_FACE IS V(0,0,0).
+GLOBAL T_FACE_TOP IS V(0,0,0).
 GLOBAL T_NODE IS V(0,0,0).
 
 FUNCTION setupPorts
 {
   PARAMETER s_port, t_port.
-  LOCK S_FACE TO s_port:PORTFACING:VECTOR.
   LOCK S_NODE TO s_port:NODEPOSITION.
   LOCK T_FACE TO t_port:PORTFACING:VECTOR.
+  LOCK T_FACE_TOP TO t_port:PORTFACING:TOPVECTOR.
   LOCK T_NODE TO t_port:NODEPOSITION.
 }
 
 FUNCTION clearPorts
 {
-  UNLOCK S_FACE.
   UNLOCK S_NODE.
   UNLOCK T_FACE.
+  UNLOCK T_FACE_TOP.
   UNLOCK T_NODE.
+}
+
+FUNCTION getPortTypes
+{
+  PARAMETER portList.
+  LOCAL portTypes IS LIST().
+  FOR p IN portList { IF NOT portTypes:CONTAINS(p:NODETYPE) { portTypes:ADD(p:NODETYPE). } }
+  RETURN portTypes.
+}
+
+FUNCTION matchingPortTypes
+{
+  PARAMETER t1, t2.
+  LOCAL matchingTypes IS LIST().
+  LOCAL portTypes1 IS getPortTypes(readyPorts(t1)).
+  LOCAL portTypes2 IS getPortTypes(readyPorts(t2)).
+  LOCAL message IS "Matching port types:".
+  FOR pt IN portTypes1 { IF portTypes2:CONTAINS(pt) {
+    matchingTypes:ADD(pt).
+    SET message TO message + " " + pt.
+  } }
+  pOut(message).
+  RETURN matchingTypes.
 }
 
 FUNCTION readyPorts
 {
-  PARAMETER t.
+  PARAMETER t, f IS { PARAMETER p. RETURN TRUE. }.
   LOCAL ports IS LIST().
-  FOR p IN t:DOCKINGPORTS { IF p:STATE = "Ready" AND p:TAG <> "DISABLED" { ports:ADD(p). } }
+  FOR p IN t:DOCKINGPORTS { IF p:STATE = "Ready" AND p:TAG <> "DISABLED" AND f(p) { ports:ADD(p). } }
+  pOut(t:NAME + " has " + ports:LENGTH + " ready docking port(s).").
   RETURN ports.
-}
-
-FUNCTION hasReadyPort
-{
-  PARAMETER t.
-  LOCAL np IS readyPorts(t):LENGTH.
-  pOut(t:NAME + " has " + np + " available docking port(s).").
-  RETURN np > 0.
 }
 
 FUNCTION bestPort
@@ -72,17 +89,19 @@ FUNCTION bestPort
 
 FUNCTION selectOurPort
 {
-  PARAMETER t.
+  PARAMETER t, portTypeList.
+  LOCAL f IS { PARAMETER p. RETURN portTypeList:CONTAINS(p:NODETYPE). }.
   LOCAL fwd IS FACING:FOREVECTOR.
-  RETURN bestPort(readyPorts(SHIP),fwd,100 * fwd).
+  RETURN bestPort(readyPorts(SHIP, f),fwd,100 * fwd).
 }
 
 FUNCTION selectTargetPort
 {
-  PARAMETER t.
+  PARAMETER t, portType.
+  LOCAL f IS { PARAMETER p. RETURN portType = p:NODETYPE. }.
   LOCAL tp IS t:POSITION.
-  IF tp:MAG < DOCK_DIST { RETURN bestPort(readyPorts(t),-tp,-tp). }
-  ELSE { RETURN bestPort(readyPorts(t),VCRS(t:VELOCITY:ORBIT,tp-BODY:POSITION),-tp). }
+  IF tp:MAG < DOCK_DIST { RETURN bestPort(readyPorts(t, f),-tp,-tp). }
+  ELSE { RETURN bestPort(readyPorts(t, f),VCRS(t:VELOCITY:ORBIT,tp-BODY:POSITION),-tp). }
 }
 
 FUNCTION checkRouteStep
@@ -91,7 +110,7 @@ FUNCTION checkRouteStep
 
   FOR p IN t:PARTS {
     LOCAL ang IS VANG(p2-p1,p:POSITION-p1).
-    IF ang < 90 AND p:POSITION:MAG * SIN(ang) < DOCK_AVOID { RETURN FALSE. }
+    IF ang < 90 AND (p:POSITION-p1):MAG * SIN(ang) < DOCK_AVOID { RETURN FALSE. }
   }
   RETURN TRUE.
 }
@@ -101,7 +120,7 @@ FUNCTION activeDockingPoint
   PARAMETER t, do_draw IS TRUE, wait_then_blank IS -1.
   
   LOCAL ok IS TRUE.
-  IF do_draw { CLEARVECDRAWS(). }
+  IF do_draw { wipeVectors(). }
 
   LOCAL pos IS T_NODE.
   LOCAL count IS 1.
@@ -109,18 +128,18 @@ FUNCTION activeDockingPoint
   FOR p IN DOCK_POINTS {
     IF count = 1 OR checkRouteStep(t,pos+p,pos) { SET vec_colour TO RGB(0,0,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
-    IF do_draw { VECDRAW(pos + p,-p,vec_colour,"Waypoint " +  count,1,TRUE). }
+    IF do_draw { drawVector("Way" + count,pos + p,-p,"Waypoint " +  count,vec_colour). }
     SET pos TO pos + p.
     SET count TO count + 1.
   }
   IF do_draw {
     IF count = 1 OR checkRouteStep(t,S_NODE,pos) { SET vec_colour TO RGB(0,1,1). }
     ELSE { SET ok TO FALSE. SET vec_colour TO RGB(1,0,0). }
-    VECDRAW(S_NODE,pos - S_NODE,vec_colour,"Waypoint " + count + " (ACTIVE)",1,TRUE).
+    drawVector("Way" + count,S_NODE,pos - S_NODE,"Waypoint " + count + " (ACTIVE)",vec_colour).
   }
   IF do_draw AND wait_then_blank >= 0 {
     WAIT wait_then_blank.
-    CLEARVECDRAWS().
+    wipeVectors().
   }
   IF ok { SET DOCK_ACTIVE_WP TO pos. }
   RETURN ok.
@@ -205,10 +224,10 @@ FUNCTION dockingVelForDist
 {
   PARAMETER d.
   IF d < 0.1 { RETURN 0. }
-  ELSE IF d < 2 { RETURN 0.2. }
-  ELSE IF d < 5 { RETURN MIN(0.4,DOCK_VEL). }
-  ELSE IF d < 8 { RETURN MIN(0.6,DOCK_VEL). }
-  ELSE { RETURN DOCK_VEL. } 
+  ELSE IF d < 3 { RETURN 0.125. }
+  ELSE IF d < 8 { RETURN MIN(0.25,DOCK_VEL). }
+  ELSE IF d < 16 { RETURN MIN(0.5,DOCK_VEL). }
+  ELSE { RETURN DOCK_VEL. }
 }
 
 FUNCTION checkDockingOkay
@@ -252,8 +271,9 @@ FUNCTION followDockingRoute
     LOCAL rcs_vec IS (dockingVelForDist(pos_diff:MAG) * pos_diff:NORMALIZED) - v_diff.
 
     IF do_draw {
-      VECDRAW(S_NODE,5 * v_diff,RGB(1,0,0),"Relative velocity",1,TRUE).
-      VECDRAW(S_NODE,5 * rcs_vec,RGB(0,1,0),"Translate",1,TRUE).
+      drawVector("relv", S_NODE,5 * v_diff,"Relative velocity",RGB(1,0,0)).
+      IF rcs_vec:MAG > RCS_DEADBAND { drawVector("trans", S_NODE,10 * rcs_vec,"Translate",RGB(0,1,0)). }
+      ELSE { hideVector("trans"). }
     }
 
     IF v_diff:MAG < 0.1 AND pos_diff:MAG < 0.1 AND DOCK_POINTS:LENGTH > 0 {
@@ -271,7 +291,7 @@ FUNCTION followDockingRoute
     UNTIL v_diff:MAG < 0.1 OR SHIP:MONOPROPELLANT < 0.2 { doTranslation(-v_diff). }
   }
   stopTranslation().
-  IF do_draw { CLEARVECDRAWS(). }
+  IF do_draw { wipeVectors(). }
   RETURN ok.
 }
 
@@ -282,14 +302,15 @@ FUNCTION doDocking
   pOut("Preparing to dock with " + t:NAME).
   LOCAL ok IS TRUE.
 
-  IF NOT hasReadyPort(SHIP) OR NOT hasReadyPort(t) { RETURN FALSE. }
+  LOCAL portTypes IS matchingPortTypes(SHIP, t).
+  IF portTypes:LENGTH < 1 { RETURN FALSE. }
 
-  LOCAL s_port IS selectOurPort(t).
-  LOCAL t_port IS selectTargetPort(t).
+  LOCAL s_port IS selectOurPort(t, portTypes).
+  LOCAL t_port IS selectTargetPort(t, s_port:NODETYPE).
   setupPorts(s_port,t_port).
   s_port:CONTROLFROM. WAIT 0.
 
-  steerTo({ RETURN -T_FACE. }).
+  steerTo({ RETURN -T_FACE. }, { RETURN T_FACE_TOP. }).
   WAIT UNTIL steerOk().
   SET ok TO plotDockingRoute(s_port,t_port,do_draw).
 

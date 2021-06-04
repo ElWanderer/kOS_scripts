@@ -1,31 +1,30 @@
 @LAZYGLOBAL OFF.
-pOut("lib_ant.ks v1.0.0 20161110").
+pOut("lib_ant.ks v1.1.0 20170117").
 
 RUNONCEPATH(loadScript("lib_parts.ks")).
 
 GLOBAL ANT_TX_MOD IS "ModuleDataTransmitter".
-GLOBAL ANT_ANIM_MOD IS "ModuleAnimateGeneric".
+GLOBAL ANT_ANIM_MOD IS "ModuleDeployableAntenna".
 
-GLOBAL antCommStatus IS partModField@:BIND("Comm",ANT_TX_MOD).
+GLOBAL antCommStatus IS partModField@:BIND("Antenna State",ANT_TX_MOD).
 GLOBAL antAnimStatus IS partModField@:BIND("Status",ANT_ANIM_MOD).
-GLOBAL antExtend IS partEvent@:BIND("Extend",ANT_ANIM_MOD).
-GLOBAL antRetract IS partEvent@:BIND("Retract",ANT_ANIM_MOD).
+GLOBAL antExtend IS partEvent@:BIND("Extend Antenna",ANT_ANIM_MOD).
+GLOBAL antRetract IS partEvent@:BIND("Retract Antenna",ANT_ANIM_MOD).
 
-FUNCTION waitUntilIdle {
+FUNCTION antIdle {
   PARAMETER p.
-  WAIT UNTIL antAnimStatus(p) <> "Moving..." AND antCommStatus(p) = "Idle".
-}
-
-FUNCTION antToggle {
-  PARAMETER p.
-  RETURN antExtend(p) OR antRetract(p).
+  WAIT UNTIL LIST("Extended","Retracted"):CONTAINS(antAnimStatus(p)) AND antCommStatus(p) = "Idle".
 }
 
 FUNCTION doAllAnt {
   PARAMETER fl.
-  FOR m IN SHIP:MODULESNAMED(ANT_TX_MOD) { FOR f IN fl { f(m:PART). } }
+  FOR m IN SHIP:MODULESNAMED(ANT_ANIM_MOD) { FOR f IN fl { f(m:PART). } }
 }
 
 FUNCTION extendAllAntennae {
-  doAllAnt(LIST(waitUntilIdle@,antExtend,waitUntilIdle@)).
+  doAllAnt(LIST(antIdle@,antExtend,antIdle@)).
+}
+
+FUNCTION retractAllAntennae {
+  doAllAnt(LIST(antIdle@,antRetract,antIdle@)).
 }

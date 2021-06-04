@@ -10,7 +10,31 @@ Note 2 - unlike the `KMRescue.ks` script, this has not been programmed to allow 
 
 ### Disk space requirement
 
-This needs confirming, but the requirement is quite high as this script requires the orbit matching, rendezvous and docking libraries.
+90000 bytes (actual use is about 86k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_crew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_chutes.ks`
+* `lib_rcs.ks`
+* `lib_dock.ks`
+* `lib_ca.ks`
+* `lib_rendezvous.ks`
+* `lib_transfer.ks`
+* `lib_hoh.ks`
+* `lib_reentry.ks`
+* `lib_skeep.ks`
 
 ### Script Parameters
 
@@ -23,6 +47,10 @@ There is one adjustable parameter, that can be changed by editing the file:
 On first boot, the ship will be renamed with this string.
 
 ### Script Steps
+
+#### Initialisation
+
+All libraries are loaded onto the local hard drive(s).
 
 #### Wait for target selection
 

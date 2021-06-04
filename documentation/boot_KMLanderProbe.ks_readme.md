@@ -6,7 +6,36 @@ The purpose of this boot script is to launch an automated probe from Kerbin, lan
 
 ### Disk space requirement
 
-Unknown but presumed to be very, very high due to having to store the transfer and landing libraries all at the same time.
+95000 bytes (actual use is about 92k at the time of writing).
+
+### Libraries used
+
+* `lib_launch_geo.ks`
+* `lib_launch_common.ks`
+* `lib_launch_nocrew.ks`
+* `lib_burn.ks`
+* `lib_node.ks`
+* `lib_dv.ks`
+* `lib_steer.ks`
+* `lib_runmode.ks`
+* `lib_orbit.ks`
+* `lib_orbit_change.ks`
+* `lib_orbit_match.ks`
+* `lib_orbit_phase.ks`
+* `lib_parts.ks`
+* `lib_ant.ks`
+* `lib_chutes.ks`
+* `lib_ca.ks`
+* `lib_transfer.ks`
+* `lib_hoh.ks`
+* `lib_reentry.ks`
+* `lib_geo.ks`
+* `lib_science.ks`
+* `lib_skeep.ks`
+* `lib_lander_geo.ks`
+* `lib_lander_common.ks`
+* `lib_lander_descent.ks`
+* `lib_lander_ascent.ks`
 
 ### Script Parameters
 
@@ -59,6 +88,8 @@ The apoapsis (in metres) to aim for during ascent from the target body.
 ### Script Steps
 
 #### Init
+
+All libraries are loaded onto the local hard drive(s).
 
 The craft is renamed `SAT_NAME` and then logging enabled. Logging is not enabled earlier so that the log file name will be based around the new name rather than the old name.
 

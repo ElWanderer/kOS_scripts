@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("lib_reentry.ks v1.1.1 20161104").
+pOut("lib_reentry.ks v1.3.0 20171212").
 
 FOR f IN LIST(
   "lib_chutes.ks",
@@ -10,29 +10,10 @@ FOR f IN LIST(
   "lib_orbit.ks"
 ) { RUNONCEPATH(loadScript(f)). }
 
-FUNCTION pReentry
-{
-  LOCAL u_time IS TIME:SECONDS + 0.05.
-  LOCAL pe_eta IS secondsToTA(SHIP,u_time,0).
-  LOCAL pe_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time + pe_eta)).
-  LOCAL pe_lng IS mAngle(pe_spot:LNG - (pe_eta * 360 / BODY:ROTATIONPERIOD)).
-
-  LOCAL atm_eta IS secondsToAlt(SHIP,u_time,BODY:ATM:HEIGHT,FALSE).
-  LOCAL atm_spot IS BODY:GEOPOSITIONOF(POSITIONAT(SHIP,u_time + atm_eta)).
-  LOCAL atm_lng IS mAngle(atm_spot:LNG - (atm_eta * 360 / BODY:ROTATIONPERIOD)).
-
-  pOut("Re-entry orbit details:").
-  pOut("Inclination:  " + ROUND(SHIP:OBT:INCLINATION,1) + " degrees.").
-  pOut("Apoapsis:  " + ROUND(APOAPSIS) + "m.").
-  pOut("Periapsis: " + ROUND(PERIAPSIS) + "m.").
-  pOut("Longitude at atmospheric interface:  " + ROUND(atm_lng,1) + " degrees.").
-  pOut("Longitude at periapsis:              " + ROUND(pe_lng,1) + " degrees.").
-}
-
 FUNCTION deorbitNode
 {
   removeAllNodes().
-  LOCAL lng_diff IS mAngle(150 - SHIP:LONGITUDE).
+  LOCAL lng_diff IS mAngle(170 - SHIP:LONGITUDE).
   LOCAL lng_speed IS (360/OBT:PERIOD) - (360/BODY:ROTATIONPERIOD).
   LOCAL m_time IS TIME:SECONDS + (lng_diff / lng_speed).
   LOCAL n IS nodeAlterOrbit(m_time,29000).
@@ -40,39 +21,16 @@ FUNCTION deorbitNode
   RETURN TRUE.
 }
 
-// move these back to lib_orbit if anything else needs them
-FUNCTION firstTAAtRadius
+FUNCTION reentryExtend
 {
-  PARAMETER orb, r.
-  LOCAL e IS orb:ECCENTRICITY.
-  IF e > 0 AND e <> 1 AND r > 0 { RETURN calcTa(orb:SEMIMAJORAXIS,e,r). }
-  ELSE { RETURN -1. }
+  PANELS ON.
+  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") { modDo("Extend Antenna", m). }
 }
 
-FUNCTION secondTAAtRadius
+FUNCTION reentryRetract
 {
-  PARAMETER orb, r.
-  LOCAL ta2 IS -1.
-  LOCAL ta1 IS firstTAAtRadius(orb,r).
-  IF ta1 >= 0 { SET ta2 TO 360 - ta1. }
-  RETURN ta2.
-}
-
-FUNCTION secondsToAlt
-{
-  PARAMETER craft, u_time, t_alt. // metres
-  PARAMETER ascending.
-
-  LOCAL secs IS -1.
-  LOCAL orb IS ORBITAT(craft,u_time).
-  LOCAL e IS orb:ECCENTRICITY.
-  LOCAL t_ta IS -1.
-  IF t_alt > orb:PERIAPSIS AND (t_alt < orb:APOAPSIS OR e > 1) {
-    IF ascending { SET t_ta TO firstTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
-    ELSE { SET t_ta TO secondTAAtRadius(orb,orb:BODY:RADIUS + t_alt). }
-    SET secs TO secondsToTA(craft,u_time,t_ta).
-  }
-  RETURN secs.
+  PANELS OFF.
+  FOR m IN SHIP:MODULESNAMED("ModuleDeployableAntenna") { modDo("Retract Antenna", m). }
 }
 
 FUNCTION doReentry
@@ -99,7 +57,6 @@ FUNCTION doReentry
 UNTIL rm = exit_mode
 {
   IF rm = 51 {
-    pReentry().
     IF ALTITUDE > alt_stage {
       steerSun().
       runMode(52).
@@ -120,7 +77,6 @@ UNTIL rm = exit_mode
   } ELSE IF rm = 56 {
     IF ALTITUDE < alt_stage { runMode(60). }
   } ELSE IF rm = 60 {
-    pReentry().
     IF stages > 0 OR SHIP:PARTSTAGGED("FINAL"):LENGTH > 0 {
       steerNormal().
       runMode(64).
@@ -139,12 +95,12 @@ UNTIL rm = exit_mode
     } ELSE IF SHIP:PARTSTAGGED("FINAL"):LENGTH > 0 {
       IF STAGE:READY { doStage(). }
     } ELSE {
+      WAIT 10.
       steerOff().
-      WAIT 1.
       runMode(70).
     }
   } ELSE IF rm = 70 {
-    disarmChutes().
+    disarmChutes(FALSE).
     LOCAL warp_time IS TIME:SECONDS + secondsToAlt(SHIP,TIME:SECONDS+1,alt_atm,FALSE) +1.
     IF warp_time - TIME:SECONDS > 3 AND ALTITUDE > alt_atm {
       pOut("Warping until altitude " + alt_atm + "m.").
@@ -152,9 +108,15 @@ UNTIL rm = exit_mode
     }
     runMode(74).
   } ELSE IF rm = 74 {
-    IF ALTITUDE < alt_atm { runMode(76). }
+    IF ALTITUDE < alt_atm {
+      WHEN ALTITUDE < (BODY:ATM:HEIGHT * 0.99) THEN {
+        UNTIL WARPMODE = "PHYSICS" AND WARP > 0 { SET WARPMODE TO "PHYSICS". SET WARP TO 3. WAIT 0.2. }
+        WHEN ALT:RADAR < 1000 OR ALTITUDE > BODY:ATM:HEIGHT THEN { killWarp(). }
+      }
+      runMode(76).
+    }
   } ELSE IF rm = 76 {
-    PANELS OFF.
+    reentryRetract().
     steerSurf(FALSE).
     SET alt_atm TO BODY:ATM:HEIGHT.
     runMode(78).
@@ -174,7 +136,7 @@ UNTIL rm = exit_mode
     }
   } ELSE IF rm = 82 {
     pOut("Leaving atmosphere.").
-    PANELS ON.
+    reentryExtend().
     steerSun().
     LOCAL alt_atm_by_ecc IS BODY:ATM:HEIGHT + ROUND(SHIP:OBT:ECCENTRICITY,2) * 15000.
     SET alt_atm TO MIN(MAX(BODY:ATM:HEIGHT,APOAPSIS-500),alt_atm_by_ecc).
@@ -191,7 +153,6 @@ UNTIL rm = exit_mode
     IF hasChutes() { deployChutes(). }
     IF LIST("LANDED","SPLASHED"):CONTAINS(STATUS) {
       hudMsg("Touchdown.").
-      pOut("Touchdown longitude: " + ROUND(mAngle(SHIP:LONGITUDE),1) + " degrees.").
       runMode(exit_mode).
     }
   } ELSE {

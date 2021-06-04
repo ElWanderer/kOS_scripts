@@ -4,6 +4,17 @@
 
 This is currently a short library with helper functions for checking and triggering event modules, and for decoupling parts.
 
+### Global variable reference
+
+#### `PART_DECOUPLERS`
+
+This is a lexicon that maps known decoupler modules to the event required to trigger them.
+
+This is initialised as:
+* "ModuleDockingNode" -> "decouple node"
+* "ModuleDecouple" -> "decouple"
+* "ModuleAnchoredDecoupler" -> "decouple"
+
 ### Function reference
 
 #### `canEvent(event, part_module)`
@@ -32,23 +43,21 @@ Checks to see if the input `part` has a module named `module_name` and if so cal
 
 This function returns the contents of the module field if it exists, otherwise returns `-`.
 
-#### `decouplePart(part)`
+#### `isDecoupler(part)`
 
-This function decouples the input `part`, if necessary by recursing upwards through the part tree until a decoupler (which could be a docking port) is found.
+This function loops through all the modules of the input `part` and checks if any of them match the decoupler modules stored in `PART_DECOUPLERS`. That includes decouplers and docking ports.
 
-To save space, the logic has been compressed. Here's a slightly better-looking version:
+Returns `TRUE` if the part has a decoupler module, `FALSE` otherwise.
 
-    IF NOT (
-        partEvent("decouple node","ModuleDockingNode",      part)
-     OR partEvent("decouple",     "ModuleDecouple",         part)
-     OR partEvent("decouple",     "ModuleAnchoredDecoupler",part)
-    ) AND part:HASPARENT {
-      decouplePart(part:PARENT).
-    }
+#### `decouplePart(part, towards_root)`
 
-As kOS allows expression short-cutting, parts of the `IF` statement will stop being evaluated once the result is clear. We try each of the listed part events in turn and if one is found and triggered, `partEvent()` will return `TRUE`, so the first part of the expression will evaluate to `FALSE`, breaking out of the `IF` statement completely. If none of the listed part events are found, the first part of the expression will evaluate to `TRUE`. In that case, if the part has a parent we will call this function on that parent. This way, we recurse up through the parent of each parent until we find a part that is a decoupler, docking port etc.
+This function decouples the input `part`, if necessary by recursing upwards (and/or downwards) through the part tree until a decoupler is found.
 
-The root part has no parent. If we cannot find a decoupler, the function will end up at the root part, find it can traverse no further and exit cleanly (but silently).
+If `part` is a decoupler (i.e. `isDecoupler(part)` returns `TRUE`), the appropriate decouple event (as stored in `PART_DECOUPLERS`) is fired and the function exits.
+
+If `part` is not a decoupler, the function will continue to recurse through the parts tree:
+* If `towards_root` is `TRUE`, the function will try to recurse upwards by calling `decoupleRoot()` on the `PARENT` of `part`. If `part` has no parent (i.e. it is the root part), then it will instead call itself with the same `part`, but setting `towards_root` to `FALSE`. This will cause the recursion to go down the parts tree.
+* If `towards_root` is `FALSE`, the function will recurse downards by calling `decoupleRoot()` on each child part of `part`. This can potentially result in multiple decouplers being found and activated.
 
 #### `decoupleByTag(tag)`
 

@@ -43,7 +43,8 @@ The function returns the number of vessels found, i.e. `SKEEP_VESSELS:LENGTH`.
 
 This steps forward in time through the active vessel's current orbit until either:
 * there are no vessels predicted to be within `2.5`km i.e. `listNearbyVessels()` returns `0` or
-* an entire orbit has been processed.
+* an entire orbit has been processed, if the orbit is elliptical or
+* the time is now beyond the expected transition to the next sphere of influence, if the orbit is hyperbolic.
 
 The steps are one minute in length.
 
