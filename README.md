@@ -35,11 +35,10 @@ On the long-term plan:
 
 ### Documentation
 
-To keep the file-sizes down, most of the code is uncommented and many function parameters have very short names. Everything is documented separately in the documentation directory.
+To keep the file-sizes down, most of the code is uncommented and many function parameters have very short names. Most things are documented separately in the documentation directory, though I've got out of the habit of updating that :/
 
 ### About
 
-Written for kOS v1.1.0 and KSP v1.2.2.
-(currently being developed in kOS v1.1.5 / KSP v1.3.1, but the code should be compatible with the older versions)
+Written for kOS v1.3 and KSP v1.10
 
 ElWanderer / Geoff Banks
